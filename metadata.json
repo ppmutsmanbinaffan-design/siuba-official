@@ -1,0 +1,7 @@
+{
+  "name": "SIUBA - Sistem Presensi Terpadu Pesantren",
+  "description": "Sistem Informasi Utsman Bin Affan (SIUBA v1.1.4 STABLE) — Pusat Absensi Terpadu Santri & SDM Pesantren, Live QR & RFID Engine, Jurnal KBM, Pelatihan/Ekskul, Card Designer CR80, Report Center, dan Maintenance Hub",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
