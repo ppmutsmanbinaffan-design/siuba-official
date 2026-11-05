@@ -1,0 +1,74 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --color-primary-dark: #12372A;
+    --color-primary: #1F5C45;
+    --color-primary-medium: #2F7D5A;
+    --color-primary-light: #E8F3EE;
+
+    --color-accent: #C9A227;
+    --color-accent-hover: #B28E1D;
+    --color-accent-light: #FDF8E7;
+
+    --color-background: #F7F8F7;
+    --color-surface: #FFFFFF;
+
+    --color-border: #E5E7EB;
+
+    --color-text-primary: #1F2937;
+    --color-text-secondary: #6B7280;
+
+    /* Semantic tokens */
+    --color-success: #16A34A;
+    --color-success-light: #DCFCE7;
+    --color-warning: #D97706;
+    --color-warning-light: #FEF3C7;
+    --color-danger: #DC2626;
+    --color-danger-light: #FEE2E2;
+    --color-info: #2563EB;
+    --color-info-light: #DBEAFE;
+  }
+
+  html,
+  body,
+  #root {
+    width: 100%;
+    min-height: 100%;
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-text-primary);
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  *,
+  *::before,
+  *::after {
+    box-sizing: inherit;
+  }
+}
+
+/* Unified Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94A3B8;
+}
+
+

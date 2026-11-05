@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>SIUBA - Sistem Presensi Terpadu Pesantren</title>
+    <meta name="description" content="Sistem Informasi Utsman Bin Affan (SIUBA v1.1.4 STABLE) — Pusat Absensi Terpadu Santri & SDM Pesantren, Live QR & RFID Engine, Jurnal KBM, Pelatihan/Ekskul, Card Designer CR80, Report Center, dan Maintenance Hub" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#166534" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta property="og:title" content="SIUBA - Sistem Presensi Terpadu Pesantren" />
+    <meta property="og:description" content="Sistem Informasi Utsman Bin Affan (SIUBA v1.1.4 STABLE) — Pusat Absensi Terpadu Santri & SDM Pesantren" />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script type="module" crossorigin src="/assets/index-BHIHvDt8.js?v=20261102-11users"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-B4DQaMfC.css">
+  </head>
+  <body>
+    <div id="root"></div>
+    <script>
+      (function () {
+        // Otomatis sinkronisasi akun baru dan bersihkan cache lama jika akun panitia.psb belum ada
+        try {
+          var cu = localStorage.getItem('siuba_custom_users_v1');
+          if (cu && cu.indexOf('panitia.psb') === -1) {
+            localStorage.removeItem('siuba_custom_users_v1');
+          }
+          if ('caches' in window) {
+            caches.keys().then(function(names) {
+              names.forEach(function(name) {
+                if (name.indexOf('v1.14') === -1 && name.startsWith('siuba-static-')) {
+                  caches.delete(name);
+                }
+              });
+            });
+          }
+        } catch (e) {}
+
+        if ((window.location.pathname === '/' || window.location.pathname === '') && window.location.search.indexOf('app=1') === -1) {
+          window.location.replace('/beranda');
+          return;
+        }
+        function syncBackLink() {
+          var existing = document.getElementById('siuba-back-landing');
+          var isLogin = window.location.pathname === '/login' || window.location.pathname === '/masuk';
+          if (isLogin && !existing) {
+            var a = document.createElement('a');
+            a.id = 'siuba-back-landing';
+            a.href = '/beranda';
+            a.innerHTML = '&larr; Kembali ke Beranda';
+            a.style.cssText = 'position:fixed;top:16px;left:16px;z-index:9999;background:rgba(255,255,255,0.92);color:#0d331d;border:1px solid #d4d4d8;padding:7px 14px;border-radius:9999px;font-family:sans-serif;font-size:12px;font-weight:700;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,0.08);backdrop-filter:blur(8px);';
+            document.body.appendChild(a);
+          } else if (!isLogin && existing) {
+            existing.remove();
+          }
+        }
+        setInterval(syncBackLink, 400);
+        window.addEventListener('DOMContentLoaded', syncBackLink);
+
+        function injectSidebarCmsMenu() {
+          var navList = document.getElementById('nav-list');
+          if (!navList || document.getElementById('nav-btn-cms-landing')) return;
+
+          try {
+            var userStr = localStorage.getItem('siuba_auth_user') || sessionStorage.getItem('siuba_auth_user');
+            if (userStr) {
+              var u = JSON.parse(userStr);
+              var role = (u.role || '').toLowerCase();
+              var allowedRoles = ['super-admin', 'super_admin', 'admin', 'operator', 'pimpinan', 'kepala-sekolah', 'panitia-psb', 'panitia_psb', 'panitia-ppdb', 'panitia_ppdb'];
+              var userRoles = Array.isArray(u.roles) && u.roles.length > 0 ? u.roles.map(function(r){ return (r||'').toLowerCase(); }) : [role];
+              var canAccess = userRoles.some(function(r) { return allowedRoles.indexOf(r) !== -1; });
+              if (!canAccess) return;
+            }
+          } catch (e) {}
+
+          var wrapper = document.createElement('div');
+          wrapper.id = 'sidebar-cms-group';
+          wrapper.className = 'space-y-3 pt-2 border-t border-[#1a4a39]';
+          wrapper.innerHTML =
+            '<div class="space-y-1">' +
+              '<p class="px-2 text-[10px] font-bold uppercase tracking-wider text-emerald-300/50">PERANGKAT &amp; RFID</p>' +
+              '<a id="nav-btn-rfid-register" href="/registrasi-rfid" class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all min-h-[42px] cursor-pointer text-emerald-100/90 hover:bg-[#1a4a39] hover:text-white">' +
+                '<div class="flex items-center gap-2.5 truncate">' +
+                  '<span style="color:#34d399;font-size:15px;">&#128179;</span>' +
+                  '<span class="truncate">Registrasi Kartu RFID</span>' +
+                '</div>' +
+                '<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold shrink-0 bg-emerald-400/20 text-emerald-300 border border-emerald-400/30">RFID</span>' +
+              '</a>' +
+            '</div>' +
+            '<div class="space-y-1 pt-2 border-t border-[#1a4a39]">' +
+              '<p class="px-2 text-[10px] font-bold uppercase tracking-wider text-emerald-300/50">PENERIMAAN SANTRI BARU (PSB)</p>' +
+              '<a id="nav-btn-ppdb-admin" href="/manajemen-psb" class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all min-h-[42px] cursor-pointer text-emerald-100/90 hover:bg-[#1a4a39] hover:text-white">' +
+                '<div class="flex items-center gap-2.5 truncate">' +
+                  '<span style="color:#a3e635;font-size:15px;">&#127891;</span>' +
+                  '<span class="truncate">Manajemen PSB Santri</span>' +
+                '</div>' +
+                '<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold shrink-0 bg-lime-400/20 text-lime-300 border border-lime-400/30">PSB</span>' +
+              '</a>' +
+            '</div>' +
+            '<div class="space-y-1 pt-2 border-t border-[#1a4a39]">' +
+              '<p class="px-2 text-[10px] font-bold uppercase tracking-wider text-emerald-300/50">MANAJEMEN WEBSITE (CMS)</p>' +
+              '<div class="rounded-xl bg-[#0b291f]/70 border border-[#1a4a39] overflow-hidden">' +
+                '<div class="flex items-center justify-between px-3 py-2.5 text-xs font-bold text-emerald-100 hover:bg-[#1a4a39] transition-all">' +
+                  '<a id="nav-btn-cms-landing" href="/cms-landing" class="flex items-center gap-2.5 truncate flex-1">' +
+                    '<span style="color:#EADAA2;font-size:15px;">&#9998;</span>' +
+                    '<span class="truncate">CMS Landing Page</span>' +
+                  '</a>' +
+                  '<button type="button" onclick="var el=document.getElementById(\'cms-submenu-list\');if(el){el.classList.toggle(\'hidden\');}" class="px-2 py-0.5 rounded-full text-[10px] font-semibold shrink-0 bg-[#C9A227]/20 text-[#EADAA2] border border-[#C9A227]/30 cursor-pointer" title="Tampilkan Sub-Menu CMS">8 Sub &#9662;</button>' +
+                '</div>' +
+                '<div id="cms-submenu-list" class="px-2 pb-2 pt-1 space-y-0.5 border-t border-[#1a4a39]/70 text-[11px]">' +
+                  '<a href="/cms-landing?tab=tab-hero" class="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-emerald-100/80 hover:bg-[#1a4a39] hover:text-white transition"><span class="text-[#a3e635]">01.</span><span class="truncate">Hero &amp; Slide Berjalan</span></a>' +
+                  '<a href="/cms-landing?tab=tab-profile" class="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-emerald-100/80 hover:bg-[#1a4a39] hover:text-white transition"><span class="text-[#a3e635]">02.</span><span class="truncate">Profil, Sambutan &amp; Visi</span></a>' +
+                  '<a href="/cms-landing?tab=tab-programs" class="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-emerald-100/80 hover:bg-[#1a4a39] hover:text-white transition"><span class="text-[#a3e635]">03.</span><span class="truncate">Program Pendidikan</span></a>' +
+                  '<a href="/cms-landing?tab=tab-ppdb" class="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-emerald-100/80 hover:bg-[#1a4a39] hover:text-white transition"><span class="text-[#a3e635]">04.</span><span class="truncate">Info PPDB &amp; 2 Jenjang</span></a>' +
+                  '<a href="/cms-landing?tab=tab-facilities" class="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-emerald-100/80 hover:bg-[#1a4a39] hover:text-white transition"><span class="text-[#a3e635]">05.</span><span class="truncate">Fasilitas Pesantren</span></a>' +
+                  '<a href="/cms-landing?tab=tab-gallery" class="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-emerald-100/80 hover:bg-[#1a4a39] hover:text-white transition"><span class="text-[#a3e635]">06.</span><span class="truncate">Galeri &amp; Video Profil</span></a>' +
+                  '<a href="/cms-landing?tab=tab-news" class="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-emerald-100/80 hover:bg-[#1a4a39] hover:text-white transition"><span class="text-[#a3e635]">07.</span><span class="truncate">Berita &amp; Agenda</span></a>' +
+                  '<a href="/cms-landing?tab=tab-faq" class="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-emerald-100/80 hover:bg-[#1a4a39] hover:text-white transition"><span class="text-[#a3e635]">08.</span><span class="truncate">FAQ &amp; Kontak Resmi</span></a>' +
+                '</div>' +
+              '</div>' +
+              '<a href="/beranda" target="_blank" class="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-all cursor-pointer text-emerald-200/75 hover:bg-[#1a4a39] hover:text-white">' +
+                '<div class="flex items-center gap-2.5 truncate">' +
+                  '<span style="color:#6ee7b7;font-size:14px;">&#127760;</span>' +
+                  '<span class="truncate">Lihat Landing Page</span>' +
+                '</div>' +
+              '</a>' +
+            '</div>';
+          navList.insertBefore(wrapper, navList.firstChild);
+        }
+        setInterval(injectSidebarCmsMenu, 500);
+      })();
+    </script>
+  </body>
+</html>
+

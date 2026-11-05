@@ -1,0 +1,1132 @@
+<!doctype html>
+<html lang="id" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Portal Resmi PSB Santri Baru — Pondok Pesantren Utsman Bin Affan</title>
+
+  <!-- Google Fonts: Urbanist -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Google Material Symbols Rounded & FontAwesome 6 -->
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Urbanist', 'sans-serif'] },
+          colors: {
+            forest: { 950: '#071f12', 900: '#0d331d', 800: '#14492b', 700: '#1c633a' },
+            limeaccent: { 400: '#a3e635', 500: '#84cc16', 600: '#65a30d' }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: 'Urbanist', sans-serif; background-color: #f6f8f5; color: #0f2417; }
+    .material-symbols-rounded { font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 22; vertical-align: middle; }
+    .glass-card { background: rgba(13, 51, 29, 0.72); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.18); }
+    .fluid-section-title { font-size: clamp(1.05rem, 1.35vw + 0.45rem, 1.45rem); line-height: 1.25; letter-spacing: -0.01em; }
+    .section-menu-card {
+      background: linear-gradient(135deg, #ffffff 0%, #eef6f0 100%);
+      border: 1.5px solid #b7d1be;
+      border-left: 6px solid #14492b;
+      border-radius: 1.5rem;
+      box-shadow: 0 8px 24px -8px rgba(13, 51, 29, 0.08);
+    }
+  </style>
+</head>
+<body class="antialiased">
+
+  <!-- Top Navigation Bar -->
+  <header class="bg-forest-950 text-white sticky top-0 z-40 border-b border-white/10 shadow-lg">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <a href="/beranda" class="flex items-center gap-2 font-extrabold text-sm sm:text-base">
+          <span class="w-8 h-8 rounded-full bg-limeaccent-400 text-forest-950 flex items-center justify-center">
+            <span class="material-symbols-rounded text-[18px]">mosque</span>
+          </span>
+          <span>PSB Ponpes Utsman Bin Affan</span>
+        </a>
+        <span id="nav-badge-status" class="hidden sm:inline-block bg-limeaccent-400/20 text-limeaccent-400 border border-limeaccent-400/40 text-[11px] font-extrabold px-2.5 py-0.5 rounded-full">
+          GELOMBANG 1 BUKA
+        </span>
+      </div>
+
+      <nav class="hidden lg:flex items-center gap-5 text-xs font-bold text-white/80">
+        <a href="#jadwal" class="hover:text-limeaccent-400 transition">Jadwal &amp; Gelombang</a>
+        <a href="#jenjang" class="hover:text-limeaccent-400 transition">Program &amp; Kuota</a>
+        <a href="#syarat" class="hover:text-limeaccent-400 transition">Syarat &amp; Materi Tes</a>
+        <a href="#biaya" class="hover:text-limeaccent-400 transition">Biaya &amp; Beasiswa</a>
+        <a href="#cek-status" class="hover:text-limeaccent-400 transition">Cek Status Kelulusan</a>
+      </nav>
+
+      <div class="flex items-center gap-2">
+        <a href="/beranda" class="bg-white/10 hover:bg-white/20 text-white text-xs font-bold px-3.5 py-2 rounded-full flex items-center gap-1 transition">
+          <span class="material-symbols-rounded text-[16px]">arrow_back</span>
+          <span>Beranda</span>
+        </a>
+        <a href="#daftar-online" class="bg-limeaccent-400 hover:bg-limeaccent-500 text-forest-950 text-xs font-extrabold px-4 py-2 rounded-full flex items-center gap-1.5 shadow transition">
+          <span class="material-symbols-rounded text-[16px]">edit_document</span>
+          <span>Daftar Sekarang</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Banner PSB -->
+  <section class="max-w-7xl mx-auto px-4 sm:px-6 pt-5 pb-8">
+    <div class="relative rounded-3xl overflow-hidden bg-forest-950 text-white p-6 sm:p-10 lg:p-14 shadow-2xl">
+      <img
+        src="https://images.unsplash.com/photo-1584551246679-0daf3d275d0f?auto=format&fit=crop&w=1920&q=80"
+        alt="PSB Pondok Pesantren Utsman Bin Affan"
+        class="absolute inset-0 w-full h-full object-cover opacity-30"
+      />
+      <div class="absolute inset-0 bg-gradient-to-r from-forest-950 via-forest-950/90 to-forest-900/75"></div>
+
+      <div class="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+        <div class="lg:col-span-7 space-y-4">
+          <div class="inline-flex items-center gap-2 bg-limeaccent-400/20 border border-limeaccent-400/40 text-limeaccent-400 px-3.5 py-1 rounded-full text-xs font-extrabold uppercase tracking-wider">
+            <span class="w-2 h-2 rounded-full bg-limeaccent-400 animate-ping"></span>
+            <span id="p-status-badge">GELOMBANG 1 BUKA</span>
+            <span>&bull;</span>
+            <span id="p-academic-year">TAHUN AJARAN 2026 / 2027</span>
+          </div>
+
+          <h1 class="text-2xl sm:text-4xl lg:text-5xl font-extrabold leading-tight tracking-tight">
+            Penerimaan Santri Baru (PSB) SMP IT, SMA IT &amp; Takhassus Tahfidz
+          </h1>
+
+          <p id="p-quota-desc" class="text-xs sm:text-sm text-white/85 leading-relaxed max-w-2xl">
+            Terdiri dari 120 kursi jenjang SMP IT (60 Putra &amp; 60 Putri) dan 120 kursi jenjang SMA IT / Takhassus (60 Putra &amp; 60 Putri).
+          </p>
+
+          <div class="flex flex-wrap items-center gap-3 pt-2">
+            <a href="#daftar-online" class="bg-limeaccent-400 hover:bg-limeaccent-500 text-forest-950 font-extrabold text-xs sm:text-sm px-6 py-3 rounded-full flex items-center gap-2 shadow-lg transition">
+              <span>Isi Formulir Pendaftaran Online</span>
+              <span class="material-symbols-rounded text-[18px]">arrow_downward</span>
+            </a>
+            <a href="#cek-status" class="bg-white/15 hover:bg-white/25 text-white font-bold text-xs sm:text-sm px-5 py-3 rounded-full flex items-center gap-2 transition">
+              <span class="material-symbols-rounded text-limeaccent-400 text-[18px]">fact_check</span>
+              <span>Cek Status &amp; Hasil Seleksi</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Quick Summary Card -->
+        <div class="lg:col-span-5">
+          <div class="glass-card rounded-3xl p-5 sm:p-6 space-y-4 shadow-xl">
+            <div class="flex items-center justify-between border-b border-white/15 pb-3">
+              <div>
+                <span class="text-[11px] text-limeaccent-400 font-extrabold uppercase tracking-wider block">TOTAL KUOTA PENERIMAAN</span>
+                <span id="p-total-quota" class="text-2xl sm:text-3xl font-extrabold text-white">240 Kursi</span>
+              </div>
+              <span class="w-11 h-11 rounded-2xl bg-limeaccent-400 text-forest-950 flex items-center justify-center shadow-sm">
+                <i class="fa-solid fa-users text-lg"></i>
+              </span>
+            </div>
+
+            <div class="space-y-2 text-xs">
+              <div id="p-hero-waves-items" class="space-y-1.5">
+                <div class="flex justify-between items-center py-1.5 border-b border-white/10 gap-2">
+                  <span class="text-white/80 truncate flex items-center gap-1.5">
+                    <span>Gelombang I (Prestasi &amp; Reguler)</span>
+                    <span class="text-[9px] font-extrabold bg-limeaccent-400 text-forest-950 px-1.5 py-0.5 rounded-full shrink-0">Buka</span>
+                  </span>
+                  <span id="p-wave-1" class="font-extrabold text-limeaccent-400 shrink-0 text-right">01 Okt – 31 Des 2026</span>
+                </div>
+                <div class="flex justify-between items-center py-1.5 border-b border-white/10 gap-2">
+                  <span class="text-white/70 truncate">Gelombang II</span>
+                  <span id="p-wave-2" class="font-extrabold text-white shrink-0 text-right">01 Jan – 31 Mar 2027</span>
+                </div>
+              </div>
+              <div class="flex justify-between items-center py-1.5 border-b border-white/10 gap-2">
+                <span class="text-white/75 flex items-center gap-1.5">
+                  <i class="fa-solid fa-file-signature text-limeaccent-400/80 text-[11px]"></i>
+                  <span>Pelaksanaan Tes &amp; Wawancara</span>
+                </span>
+                <span id="p-test-schedule" class="font-extrabold text-white shrink-0 text-right">Setiap Sabtu</span>
+              </div>
+              <div class="flex justify-between items-center pt-1 gap-2">
+                <span class="text-white/75 flex items-center gap-1.5">
+                  <i class="fa-solid fa-door-open text-limeaccent-400/80 text-[11px]"></i>
+                  <span>Awal Masuk Asrama (MATSABA)</span>
+                </span>
+                <span id="p-boarding-entry" class="font-extrabold text-limeaccent-400 shrink-0 text-right">12 Juli 2027</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 1. JADWAL GELOMBANG & TIMELINE SELEKSI ==================== -->
+  <section id="jadwal" class="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+    <div>
+      <span class="text-xs font-extrabold uppercase tracking-wider text-forest-700">AGENDA RESMI PSB</span>
+      <h2 class="text-2xl sm:text-3xl font-extrabold text-forest-950 mt-1">Rincian Jadwal Gelombang &amp; Tahapan Seleksi</h2>
+    </div>
+
+    <div id="p-wave-grid" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <!-- Gelombang 1 Fallback -->
+      <div class="bg-white rounded-3xl p-6 sm:p-7 border-2 border-forest-800 shadow-md ring-4 ring-forest-800/5 space-y-4 relative overflow-hidden flex flex-col justify-between">
+        <div class="space-y-3.5">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-extrabold uppercase tracking-wide bg-limeaccent-400 text-forest-950 shadow-2xs">
+              <span class="w-2 h-2 rounded-full bg-forest-950 animate-pulse"></span>
+              <span>Pendaftaran Dibuka</span>
+            </span>
+            <span class="inline-flex items-center gap-1.5 text-xs font-bold text-forest-900 bg-forest-900/5 px-3 py-1 rounded-full">
+              <i class="fa-regular fa-calendar-days text-forest-700 text-xs"></i>
+              <span id="card-wave-1-date">01 Okt – 31 Des 2026</span>
+            </span>
+          </div>
+          <div>
+            <h3 class="text-lg sm:text-xl font-extrabold text-forest-950 tracking-tight leading-snug">
+              Gelombang I — Prestasi, Beasiswa &amp; Reguler
+            </h3>
+          </div>
+          <div class="space-y-2.5 text-xs sm:text-sm bg-zinc-50/80 p-3.5 rounded-2xl border border-zinc-200/60 mt-3">
+            <div class="flex items-center justify-between py-1 border-b border-zinc-200/60">
+              <span class="text-zinc-600 flex items-center gap-2 font-medium shrink-0">
+                <i class="fa-solid fa-file-pen text-forest-800 text-xs w-4 text-center"></i>
+                <span>Ujian Seleksi</span>
+              </span>
+              <span id="card-wave-1-test" class="font-extrabold text-forest-950 text-right truncate">Setiap Sabtu</span>
+            </div>
+            <div class="flex items-center justify-between py-1 border-b border-zinc-200/60">
+              <span class="text-zinc-600 flex items-center gap-2 font-medium shrink-0">
+                <i class="fa-solid fa-bullhorn text-forest-800 text-xs w-4 text-center"></i>
+                <span>Pengumuman Hasil</span>
+              </span>
+              <span id="card-wave-1-announce" class="font-extrabold text-forest-950 text-right truncate">3 Hari Setelah Tes</span>
+            </div>
+            <div class="flex items-center justify-between py-1">
+              <span class="text-zinc-600 flex items-center gap-2 font-medium shrink-0">
+                <i class="fa-solid fa-id-card-clip text-forest-800 text-xs w-4 text-center"></i>
+                <span>Batas Daftar Ulang</span>
+              </span>
+              <span id="card-wave-1-rereg" class="font-extrabold text-forest-950 text-right truncate">Maks. 14 Hari Setelah Lulus</span>
+            </div>
+          </div>
+          <div class="p-3 rounded-2xl bg-limeaccent-400/15 border border-limeaccent-400/30 text-forest-950 text-xs flex items-center gap-2 font-medium">
+            <i class="fa-solid fa-circle-check text-limeaccent-600 text-sm shrink-0"></i>
+            <span>One Day Service: Tes Al-Qur'an, Akademik &amp; Wawancara langsung dalam 1 hari.</span>
+          </div>
+        </div>
+        <div class="pt-3 border-t border-zinc-100 flex items-center justify-between mt-3">
+          <span class="text-[11px] font-bold text-emerald-800 flex items-center gap-1">
+            <i class="fa-solid fa-bolt text-limeaccent-600 text-xs"></i> Kuota Masih Terbuka
+          </span>
+          <a href="#daftar-online" class="bg-forest-950 hover:bg-forest-800 text-limeaccent-400 text-xs font-extrabold px-4 py-2 rounded-full flex items-center gap-1.5 shadow-xs transition">
+            <span>Daftar Sekarang</span>
+            <i class="fa-solid fa-arrow-right text-[10px]"></i>
+          </a>
+        </div>
+      </div>
+
+      <!-- Gelombang 2 Fallback -->
+      <div class="bg-white rounded-3xl p-6 sm:p-7 border border-zinc-200 shadow-xs space-y-4 relative overflow-hidden flex flex-col justify-between">
+        <div class="space-y-3.5">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-extrabold uppercase tracking-wide bg-forest-900 text-limeaccent-400">
+              <i class="fa-regular fa-clock text-[10px]"></i>
+              <span>Segera Dibuka</span>
+            </span>
+            <span class="inline-flex items-center gap-1.5 text-xs font-bold text-forest-900 bg-forest-900/5 px-3 py-1 rounded-full">
+              <i class="fa-regular fa-calendar-days text-forest-700 text-xs"></i>
+              <span id="card-wave-2-date">01 Jan – 31 Mar 2027</span>
+            </span>
+          </div>
+          <div>
+            <h3 class="text-lg sm:text-xl font-extrabold text-forest-950 tracking-tight leading-snug">
+              Gelombang II — Reguler (Jika Kuota Tersedia)
+            </h3>
+          </div>
+          <div class="space-y-2.5 text-xs sm:text-sm bg-zinc-50/80 p-3.5 rounded-2xl border border-zinc-200/60 mt-3">
+            <div class="flex items-center justify-between py-1 border-b border-zinc-200/60">
+              <span class="text-zinc-600 flex items-center gap-2 font-medium shrink-0">
+                <i class="fa-solid fa-file-pen text-forest-800 text-xs w-4 text-center"></i>
+                <span>Ujian Seleksi</span>
+              </span>
+              <span id="card-wave-2-test" class="font-extrabold text-forest-950 text-right truncate">Setiap Sabtu (Jan – Mar 2027)</span>
+            </div>
+            <div class="flex items-center justify-between py-1 border-b border-zinc-200/60">
+              <span class="text-zinc-600 flex items-center gap-2 font-medium shrink-0">
+                <i class="fa-solid fa-bullhorn text-forest-800 text-xs w-4 text-center"></i>
+                <span>Pengumuman Hasil</span>
+              </span>
+              <span id="card-wave-2-announce" class="font-extrabold text-forest-950 text-right truncate">3 Hari Setelah Tes</span>
+            </div>
+            <div class="flex items-center justify-between py-1">
+              <span class="text-zinc-600 flex items-center gap-2 font-medium shrink-0">
+                <i class="fa-solid fa-id-card-clip text-forest-800 text-xs w-4 text-center"></i>
+                <span>Batas Daftar Ulang</span>
+              </span>
+              <span id="card-wave-2-rereg" class="font-extrabold text-forest-950 text-right truncate">01 – 15 April 2027</span>
+            </div>
+          </div>
+          <div class="p-3 rounded-2xl bg-zinc-100 text-zinc-600 text-xs flex items-center gap-2 font-medium">
+            <i class="fa-solid fa-circle-info text-zinc-400 text-sm shrink-0"></i>
+            <span>Dibuka otomatis jika kuota Gelombang I belum terpenuhi.</span>
+          </div>
+        </div>
+        <div class="pt-3 border-t border-zinc-100 flex items-center justify-between mt-3 text-xs text-zinc-400 font-semibold">
+          <span class="italic">Pendaftaran dibuka bertahap</span>
+          <span class="bg-zinc-100 text-zinc-500 px-3 py-1 rounded-full text-[11px] font-bold">Segera Dibuka</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5-Step Alur Pendaftaran PSB -->
+    <div class="bg-white rounded-3xl p-6 sm:p-7 border border-zinc-200/80 shadow-xs">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+        <span class="text-xs font-extrabold uppercase tracking-wider text-forest-800 flex items-center gap-2">
+          <i class="fa-solid fa-route text-limeaccent-600"></i>
+          <span>ALUR PENDAFTARAN SANTRI BARU (5 TAHAP MUDAH)</span>
+        </span>
+        <span class="text-[11px] font-bold text-zinc-400">Proses Cepat &amp; Transparan</span>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5 border-t border-zinc-200/80 pt-5">
+        <div class="p-4 rounded-2xl bg-forest-50/60 border border-forest-900/10 space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] font-extrabold text-forest-800 uppercase px-2 py-0.5 rounded-full bg-forest-900/10">LANGKAH 01</span>
+            <span class="w-6 h-6 rounded-full bg-limeaccent-400 text-forest-950 font-extrabold text-[11px] flex items-center justify-center shadow-xs">1</span>
+          </div>
+          <h4 class="text-xs font-bold text-forest-950 leading-snug">Registrasi Online</h4>
+          <p class="text-[11px] text-zinc-500 leading-relaxed">Isi formulir online &amp; pilih jenjang pendidikan impian.</p>
+        </div>
+        <div class="p-4 rounded-2xl bg-zinc-50 border border-zinc-200/60 space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] font-extrabold text-zinc-500 uppercase px-2 py-0.5 rounded-full bg-zinc-200">LANGKAH 02</span>
+            <span class="w-6 h-6 rounded-full bg-zinc-200 text-zinc-700 font-extrabold text-[11px] flex items-center justify-center">2</span>
+          </div>
+          <h4 class="text-xs font-bold text-forest-950 leading-snug">Upload Berkas</h4>
+          <p class="text-[11px] text-zinc-500 leading-relaxed">Rapor 2 semester, KK, Akta Kelahiran &amp; Pas Foto santri.</p>
+        </div>
+        <div class="p-4 rounded-2xl bg-zinc-50 border border-zinc-200/60 space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] font-extrabold text-zinc-500 uppercase px-2 py-0.5 rounded-full bg-zinc-200">LANGKAH 03</span>
+            <span class="w-6 h-6 rounded-full bg-zinc-200 text-zinc-700 font-extrabold text-[11px] flex items-center justify-center">3</span>
+          </div>
+          <h4 class="text-xs font-bold text-forest-950 leading-snug">Tes Seleksi</h4>
+          <p class="text-[11px] text-zinc-500 leading-relaxed">Tes Al-Qur'an, tes akademik dasar &amp; wawancara wali santri.</p>
+        </div>
+        <div class="p-4 rounded-2xl bg-zinc-50 border border-zinc-200/60 space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] font-extrabold text-zinc-500 uppercase px-2 py-0.5 rounded-full bg-zinc-200">LANGKAH 04</span>
+            <span class="w-6 h-6 rounded-full bg-zinc-200 text-zinc-700 font-extrabold text-[11px] flex items-center justify-center">4</span>
+          </div>
+          <h4 class="text-xs font-bold text-forest-950 leading-snug">Pengumuman &amp; Daftar Ulang</h4>
+          <p class="text-[11px] text-zinc-500 leading-relaxed">Hasil seleksi terbit resmi &amp; konfirmasi daftar ulang santri.</p>
+        </div>
+        <div class="p-4 rounded-2xl bg-zinc-50 border border-zinc-200/60 space-y-2 sm:col-span-2 lg:col-span-1">
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] font-extrabold text-zinc-500 uppercase px-2 py-0.5 rounded-full bg-zinc-200">LANGKAH 05</span>
+            <span class="w-6 h-6 rounded-full bg-forest-900 text-limeaccent-400 font-extrabold text-[11px] flex items-center justify-center shadow-xs">5</span>
+          </div>
+          <h4 class="text-xs font-bold text-forest-950 leading-snug">Masuk Asrama</h4>
+          <p class="text-[11px] text-zinc-500 leading-relaxed">Penerbitan Smart Card SIUBA &amp; santri mukim di asrama.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 2. PILIHAN JENJANG PENDIDIKAN ==================== -->
+  <section id="jenjang" class="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+    <div>
+      <span class="text-xs font-extrabold uppercase tracking-wider text-forest-700">PILIHAN JENJANG PENDIDIKAN</span>
+      <h2 class="text-2xl sm:text-3xl font-extrabold text-forest-950 mt-1">Program Pendidikan Berasrama (Boarding 100%)</h2>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div class="bg-forest-950 text-white rounded-3xl p-6 sm:p-8 space-y-4 shadow-lg">
+        <div class="flex items-center justify-between">
+          <span id="p-smp-badge" class="bg-limeaccent-400 text-forest-950 text-xs font-extrabold px-3 py-1 rounded-full">Lulusan SD / MI</span>
+          <span id="p-smp-quota" class="text-xs font-bold text-limeaccent-400">Kuota: 120 Santri</span>
+        </div>
+        <h3 id="p-smp-title" class="text-xl sm:text-2xl font-extrabold">JENJANG SMP IT (BOARDING)</h3>
+        <p id="p-smp-desc" class="text-xs sm:text-sm text-white/80 leading-relaxed">
+          Fondasi Tahsin bersanad, Target Tahfidz 10–15 Juz, Bahasa Arab &amp; Inggris Aktif, serta Kurikulum Nasional.
+        </p>
+        <ul class="space-y-2 text-xs text-white/90 pt-3 border-t border-white/15">
+          <li class="flex items-center gap-2"><span class="material-symbols-rounded text-limeaccent-400 text-[16px]">check_circle</span> Asrama Putra &amp; Putri Terpisah dengan Pembinaan Musyrif/ah 24 Jam</li>
+          <li class="flex items-center gap-2"><span class="material-symbols-rounded text-limeaccent-400 text-[16px]">check_circle</span> Halaqah Tahfidz Pagi &amp; Ba&rsquo;da Maghrib + Ijazah Resmi Kemendikbud</li>
+          <li class="flex items-center gap-2"><span class="material-symbols-rounded text-limeaccent-400 text-[16px]">check_circle</span> Presensi Kartu Pintar RFID SIUBA (Masjid, Kelas, Asrama &amp; Ekskul)</li>
+        </ul>
+      </div>
+
+      <div class="bg-forest-900 text-white rounded-3xl p-6 sm:p-8 space-y-4 shadow-lg">
+        <div class="flex items-center justify-between">
+          <span id="p-sma-badge" class="bg-limeaccent-400 text-forest-950 text-xs font-extrabold px-3 py-1 rounded-full">Lulusan SMP / MTs</span>
+          <span id="p-sma-quota" class="text-xs font-bold text-limeaccent-400">Kuota: 120 Santri</span>
+        </div>
+        <h3 id="p-sma-title" class="text-xl sm:text-2xl font-extrabold">JENJANG SMA IT &amp; TAKHASSUS</h3>
+        <p id="p-sma-desc" class="text-xs sm:text-sm text-white/80 leading-relaxed">
+          Tahfidz 30 Juz Mutqin Bersanad, Kajian Kitab Turats, Olimpiade MIPA/Sains &amp; Persiapan Masuk PTN / Universitas Timur Tengah.
+        </p>
+        <ul class="space-y-2 text-xs text-white/90 pt-3 border-t border-white/15">
+          <li class="flex items-center gap-2"><span class="material-symbols-rounded text-limeaccent-400 text-[16px]">check_circle</span> Pilihan Peminatan MIPA Sains Olimpiade &amp; Keagamaan / Takhassus 30 Juz</li>
+          <li class="flex items-center gap-2"><span class="material-symbols-rounded text-limeaccent-400 text-[16px]">check_circle</span> Bimbingan Intensif UTBK-SNBT PTN &amp; Seleksi Al-Azhar Kairo / Madinah / LIPIA</li>
+          <li class="flex items-center gap-2"><span class="material-symbols-rounded text-limeaccent-400 text-[16px]">check_circle</span> Program Khitobah 3 Bahasa &amp; Kepemimpinan Organisasi Santri</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 3. SYARAT PENDAFTARAN & MATERI TES SELEKSI ==================== -->
+  <section id="syarat" class="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- Syarat Berkas -->
+      <div class="bg-white rounded-3xl p-6 sm:p-8 border border-zinc-200/80 shadow-xs space-y-4">
+        <div class="flex items-center gap-3">
+          <span class="w-10 h-10 rounded-2xl bg-forest-950 text-limeaccent-400 flex items-center justify-center">
+            <span class="material-symbols-rounded">folder_supervised</span>
+          </span>
+          <div>
+            <span class="text-xs font-extrabold uppercase text-forest-700">KELENGKAPAN DOKUMEN</span>
+            <h3 class="text-lg sm:text-xl font-extrabold text-forest-950">Syarat Pendaftaran &amp; Berkas Administrasi</h3>
+          </div>
+        </div>
+        <div id="p-requirements-list" class="text-xs sm:text-sm text-zinc-700 leading-relaxed whitespace-pre-line bg-zinc-50 p-4 rounded-2xl border border-zinc-200/70"></div>
+      </div>
+
+      <!-- Materi Tes Seleksi -->
+      <div class="bg-white rounded-3xl p-6 sm:p-8 border border-zinc-200/80 shadow-xs space-y-4">
+        <div class="flex items-center gap-3">
+          <span class="w-10 h-10 rounded-2xl bg-forest-950 text-limeaccent-400 flex items-center justify-center">
+            <span class="material-symbols-rounded">menu_book</span>
+          </span>
+          <div>
+            <span class="text-xs font-extrabold uppercase text-forest-700">UJIAN MASUK PESANTREN</span>
+            <h3 class="text-lg sm:text-xl font-extrabold text-forest-950">Materi Tes Seleksi &amp; Wawancara</h3>
+          </div>
+        </div>
+        <div id="p-selection-materials" class="text-xs sm:text-sm text-zinc-700 leading-relaxed whitespace-pre-line bg-zinc-50 p-4 rounded-2xl border border-zinc-200/70"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 4. BIAYA PENDIDIKAN & INFORMASI PEMBAYARAN (SECTION 04) ==================== -->
+  <section id="biaya" class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-5 sm:space-y-6">
+    <!-- Header (Menu Card) -->
+    <div class="section-menu-card p-4 sm:p-5 lg:p-6 flex flex-col lg:flex-row lg:items-center justify-between gap-4 lg:gap-6">
+      <div class="shrink-0 lg:max-w-xs">
+        <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-forest-900/10 border border-forest-900/15 text-forest-900 text-[10px] font-extrabold uppercase tracking-wider mb-1.5">
+          <span class="w-1.5 h-1.5 rounded-full bg-forest-800"></span>
+          <span>BAGIAN 04 &bull; INVESTASI PENDIDIKAN</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <h2 class="text-xl sm:text-2xl font-extrabold tracking-tight text-forest-950">
+            BIAYA PENDIDIKAN
+          </h2>
+          <span class="inline-flex items-center justify-center px-2 py-0.5 rounded-full bg-forest-900 text-limeaccent-400 text-[11px] font-extrabold">
+            04
+          </span>
+        </div>
+        <p class="text-xs font-bold text-forest-700 tracking-tight mt-0.5">
+          Transparan, Terjangkau &amp; Fleksibel
+        </p>
+      </div>
+
+      <div class="flex-1 flex flex-col justify-center gap-2 pt-3 lg:pt-0 border-t lg:border-t-0 lg:border-l border-emerald-900/15 lg:pl-6 min-w-0">
+        <p class="text-xs sm:text-sm text-zinc-600 leading-relaxed">
+          Rincian biaya pendidikan santri baru transparan mencakup Biaya Pendaftaran, Biaya Masuk (DSP), Biaya Bulanan (Syahriyah All-In), serta Rincian Seragam &amp; Kitab.
+        </p>
+        <div class="pt-0.5">
+          <span id="p-scholarship-note-badge" class="inline-flex items-center gap-1.5 bg-white border border-emerald-800/20 text-forest-900 text-xs font-bold px-3 py-1 rounded-full shadow-2xs leading-normal">
+            <i class="fa-solid fa-gift text-limeaccent-600 text-xs"></i>
+            <span>Tersedia Beasiswa Prestasi &amp; Tahfidz</span>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4 Kartu Rincian Biaya Pendidikan (Dinamis / Default) -->
+    <div id="p-fee-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 items-stretch">
+      <!-- 1. Biaya Pendaftaran -->
+      <div class="bg-white p-6 rounded-3xl border border-zinc-200/80 shadow-xs flex flex-col justify-between space-y-4 h-full">
+        <div class="space-y-2">
+          <div class="flex items-start justify-between gap-2">
+            <span class="text-[10px] sm:text-[11px] font-extrabold uppercase text-forest-700 bg-limeaccent-400/25 px-2.5 py-1 rounded-xl leading-snug">01. BIAYA PENDAFTARAN</span>
+            <span class="w-8 h-8 rounded-xl bg-forest-900/5 text-forest-800 flex items-center justify-center shrink-0">
+              <i class="fa-solid fa-receipt text-sm"></i>
+            </span>
+          </div>
+          <div id="p-fee-reg" class="text-xl sm:text-2xl font-black text-forest-950 pt-1 tracking-tight">Rp 350.000</div>
+          <p class="text-xs text-zinc-600 leading-relaxed">
+            Dibayarkan satu kali saat registrasi formulir PSB (Sudah termasuk biaya Tes Seleksi Al-Qur&rsquo;an, Akademik, &amp; Psikotes Kesiapan Asrama).
+          </p>
+        </div>
+        <div class="pt-3 border-t border-zinc-100 text-[11px] font-bold text-zinc-400 mt-auto flex items-center justify-between">
+          <span>Sekali Saat Pendaftaran</span>
+          <i class="fa-solid fa-check text-[10px] text-forest-700"></i>
+        </div>
+      </div>
+
+      <!-- 2. Biaya Masuk (Dana Pengembangan / Pangkal) -->
+      <div class="bg-white p-6 rounded-3xl border border-zinc-200/80 shadow-xs flex flex-col justify-between space-y-4 h-full">
+        <div class="space-y-2">
+          <div class="flex items-start justify-between gap-2">
+            <span class="text-[10px] sm:text-[11px] font-extrabold uppercase text-forest-700 bg-limeaccent-400/25 px-2.5 py-1 rounded-xl leading-snug">02. BIAYA MASUK (DSP)</span>
+            <span class="w-8 h-8 rounded-xl bg-forest-900/5 text-forest-800 flex items-center justify-center shrink-0">
+              <i class="fa-solid fa-building-columns text-sm"></i>
+            </span>
+          </div>
+          <div id="p-fee-dsp" class="text-xl sm:text-2xl font-black text-forest-950 pt-1 tracking-tight">Rp 14.500.000</div>
+          <p class="text-xs text-zinc-600 leading-relaxed">
+            Dana Pengembangan Sarana Asrama &amp; Pendidikan (dibayarkan saat daftar ulang setelah dinyatakan lulus, dapat diangsur sesuai ketentuan).
+          </p>
+        </div>
+        <div class="pt-3 border-t border-zinc-100 text-[11px] font-bold text-emerald-700 mt-auto flex items-center justify-between">
+          <span>Tersedia Beasiswa 25%–100%</span>
+          <i class="fa-solid fa-check text-[10px] text-emerald-600"></i>
+        </div>
+      </div>
+
+      <!-- 3. Biaya Bulanan (SPP / Syahriyah) -->
+      <div class="bg-forest-950 text-white p-6 rounded-3xl shadow-lg flex flex-col justify-between space-y-4 h-full">
+        <div class="space-y-2">
+          <div class="flex items-start justify-between gap-2">
+            <span class="text-[10px] sm:text-[11px] font-extrabold uppercase text-forest-950 bg-limeaccent-400 px-2.5 py-1 rounded-xl leading-snug">03. BIAYA BULANAN (SPP)</span>
+            <span class="w-8 h-8 rounded-xl bg-white/10 text-limeaccent-400 flex items-center justify-center shrink-0">
+              <i class="fa-solid fa-calendar-days text-sm"></i>
+            </span>
+          </div>
+          <div id="p-fee-spp" class="text-xl sm:text-2xl font-black text-white pt-1 tracking-tight flex flex-wrap items-baseline gap-1">
+            <span>Rp 1.650.000</span> <span class="text-xs font-semibold text-limeaccent-400">/ bulan</span>
+          </div>
+          <p id="p-fee-includes" class="text-xs text-white/80 leading-relaxed">
+            Makan 3x sehari bergizi, Asrama ber-AC/nyaman, Laundry pakaian, Layanan Poskestren, SPP Sekolah &amp; Halaqah Tahfidz, serta Kartu Pintar RFID SIUBA.
+          </p>
+        </div>
+        <div class="pt-3 border-t border-white/15 text-[11px] font-bold text-limeaccent-400 mt-auto flex items-center justify-between">
+          <span>Sudah Mencakup Makan &amp; Laundry</span>
+          <i class="fa-solid fa-check text-[10px] text-limeaccent-400"></i>
+        </div>
+      </div>
+
+      <!-- 4. Rincian Biaya Lainnya -->
+      <div class="bg-white p-6 rounded-3xl border border-zinc-200/80 shadow-xs flex flex-col justify-between space-y-4 h-full">
+        <div class="space-y-2">
+          <div class="flex items-start justify-between gap-2">
+            <span class="text-[10px] sm:text-[11px] font-extrabold uppercase text-forest-700 bg-limeaccent-400/25 px-2.5 py-1 rounded-xl leading-snug">04. RINCIAN BIAYA LAINNYA</span>
+            <span class="w-8 h-8 rounded-xl bg-forest-900/5 text-forest-800 flex items-center justify-center shrink-0">
+              <i class="fa-solid fa-shirt text-sm"></i>
+            </span>
+          </div>
+          <div id="p-fee-uniform" class="text-xl sm:text-2xl font-black text-forest-950 pt-1 tracking-tight">Rp 3.200.000</div>
+          <p class="text-xs text-zinc-600 leading-relaxed">
+            Paket lengkap 5 stel seragam sekolah &amp; kepesantrenan, buku kurikulum &amp; kitab kuning tahun I, kasur, lemari asrama, serta Kartu Pintar Santri SIUBA.
+          </p>
+        </div>
+        <div class="pt-3 border-t border-zinc-100 text-[11px] font-bold text-zinc-400 mt-auto flex items-center justify-between">
+          <span>Perlengkapan Awal Santri Baru</span>
+          <i class="fa-solid fa-check text-[10px] text-forest-700"></i>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. Informasi Pembayaran Resmi -->
+    <div class="bg-white rounded-3xl border border-zinc-200/80 p-5 sm:p-7 shadow-xs grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+      <div class="lg:col-span-8 space-y-2">
+        <div class="flex items-center gap-2 text-xs font-extrabold uppercase text-forest-800">
+          <span class="material-symbols-rounded text-[18px] text-limeaccent-600">account_balance</span>
+          <span>05. INFORMASI PEMBAYARAN &amp; REKENING RESMI YAYASAN</span>
+        </div>
+        <h4 id="p-bank-account" class="text-base sm:text-lg font-extrabold text-forest-950">
+          Bank Syariah Indonesia (BSI) — No. Rek: 7123-456-789 a.n. Yayasan Ponpes Utsman Bin Affan
+        </h4>
+        <p class="text-xs text-zinc-600 leading-relaxed">
+          Seluruh transaksi pembayaran resmi hanya melalui rekening Yayasan di atas atau Loket Keuangan Sekretariat PSB. Simpan bukti transfer dan kirimkan konfirmasi ke WhatsApp Panitia PSB. Ketua Panitia: <strong id="p-admin-name">Ustadz H. Ahmad Fauzi, S.Pd.I</strong> &bull; Layanan: <span id="p-sec-hours">Senin – Sabtu (08.00 – 16.00 WIB)</span>.
+        </p>
+      </div>
+      <div class="lg:col-span-4 flex flex-wrap lg:justify-end gap-2.5">
+        <a id="p-wa-btn" href="https://wa.me/6281234567890" target="_blank" class="bg-forest-950 hover:bg-forest-800 text-limeaccent-400 font-extrabold text-xs px-4 py-3 rounded-full flex items-center gap-1.5 shadow transition">
+          <span class="material-symbols-rounded text-[17px]">chat</span>
+          <span>WA: <span id="p-wa-num">0812-3456-7890</span></span>
+        </a>
+        <a
+          href="#daftar-online"
+          class="bg-limeaccent-400 hover:bg-limeaccent-500 text-forest-950 font-extrabold text-xs px-5 py-3 rounded-full flex items-center gap-2 shadow cursor-pointer transition"
+        >
+          <span class="material-symbols-rounded text-[18px]">how_to_reg</span>
+          <span>Daftar PSB Sekarang</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Kartu Program Beasiswa (Dinamis / Default) -->
+    <div id="p-scholarship-grid" class="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
+      <div class="bg-white p-6 rounded-3xl border border-zinc-200/80 shadow-xs space-y-3 flex flex-col justify-between h-full">
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full bg-forest-900/10 text-forest-900">Beasiswa Tahfidz</span>
+            <i class="fa-solid fa-award text-limeaccent-600 text-lg"></i>
+          </div>
+          <h4 class="text-forest-950 font-extrabold text-sm sm:text-base leading-snug">Beasiswa Tahfidz Al-Qur&rsquo;an</h4>
+          <p id="p-sch-tahfidz" class="text-xs text-zinc-600 leading-relaxed whitespace-pre-line"></p>
+        </div>
+        <span class="text-[11px] font-bold text-forest-800 pt-3 border-t border-zinc-100 flex items-center gap-1.5 mt-auto"><i class="fa-solid fa-circle-check text-emerald-600 text-xs"></i><span>Jalur Resmi PSB</span></span>
+      </div>
+
+      <div class="bg-white p-6 rounded-3xl border border-zinc-200/80 shadow-xs space-y-3 flex flex-col justify-between h-full">
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full bg-forest-900/10 text-forest-900">Beasiswa Prestasi</span>
+            <i class="fa-solid fa-trophy text-limeaccent-600 text-lg"></i>
+          </div>
+          <h4 class="text-forest-950 font-extrabold text-sm sm:text-base leading-snug">Beasiswa Prestasi Akademik &amp; Sains</h4>
+          <p id="p-sch-academic" class="text-xs text-zinc-600 leading-relaxed whitespace-pre-line"></p>
+        </div>
+        <span class="text-[11px] font-bold text-forest-800 pt-3 border-t border-zinc-100 flex items-center gap-1.5 mt-auto"><i class="fa-solid fa-circle-check text-emerald-600 text-xs"></i><span>Jalur Resmi PSB</span></span>
+      </div>
+
+      <div class="bg-white p-6 rounded-3xl border border-zinc-200/80 shadow-xs space-y-3 flex flex-col justify-between h-full">
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full bg-forest-900/10 text-forest-900">Beasiswa Sosial</span>
+            <i class="fa-solid fa-hand-holding-heart text-limeaccent-600 text-lg"></i>
+          </div>
+          <h4 class="text-forest-950 font-extrabold text-sm sm:text-base leading-snug">Beasiswa Yatim &amp; Dhuafa Berprestasi</h4>
+          <p id="p-sch-orphan" class="text-xs text-zinc-600 leading-relaxed whitespace-pre-line"></p>
+        </div>
+        <span class="text-[11px] font-bold text-forest-800 pt-3 border-t border-zinc-100 flex items-center gap-1.5 mt-auto"><i class="fa-solid fa-circle-check text-emerald-600 text-xs"></i><span>Jalur Resmi PSB</span></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 5. FORMULIR PENDAFTARAN ONLINE & CEK STATUS KELULUSAN ==================== -->
+  <section class="max-w-7xl mx-auto px-4 sm:px-6 py-8 pb-16">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+
+      <!-- Left (7 cols): Formulir Pendaftaran Online Lengkap -->
+      <div id="daftar-online" class="lg:col-span-7 bg-white rounded-3xl p-6 sm:p-8 border border-zinc-200/80 shadow-md space-y-5">
+        <div>
+          <span class="bg-limeaccent-400 text-forest-950 text-xs font-extrabold px-3 py-1 rounded-full">FORMULIR PSB ONLINE</span>
+          <h2 class="text-xl sm:text-2xl font-extrabold text-forest-950 mt-2">Daftar Calon Santri Baru Sekarang</h2>
+          <p class="text-xs text-zinc-500">Setelah mengirim formulir ini, Anda akan langsung mendapatkan <strong>Nomor Registrasi Resmi PSB</strong>.</p>
+        </div>
+
+        <form id="public-ppdb-form" onsubmit="submitPublicPpdb(event)" class="space-y-4 text-xs sm:text-sm">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+            <div class="sm:col-span-2">
+              <label class="font-bold text-forest-950 block mb-1">Nama Lengkap Calon Santri *</label>
+              <input type="text" id="f_student_name" required placeholder="Sesuai Akta Kelahiran / Ijazah" class="w-full px-3.5 py-2.5 rounded-xl border border-zinc-300 focus:outline-none focus:border-forest-800" />
+            </div>
+            <div>
+              <label class="font-bold text-forest-950 block mb-1">NISN</label>
+              <input type="text" id="f_nisn" placeholder="10 digit NISN" class="w-full px-3.5 py-2.5 rounded-xl border border-zinc-300 focus:outline-none focus:border-forest-800" />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+            <div>
+              <label class="font-bold text-forest-950 block mb-1">Jenis Kelamin *</label>
+              <select id="f_gender" required class="w-full px-3.5 py-2.5 rounded-xl border border-zinc-300 bg-white">
+                <option value="Putra">Putra (Laki-laki)</option>
+                <option value="Putri">Putri (Perempuan)</option>
+              </select>
+            </div>
+            <div class="sm:col-span-2">
+              <label class="font-bold text-forest-950 block mb-1">Tempat, Tanggal Lahir *</label>
+              <input type="text" id="f_birth_info" required placeholder="Contoh: Jakarta, 14 Mei 2014" class="w-full px-3.5 py-2.5 rounded-xl border border-zinc-300" />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+            <div>
+              <label class="font-bold text-forest-950 block mb-1">Pilihan Gelombang *</label>
+              <select id="f_wave" required class="w-full px-3.5 py-2.5 rounded-xl border border-zinc-300 bg-white font-semibold">
+                <option value="Gelombang 1">Gelombang 1 (Buka)</option>
+                <option value="Gelombang 2">Gelombang 2</option>
+              </select>
+            </div>
+            <div>
+              <label class="font-bold text-forest-950 block mb-1">Pilihan Jenjang *</label>
+              <select id="f_level" required class="w-full px-3.5 py-2.5 rounded-xl border border-zinc-300 bg-white font-bold">
+                <option value="SMP IT">SMP IT (Boarding)</option>
+                <option value="SMA IT">SMA IT (MIPA / Syariah)</option>
+                <option value="Takhassus">Takhassus Tahfidz 30 Juz</option>
+              </select>
+            </div>
+            <div>
+              <label class="font-bold text-forest-950 block mb-1">Jalur Pendaftaran *</label>
+              <select id="f_track" required class="w-full px-3.5 py-2.5 rounded-xl border border-zinc-300 bg-white">
+                <option value="Reguler">Jalur Reguler</option>
+                <option value="Beasiswa Tahfidz">Beasiswa Tahfidz</option>
+                <option value="Prestasi Akademik">Prestasi Akademik</option>
+                <option value="Yatim Berprestasi">Yatim Berprestasi</option>
+              </select>
+            </div>
+            <div>
+              <label class="font-bold text-forest-950 block mb-1">Hafalan Saat Ini</label>
+              <select id="f_juz" class="w-full px-3.5 py-2.5 rounded-xl border border-zinc-300 bg-white">
+                <option value="Juz 30">Juz 30 (Juz Amma)</option>
+                <option value="1 - 3 Juz">1 – 3 Juz</option>
+                <option value="5 Juz">5 Juz</option>
+                <option value="10 Juz">10 Juz</option>
+                <option value="15 - 30 Juz">15 – 30 Juz</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            <div>
+              <label class="font-bold text-forest-950 block mb-1">Nama Ayah / Ibu / Wali *</label>
+              <input type="text" id="f_parent_name" required placeholder="Nama lengkap orang tua" class="w-full px-3.5 py-2.5 rounded-xl border border-zinc-300" />
+            </div>
+            <div>
+              <label class="font-bold text-forest-950 block mb-1">Nomor WhatsApp Aktif *</label>
+              <input type="tel" id="f_whatsapp" required placeholder="0812xxxxxxxx" class="w-full px-3.5 py-2.5 rounded-xl border border-zinc-300" />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            <div>
+              <label class="font-bold text-forest-950 block mb-1">Asal Sekolah *</label>
+              <input type="text" id="f_origin_school" required placeholder="Contoh: SDIT Al-Hikmah Jakarta" class="w-full px-3.5 py-2.5 rounded-xl border border-zinc-300" />
+            </div>
+            <div>
+              <label class="font-bold text-forest-950 block mb-1">Alamat Domisili Lengkap</label>
+              <input type="text" id="f_address" placeholder="Kecamatan / Kota / Provinsi" class="w-full px-3.5 py-2.5 rounded-xl border border-zinc-300" />
+            </div>
+          </div>
+
+          <!-- Bukti Registrasi Box -->
+          <div id="f_success_box" class="hidden p-5 rounded-2xl bg-emerald-50 border-2 border-emerald-300 text-emerald-950 space-y-3">
+            <div class="flex items-center gap-2 font-extrabold text-sm text-emerald-900">
+              <span class="material-symbols-rounded text-emerald-600">verified</span>
+              <span>Alhamdulillah, Pendaftaran Berhasil Tercatat!</span>
+            </div>
+            <p class="text-xs text-emerald-900/80">Simpan Nomor Registrasi Anda untuk mengecek jadwal tes &amp; hasil kelulusan:</p>
+            <div class="flex items-center gap-3">
+              <div id="f_reg_number_result" class="text-xl font-extrabold bg-white px-4 py-2 rounded-xl border border-emerald-300 inline-block text-forest-950 tracking-wide">
+                PSB-2026-0001
+              </div>
+              <span class="text-[11px] font-bold px-3 py-1 rounded-full bg-emerald-200 text-emerald-900">Tersimpan di Sistem SIUBA</span>
+            </div>
+
+            <!-- WhatsApp Notification Card to Committee Admin -->
+            <div class="mt-3 p-3.5 rounded-xl bg-white border border-emerald-200 space-y-2.5">
+              <div class="flex items-center gap-2 text-xs font-extrabold text-emerald-950">
+                <i class="fa-brands fa-whatsapp text-emerald-600 text-base"></i>
+                <span>Notifikasi Langsung ke WhatsApp Panitia PSB</span>
+              </div>
+              <p class="text-[11px] text-zinc-600 leading-relaxed">
+                Pesan notifikasi pendaftaran telah otomatis disiapkan untuk panitia (<strong id="f_wa_admin_phone_label">Admin PSB</strong>). Klik tombol di bawah untuk mengirim konfirmasi langsung via WhatsApp:
+              </p>
+              <a
+                id="f_btn_wa_admin"
+                href="#"
+                target="_blank"
+                class="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-3 px-4 rounded-xl shadow-md transition text-xs sm:text-sm cursor-pointer"
+              >
+                <i class="fa-brands fa-whatsapp text-lg"></i>
+                <span>Kirim Notifikasi Pendaftaran ke WhatsApp Panitia</span>
+              </a>
+            </div>
+          </div>
+
+          <button type="submit" id="f_submit_btn" class="w-full bg-forest-950 hover:bg-forest-800 text-limeaccent-400 font-extrabold py-3.5 rounded-full flex items-center justify-center gap-2 shadow-lg transition cursor-pointer">
+            <span class="material-symbols-rounded text-[18px]">send</span>
+            <span>Kirim Formulir Pendaftaran PSB</span>
+          </button>
+        </form>
+      </div>
+
+      <!-- Right (5 cols): Cek Status Pendaftaran & Hasil Seleksi -->
+      <div id="cek-status" class="lg:col-span-5 bg-forest-950 text-white rounded-3xl p-6 sm:p-8 shadow-xl space-y-5">
+        <div>
+          <span class="bg-limeaccent-400/20 text-limeaccent-400 text-xs font-extrabold px-3 py-1 rounded-full">PORTAL CEK KELULUSAN</span>
+          <h2 class="text-xl sm:text-2xl font-extrabold mt-2">Cek Status Pendaftaran &amp; Hasil Seleksi</h2>
+          <p class="text-xs text-white/75 mt-1">
+            Masukkan <strong>Nomor Registrasi</strong> (contoh: <code>PSB-2026-0001</code>), <strong>NISN</strong>, atau <strong>Nomor WhatsApp</strong> yang didaftarkan.
+          </p>
+        </div>
+
+        <form onsubmit="checkStatusPpdb(event)" class="space-y-3">
+          <div class="flex gap-2">
+            <input
+              type="text"
+              id="check_query"
+              required
+              placeholder="Contoh: PSB-2026-0001 atau 0812..."
+              class="flex-1 px-4 py-3 rounded-2xl bg-white/10 border border-white/20 text-white placeholder-white/50 text-xs sm:text-sm focus:outline-none focus:border-limeaccent-400"
+            />
+            <button type="submit" class="bg-limeaccent-400 hover:bg-limeaccent-500 text-forest-950 font-extrabold text-xs sm:text-sm px-5 py-3 rounded-2xl cursor-pointer transition shrink-0">
+              Cek Status
+            </button>
+          </div>
+        </form>
+
+        <!-- Hasil Pencarian Status -->
+        <div id="check_result_box" class="hidden bg-white text-forest-950 rounded-2xl p-5 space-y-3 text-xs">
+          <div class="flex items-center justify-between border-b border-zinc-200 pb-2.5">
+            <span id="cr_reg_num" class="font-extrabold text-forest-800 bg-limeaccent-400/30 px-2.5 py-1 rounded-lg">PSB-2026-0001</span>
+            <span id="cr_status_badge" class="font-extrabold px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">DITERIMA</span>
+          </div>
+          <div>
+            <span class="text-zinc-400 block text-[11px]">Nama Calon Santri</span>
+            <span id="cr_name" class="text-base font-extrabold text-forest-950"></span>
+          </div>
+          <div class="grid grid-cols-2 gap-2 pt-1">
+            <div class="bg-zinc-50 p-2.5 rounded-xl">
+              <span class="text-zinc-400 block text-[10px]">Jenjang &amp; Jalur</span>
+              <span id="cr_level" class="font-bold"></span>
+            </div>
+            <div class="bg-zinc-50 p-2.5 rounded-xl">
+              <span class="text-zinc-400 block text-[10px]">Hafalan Tercatat</span>
+              <span id="cr_juz" class="font-bold"></span>
+            </div>
+            <div class="bg-zinc-50 p-2.5 rounded-xl">
+              <span class="text-zinc-400 block text-[10px]">Nilai Tes Al-Qur&rsquo;an</span>
+              <span id="cr_score_quran" class="font-extrabold text-forest-800"></span>
+            </div>
+            <div class="bg-zinc-50 p-2.5 rounded-xl">
+              <span class="text-zinc-400 block text-[10px]">Nilai Tes Akademik</span>
+              <span id="cr_score_academic" class="font-extrabold text-forest-800"></span>
+            </div>
+          </div>
+          <div class="bg-zinc-50 p-3 rounded-xl">
+            <span class="text-zinc-400 block text-[10px]">Catatan Panitia Seleksi:</span>
+            <p id="cr_notes" class="font-semibold text-zinc-700 mt-0.5"></p>
+          </div>
+        </div>
+
+        <div id="check_error_box" class="hidden bg-rose-500/20 border border-rose-400/40 text-rose-100 rounded-2xl p-4 text-xs font-semibold"></div>
+      </div>
+
+    </div>
+  </section>
+
+  <script>
+    function setText(id, val) {
+      var el = document.getElementById(id);
+      if (el && val !== undefined && val !== null && val !== '') el.textContent = val;
+    }
+
+    async function loadPublicPpdb() {
+      try {
+        var res = await fetch('/api/v1/cms/landing');
+        var data = await res.json();
+        if (!data || !data.ppdb) return;
+        var d = data.ppdb;
+
+        setText('nav-badge-status', d.status_badge);
+        setText('p-status-badge', d.status_badge);
+        if (d.academic_year) setText('p-academic-year', 'TAHUN AJARAN ' + d.academic_year);
+        setText('p-quota-desc', d.quota_description);
+        setText('p-total-quota', d.total_quota);
+        setText('p-wave-1', d.wave_1);
+        setText('p-wave-2', d.wave_2);
+        setText('p-test-schedule', d.test_schedule);
+        setText('p-boarding-entry', d.boarding_entry_date);
+
+        // Dynamic Hero Waves Rendering
+        if (d.wave_items && Array.isArray(d.wave_items) && d.wave_items.length > 0) {
+          var heroWavesEl = document.getElementById('p-hero-waves-items');
+          if (heroWavesEl) {
+            heroWavesEl.innerHTML = d.wave_items.map(function(item) {
+              var isOpen = item.status === 'Buka';
+              var rangeStr = item.date_range || (item.open_date && item.close_date ? (item.open_date + ' – ' + item.close_date) : (item.open_date || '-'));
+              var valColor = isOpen ? 'text-limeaccent-400' : 'text-white';
+              return '<div class="flex justify-between items-center py-1.5 border-b border-white/10 gap-2">' +
+                '<span class="text-white/75 truncate flex items-center gap-1.5">' +
+                  '<span>' + (item.name || 'Gelombang') + '</span>' +
+                  (isOpen ? '<span class="text-[9px] font-extrabold bg-limeaccent-400 text-forest-950 px-1.5 py-0.5 rounded-full shrink-0">Buka</span>' : '') +
+                '</span>' +
+                '<span class="font-extrabold ' + valColor + ' shrink-0 text-right">' + rangeStr + '</span>' +
+              '</div>';
+            }).join('');
+          }
+
+          // Populate Form Wave Selector
+          var waveSelect = document.getElementById('f_wave');
+          if (waveSelect) {
+            waveSelect.innerHTML = d.wave_items.map(function(item) {
+              var isOpen = item.status === 'Buka';
+              var label = item.name + (isOpen ? ' [Buka]' : (item.status ? ' [' + item.status + ']' : ''));
+              return '<option value="' + (item.name || 'Gelombang') + '"' + (isOpen ? ' selected' : '') + '>' + label + '</option>';
+            }).join('');
+          }
+        }
+
+        setText('card-wave-1-date', d.wave_1);
+        setText('card-wave-1-test', d.wave_1_test);
+        setText('card-wave-1-announce', d.wave_1_announce);
+        setText('card-wave-1-rereg', d.wave_1_rereg);
+
+        setText('card-wave-2-date', d.wave_2);
+        setText('card-wave-2-test', d.wave_2_test);
+        setText('card-wave-2-announce', d.wave_2_announce);
+        setText('card-wave-2-rereg', d.wave_2_rereg);
+
+        // Dynamic Wave Items Rendering
+        if (d.wave_items && Array.isArray(d.wave_items) && d.wave_items.length > 0) {
+          var waveGrid = document.getElementById('p-wave-grid');
+          if (waveGrid) {
+            waveGrid.className = 'grid grid-cols-1 ' + (d.wave_items.length >= 3 ? 'md:grid-cols-2 lg:grid-cols-3' : 'md:grid-cols-2') + ' gap-6';
+            waveGrid.innerHTML = d.wave_items.map(function(item, idx) {
+              var isOpen = item.status === 'Buka';
+              var isUpcoming = item.status === 'Segera Dibuka';
+              var borderClass = isOpen ? 'border-2 border-forest-800 shadow-md ring-4 ring-forest-800/5' : 'border border-zinc-200 shadow-xs hover:border-zinc-300';
+              var statusBadge = isOpen
+                ? '<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-extrabold uppercase tracking-wide bg-limeaccent-400 text-forest-950 shadow-2xs"><span class="w-2 h-2 rounded-full bg-forest-950 animate-pulse"></span><span>Pendaftaran Dibuka</span></span>'
+                : (isUpcoming
+                  ? '<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-extrabold uppercase tracking-wide bg-forest-900 text-limeaccent-400"><i class="fa-regular fa-clock text-[10px]"></i><span>Segera Dibuka</span></span>'
+                  : '<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-extrabold uppercase tracking-wide bg-zinc-200 text-zinc-700"><span>Ditutup</span></span>');
+
+              var rangeStr = item.date_range || (item.open_date && item.close_date ? (item.open_date + ' – ' + item.close_date) : (item.open_date || 'Jadwal Segera Diumumkan'));
+
+              return '<div class="bg-white rounded-3xl p-6 sm:p-7 ' + borderClass + ' space-y-4 relative overflow-hidden flex flex-col justify-between transition duration-200">' +
+                '<div class="space-y-3.5">' +
+                  '<div class="flex flex-wrap items-center justify-between gap-2">' +
+                    statusBadge +
+                    '<span class="inline-flex items-center gap-1.5 text-xs font-bold text-forest-900 bg-forest-900/5 px-3 py-1 rounded-full">' +
+                      '<i class="fa-regular fa-calendar-days text-forest-700 text-xs"></i>' +
+                      '<span>' + rangeStr + '</span>' +
+                    '</span>' +
+                  '</div>' +
+                  '<div>' +
+                    '<h3 class="text-lg sm:text-xl font-extrabold text-forest-950 tracking-tight leading-snug">' + (item.name || ('Gelombang ' + (idx + 1))) + '</h3>' +
+                  '</div>' +
+                  '<div class="space-y-2.5 text-xs sm:text-sm bg-zinc-50/80 p-3.5 rounded-2xl border border-zinc-200/60 mt-3">' +
+                    '<div class="flex items-center justify-between py-1 border-b border-zinc-200/60">' +
+                      '<span class="text-zinc-600 flex items-center gap-2 font-medium shrink-0">' +
+                        '<i class="fa-solid fa-file-pen text-forest-800 text-xs w-4 text-center"></i>' +
+                        '<span>Ujian Seleksi</span>' +
+                      '</span>' +
+                      '<span class="font-extrabold text-forest-950 text-right truncate">' + (item.exam_date || 'Setiap Sabtu') + '</span>' +
+                    '</div>' +
+                    '<div class="flex items-center justify-between py-1 border-b border-zinc-200/60">' +
+                      '<span class="text-zinc-600 flex items-center gap-2 font-medium shrink-0">' +
+                        '<i class="fa-solid fa-bullhorn text-forest-800 text-xs w-4 text-center"></i>' +
+                        '<span>Pengumuman Hasil</span>' +
+                      '</span>' +
+                      '<span class="font-extrabold text-forest-950 text-right truncate">' + (item.announce_date || '3 Hari Setelah Tes') + '</span>' +
+                    '</div>' +
+                    '<div class="flex items-center justify-between py-1">' +
+                      '<span class="text-zinc-600 flex items-center gap-2 font-medium shrink-0">' +
+                        '<i class="fa-solid fa-id-card-clip text-forest-800 text-xs w-4 text-center"></i>' +
+                        '<span>Batas Daftar Ulang</span>' +
+                      '</span>' +
+                      '<span class="font-extrabold text-forest-950 text-right truncate">' + (item.rereg_date || 'Sesuai Ketentuan') + '</span>' +
+                    '</div>' +
+                  '</div>' +
+                  (item.note ? '<div class="p-3 rounded-2xl bg-limeaccent-400/15 border border-limeaccent-400/30 text-forest-950 text-xs flex items-center gap-2 font-medium"><i class="fa-solid fa-circle-check text-limeaccent-600 text-sm shrink-0"></i><span>' + item.note + '</span></div>' : '') +
+                '</div>' +
+                (isOpen
+                  ? '<div class="pt-3 border-t border-zinc-100 flex items-center justify-between mt-3"><span class="text-[11px] font-bold text-emerald-800 flex items-center gap-1"><i class="fa-solid fa-bolt text-limeaccent-600 text-xs"></i> Kuota Masih Terbuka</span><a href="#daftar-online" class="bg-forest-950 hover:bg-forest-800 text-limeaccent-400 text-xs font-extrabold px-4 py-2 rounded-full flex items-center gap-1.5 shadow-xs transition"><span>Daftar Sekarang</span><i class="fa-solid fa-arrow-right text-[10px]"></i></a></div>'
+                  : '<div class="pt-3 border-t border-zinc-100 flex items-center justify-between mt-3 text-xs text-zinc-400 font-semibold"><span class="italic">Pendaftaran dibuka bertahap</span><span class="bg-zinc-100 text-zinc-500 px-3 py-1 rounded-full text-[11px] font-bold">Segera Dibuka</span></div>'
+                ) +
+              '</div>';
+            }).join('');
+          }
+        }
+
+        setText('p-smp-badge', d.smp_badge);
+        setText('p-smp-title', d.smp_title);
+        setText('p-smp-desc', d.smp_desc);
+        setText('p-smp-quota', 'Kuota: ' + (d.smp_quota || '120 Santri'));
+        setText('p-sma-badge', d.sma_badge);
+        setText('p-sma-title', d.sma_title);
+        setText('p-sma-desc', d.sma_desc);
+        setText('p-sma-quota', 'Kuota: ' + (d.sma_quota || '120 Santri'));
+
+        setText('p-scholarship-note-badge', d.scholarship_note);
+        setText('p-requirements-list', d.requirements_list);
+        setText('p-selection-materials', d.selection_materials);
+
+        setText('p-fee-reg', d.fee_registration);
+        setText('p-fee-dsp', d.fee_dsp);
+        setText('p-fee-uniform', d.fee_uniform_books);
+        setText('p-fee-spp', d.fee_spp);
+        setText('p-fee-includes', d.fee_includes);
+
+        // Dynamic Fee Items Rendering
+        if (d.fee_items && Array.isArray(d.fee_items) && d.fee_items.length > 0) {
+          var feeGrid = document.getElementById('p-fee-grid');
+          if (feeGrid) {
+            feeGrid.innerHTML = d.fee_items.map(function(item, idx) {
+              var isHighlight = (item.name || '').toLowerCase().indexOf('spp') !== -1 || (item.name || '').toLowerCase().indexOf('syahriyah') !== -1;
+              var cardBg = isHighlight ? 'bg-forest-950 text-white shadow-lg ring-4 ring-forest-800/10' : 'bg-white text-zinc-800 border border-zinc-200/80 shadow-xs hover:border-zinc-300';
+              var numStr = ('0' + (idx + 1)).slice(-2);
+              var badgeBg = isHighlight ? 'bg-limeaccent-400 text-forest-950' : 'bg-limeaccent-400/25 text-forest-700';
+              var titleColor = isHighlight ? 'text-white' : 'text-forest-950';
+              var descColor = isHighlight ? 'text-white/80' : 'text-zinc-600';
+              var borderFooter = isHighlight ? 'border-white/15 text-limeaccent-400' : 'border-zinc-100 text-zinc-400';
+              var iconFa = isHighlight ? 'fa-solid fa-calendar-days text-limeaccent-400' : (idx === 0 ? 'fa-solid fa-receipt text-forest-800' : (idx === 1 ? 'fa-solid fa-building-columns text-forest-800' : 'fa-solid fa-shirt text-forest-800'));
+
+              var amt = item.amount || '-';
+              var amountHtml = amt;
+              if (amt.indexOf('/') !== -1) {
+                var parts = amt.split('/');
+                amountHtml = '<span>' + parts[0].trim() + '</span> <span class="text-xs font-semibold ' + (isHighlight ? 'text-limeaccent-400' : 'text-zinc-500') + '">/ ' + parts.slice(1).join('/').trim() + '</span>';
+              }
+
+              return '<div class="' + cardBg + ' p-6 rounded-3xl flex flex-col justify-between space-y-4 h-full transition duration-200">' +
+                '<div class="space-y-2">' +
+                  '<div class="flex items-start justify-between gap-2">' +
+                    '<span class="text-[10px] sm:text-[11px] font-extrabold uppercase ' + badgeBg + ' px-2.5 py-1 rounded-xl leading-snug tracking-wide">' + numStr + '. ' + (item.name || 'Biaya') + '</span>' +
+                    '<span class="w-8 h-8 rounded-xl ' + (isHighlight ? 'bg-white/10 text-limeaccent-400' : 'bg-forest-900/5 text-forest-800') + ' flex items-center justify-center shrink-0">' +
+                      '<i class="' + iconFa + ' text-sm"></i>' +
+                    '</span>' +
+                  '</div>' +
+                  '<div class="text-xl sm:text-2xl font-black ' + titleColor + ' pt-1 tracking-tight flex flex-wrap items-baseline gap-1">' + amountHtml + '</div>' +
+                  (item.desc ? '<p class="text-xs ' + descColor + ' leading-relaxed mt-2">' + item.desc + '</p>' : '') +
+                '</div>' +
+                '<div class="pt-3 border-t ' + borderFooter + ' mt-auto flex items-center justify-between text-[11px] font-bold">' +
+                  '<span>' + (item.badge || 'Biaya Pendidikan Santri') + '</span>' +
+                  '<i class="fa-solid fa-check text-[10px] ' + (isHighlight ? 'text-limeaccent-400' : 'text-forest-700') + '"></i>' +
+                '</div>' +
+              '</div>';
+            }).join('');
+          }
+        }
+
+        setText('p-sch-tahfidz', d.scholarship_tahfidz);
+        setText('p-sch-academic', d.scholarship_academic);
+        setText('p-sch-orphan', d.scholarship_orphan);
+
+        // Dynamic Scholarship Items Rendering
+        if (d.scholarship_items && Array.isArray(d.scholarship_items) && d.scholarship_items.length > 0) {
+          var schGrid = document.getElementById('p-scholarship-grid');
+          if (schGrid) {
+            schGrid.innerHTML = d.scholarship_items.map(function(item, idx) {
+              var faIcons = ['fa-solid fa-award', 'fa-solid fa-trophy', 'fa-solid fa-hand-holding-heart', 'fa-solid fa-medal', 'fa-solid fa-graduation-cap'];
+              var iconName = faIcons[idx % faIcons.length];
+              return '<div class="bg-white p-6 rounded-3xl border border-zinc-200/80 shadow-xs space-y-3 flex flex-col justify-between h-full hover:border-zinc-300 transition duration-200">' +
+                '<div class="space-y-2">' +
+                  '<div class="flex items-center justify-between">' +
+                    '<span class="text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full bg-forest-900/10 text-forest-900">' + (item.badge || 'Program Beasiswa') + '</span>' +
+                    '<i class="' + iconName + ' text-limeaccent-600 text-lg"></i>' +
+                  '</div>' +
+                  '<h4 class="text-forest-950 font-extrabold text-sm sm:text-base leading-snug">' + (item.title || 'Beasiswa') + '</h4>' +
+                  '<p class="text-xs text-zinc-600 leading-relaxed whitespace-pre-line">' + (item.desc || '-') + '</p>' +
+                '</div>' +
+                '<span class="text-[11px] font-bold text-forest-800 pt-3 border-t border-zinc-100 flex items-center gap-1.5 mt-auto"><i class="fa-solid fa-circle-check text-emerald-600 text-xs"></i><span>Jalur Resmi PSB</span></span>' +
+              '</div>';
+            }).join('');
+          }
+
+          // Populate Form Track Selector
+          var trackSelect = document.getElementById('f_track');
+          if (trackSelect) {
+            var defaultTracks = ['Reguler', 'Beasiswa Tahfidz', 'Prestasi Akademik'];
+            var customTracks = d.scholarship_items.map(function(s) { return s.title; }).filter(Boolean);
+            var mergedTracks = Array.from(new Set(defaultTracks.concat(customTracks)));
+            trackSelect.innerHTML = mergedTracks.map(function(t) {
+              var isReg = t === 'Reguler';
+              return '<option value="' + t + '"' + (isReg ? ' selected' : '') + '>' + (isReg ? 'Jalur Reguler' : t) + '</option>';
+            }).join('');
+          }
+        }
+
+        setText('p-bank-account', d.bank_account);
+        setText('p-admin-name', d.admin_contact_name);
+        setText('p-sec-hours', d.secretariat_hours);
+        setText('p-wa-num', d.whatsapp_contact);
+
+        if (d.whatsapp_contact) {
+          var cleanWa = String(d.whatsapp_contact).replace(/[^0-9]/g, '');
+          if (cleanWa.indexOf('0') === 0) cleanWa = '62' + cleanWa.substring(1);
+          document.getElementById('p-wa-btn').href = 'https://wa.me/' + cleanWa;
+        }
+      } catch (e) {}
+    }
+
+    async function submitPublicPpdb(e) {
+      e.preventDefault();
+      var btn = document.getElementById('f_submit_btn');
+      btn.disabled = true;
+      var payload = {
+        student_name: document.getElementById('f_student_name').value,
+        nisn: document.getElementById('f_nisn').value,
+        gender: document.getElementById('f_gender').value,
+        birth_info: document.getElementById('f_birth_info').value,
+        wave: document.getElementById('f_wave') ? document.getElementById('f_wave').value : '',
+        level: document.getElementById('f_level').value,
+        track: document.getElementById('f_track').value,
+        juz_memorized: document.getElementById('f_juz').value,
+        parent_name: document.getElementById('f_parent_name').value,
+        whatsapp: document.getElementById('f_whatsapp').value,
+        origin_school: document.getElementById('f_origin_school').value,
+        address: document.getElementById('f_address').value
+      };
+
+      try {
+        var res = await fetch('/api/v1/cms/ppdb/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        var data = await res.json();
+        if (data && data.success) {
+          var regNum = (data.registration && data.registration.reg_number) || 'PSB-2026';
+          document.getElementById('f_reg_number_result').textContent = regNum;
+
+          if (data.admin_whatsapp_url) {
+            var btnWa = document.getElementById('f_btn_wa_admin');
+            if (btnWa) {
+              btnWa.href = data.admin_whatsapp_url;
+            }
+            var lblWa = document.getElementById('f_wa_admin_phone_label');
+            if (lblWa) {
+              lblWa.textContent = (data.admin_name ? data.admin_name + ' • ' : '') + (data.admin_phone || '');
+            }
+            // Buka tab WhatsApp langsung secara otomatis
+            try {
+              window.open(data.admin_whatsapp_url, '_blank');
+            } catch (openErr) {}
+          }
+
+          var successBox = document.getElementById('f_success_box');
+          successBox.classList.remove('hidden');
+          document.getElementById('public-ppdb-form').reset();
+          successBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      } catch (err) {}
+      btn.disabled = false;
+    }
+
+    async function checkStatusPpdb(e) {
+      e.preventDefault();
+      var q = document.getElementById('check_query').value;
+      document.getElementById('check_result_box').classList.add('hidden');
+      document.getElementById('check_error_box').classList.add('hidden');
+
+      try {
+        var res = await fetch('/api/v1/cms/ppdb/check?q=' + encodeURIComponent(q));
+        var data = await res.json();
+        if (data && data.success && data.registration) {
+          var r = data.registration;
+          document.getElementById('cr_reg_num').textContent = r.reg_number || ('PSB-' + r.id);
+          document.getElementById('cr_status_badge').textContent = r.status || 'Baru';
+          document.getElementById('cr_name').textContent = r.student_name + ' (' + (r.gender || 'Putra') + ')';
+          document.getElementById('cr_level').textContent = r.level + ' • ' + r.track;
+          document.getElementById('cr_juz').textContent = r.juz_memorized || '-';
+          document.getElementById('cr_score_quran').textContent = r.test_score_quran || 'Belum dinilai';
+          document.getElementById('cr_score_academic').textContent = r.test_score_academic || 'Belum dinilai';
+          document.getElementById('cr_notes').textContent = r.notes || 'Menunggu jadwal tahapan berikutnya.';
+          document.getElementById('check_result_box').classList.remove('hidden');
+        } else {
+          var errBox = document.getElementById('check_error_box');
+          errBox.textContent = (data && data.message) || 'Data pendaftar tidak ditemukan.';
+          errBox.classList.remove('hidden');
+        }
+      } catch (err) {}
+    }
+
+    loadPublicPpdb();
+  </script>
+</body>
+</html>

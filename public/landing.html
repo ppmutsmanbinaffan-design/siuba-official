@@ -1,0 +1,2576 @@
+<!doctype html>
+<html lang="id" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+  <title>Pondok Pesantren Utsman Bin Affan — Portal Resmi, PSB & Sistem SIUBA</title>
+  <meta name="description" content="Portal Resmi Pondok Pesantren Utsman Bin Affan: Profil Pesantren, Visi & Misi, Program Pendidikan, Berita Terkini, Informasi PSB Santri Baru, dan Sistem Presensi Digital SIUBA." />
+
+  <!-- Google Fonts: Urbanist -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Urbanist:ital,wght@0,300..900;1,300..900&display=swap" rel="stylesheet" />
+
+  <!-- Google Material Symbols Rounded -->
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        screens: {
+          'xs': '420px',
+          'sm': '640px',
+          'md': '768px',
+          'lg': '1024px',
+          'xl': '1280px',
+          '2xl': '1440px',
+        },
+        extend: {
+          fontFamily: {
+            sans: ['Urbanist', 'sans-serif'],
+          },
+          colors: {
+            forest: {
+              950: '#071f12',
+              900: '#0d331d',
+              800: '#14492b',
+              700: '#1c633a',
+            },
+            limeaccent: {
+              400: '#a3e635',
+              500: '#84cc16',
+              600: '#65a30d',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+    html, body {
+      font-family: 'Urbanist', sans-serif;
+      background-color: #f8faf7;
+      color: #0f2417;
+      overflow-x: hidden;
+      width: 100%;
+    }
+    .material-symbols-rounded {
+      font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 24;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    .glass-nav {
+      background: rgba(13, 51, 29, 0.65);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+    }
+    .glass-card {
+      background: rgba(15, 48, 27, 0.78);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(163, 230, 53, 0.25);
+    }
+    .fluid-hero-title {
+      font-size: clamp(1.75rem, 3.6vw + 0.75rem, 3.4rem);
+      line-height: 1.08;
+    }
+    .fluid-section-title {
+      font-size: clamp(1.05rem, 1.35vw + 0.45rem, 1.45rem);
+      line-height: 1.25;
+      letter-spacing: -0.01em;
+    }
+    .section-menu-card {
+      background: linear-gradient(135deg, #ffffff 0%, #eef6f0 100%);
+      border: 1.5px solid #b7d1be;
+      border-left: 6px solid #14492b;
+      border-radius: 1.5rem;
+      box-shadow: 0 8px 24px -8px rgba(13, 51, 29, 0.08);
+    }
+    .fluid-stat-number {
+      font-size: clamp(1.85rem, 3vw + 0.5rem, 3rem);
+      line-height: 1.05;
+    }
+    .fluid-container {
+      width: 100%;
+      max-width: 1360px;
+      margin-left: auto;
+      margin-right: auto;
+      padding-left: clamp(1rem, 3.5vw, 3rem);
+      padding-right: clamp(1rem, 3.5vw, 3rem);
+    }
+    details > summary {
+      list-style: none;
+    }
+    details > summary::-webkit-details-marker {
+      display: none;
+    }
+  </style>
+
+  <script>
+    (function () {
+      try {
+        var token = localStorage.getItem('siuba_auth_token') || sessionStorage.getItem('siuba_auth_token');
+        if (token) {
+          window.__SIUBA_HAS_TOKEN__ = true;
+        }
+      } catch (e) {}
+    })();
+  </script>
+</head>
+<body class="antialiased selection:bg-limeaccent-400 selection:text-forest-950">
+
+  <!-- ==================== 1. HERO SECTION ==================== -->
+  <section class="p-2.5 xs:p-3.5 sm:p-5 lg:p-6 max-w-[1440px] mx-auto">
+    <div
+      id="hero-slider-wrapper"
+      onmouseenter="pauseHeroSlide(true)"
+      onmouseleave="pauseHeroSlide(false)"
+      class="relative rounded-[22px] sm:rounded-[32px] lg:rounded-[38px] overflow-hidden min-h-[540px] sm:min-h-[620px] lg:min-h-[680px] flex flex-col justify-between p-4 xs:p-6 sm:p-8 lg:p-11 text-white shadow-2xl"
+    >
+      <!-- Auto-Sliding Background Images & Gradient Overlay -->
+      <div id="hero-bg-slides" class="absolute inset-0">
+        <img
+          src="https://images.unsplash.com/photo-1584551246679-0daf3d275d0f?auto=format&fit=crop&w=1920&q=80"
+          alt="Slide 1 - Masjid & Pusat Halaqah"
+          class="hero-bg-img absolute inset-0 w-full h-full object-cover object-center scale-105 transition-all duration-1000 opacity-100"
+        />
+        <img
+          src="https://images.unsplash.com/photo-1519817650390-64a93db51149?auto=format&fit=crop&w=1920&q=80"
+          alt="Slide 2 - Tahfidzul Qur'an Bersanad"
+          class="hero-bg-img absolute inset-0 w-full h-full object-cover object-center scale-100 transition-all duration-1000 opacity-0"
+        />
+        <img
+          src="https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&w=1920&q=80"
+          alt="Slide 3 - Kampus Sains & Teknologi"
+          class="hero-bg-img absolute inset-0 w-full h-full object-cover object-center scale-100 transition-all duration-1000 opacity-0"
+        />
+        <img
+          src="https://images.unsplash.com/photo-1526232761682-d26e03ac148e?auto=format&fit=crop&w=1920&q=80"
+          alt="Slide 4 - Kehidupan Asrama & Olahraga Sunnah"
+          class="hero-bg-img absolute inset-0 w-full h-full object-cover object-center scale-100 transition-all duration-1000 opacity-0"
+        />
+      </div>
+      <div class="absolute inset-0 bg-gradient-to-b from-forest-950/80 via-forest-900/60 to-forest-950/92"></div>
+
+      <!-- Top Floating Navigation Bar -->
+      <header class="relative z-30">
+        <div class="flex items-center justify-between gap-2 sm:gap-4">
+          <!-- Brand Pill -->
+          <a href="/beranda" class="glass-nav px-3.5 sm:px-4 py-2 rounded-full flex items-center gap-2 text-white font-bold tracking-tight text-sm sm:text-base shadow-sm shrink-0">
+            <span class="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-limeaccent-400 text-forest-950 flex items-center justify-center shrink-0">
+              <span class="material-symbols-rounded text-[16px] sm:text-[18px]">mosque</span>
+            </span>
+            <span>UTSMAN BIN AFFAN</span>
+            <span class="hidden xs:inline-block text-[10px] sm:text-xs font-semibold text-limeaccent-400 bg-limeaccent-400/15 px-2 py-0.5 rounded-full">SIUBA</span>
+          </a>
+
+          <!-- Center Menu Pills (Desktop) -->
+          <nav class="hidden lg:flex items-center gap-0.5 xl:gap-1 glass-nav p-1.5 rounded-full text-[11px] xl:text-xs font-semibold">
+            <a href="#profil" class="text-white/90 hover:text-white hover:bg-white/10 px-2.5 xl:px-3 py-1.5 rounded-full transition whitespace-nowrap">Profil</a>
+            <a href="#program" class="text-white/90 hover:text-white hover:bg-white/10 px-2.5 xl:px-3 py-1.5 rounded-full transition whitespace-nowrap">Program</a>
+            <a href="#psb" class="bg-limeaccent-400 text-forest-950 font-extrabold px-3 py-1.5 rounded-full transition whitespace-nowrap">Info PSB</a>
+            <a href="#fasilitas" class="text-white/90 hover:text-white hover:bg-white/10 px-2.5 xl:px-3 py-1.5 rounded-full transition whitespace-nowrap">Fasilitas</a>
+            <a href="#galeri" class="text-white/90 hover:text-white hover:bg-white/10 px-2.5 xl:px-3 py-1.5 rounded-full transition whitespace-nowrap">Galeri &amp; Video</a>
+            <a href="#berita" class="text-white/90 hover:text-white hover:bg-white/10 px-2.5 xl:px-3 py-1.5 rounded-full transition whitespace-nowrap">Berita</a>
+            <a href="#faq" class="text-white/90 hover:text-white hover:bg-white/10 px-2.5 xl:px-3 py-1.5 rounded-full transition whitespace-nowrap">FAQ</a>
+          </nav>
+
+          <!-- Right PSB & Login CTA + Mobile Menu Toggle -->
+          <div class="flex items-center gap-2 sm:gap-2.5 shrink-0">
+            <a
+              href="/psb"
+              class="hidden xl:flex items-center gap-1.5 glass-nav hover:bg-white/15 px-3.5 py-2 rounded-full text-xs font-bold text-limeaccent-400 whitespace-nowrap transition"
+            >
+              <span class="material-symbols-rounded text-[16px]">how_to_reg</span>
+              <span>Portal PSB</span>
+            </a>
+
+            <a
+              id="nav-login-btn"
+              href="/login"
+              class="bg-white hover:bg-limeaccent-400 text-forest-950 font-bold text-xs sm:text-sm pl-3.5 sm:pl-5 pr-1.5 sm:pr-2 py-1.5 sm:py-2 rounded-full flex items-center gap-2 shadow-lg transition duration-200 group whitespace-nowrap"
+            >
+              <span id="nav-login-text">Portal SIUBA</span>
+              <span class="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-forest-950 text-white flex items-center justify-center group-hover:translate-x-0.5 transition-transform shrink-0">
+                <span class="material-symbols-rounded text-[14px] sm:text-[16px]">arrow_outward</span>
+              </span>
+            </a>
+
+            <!-- Mobile / Tablet Menu Button -->
+            <button
+              id="mobile-menu-btn"
+              type="button"
+              aria-label="Toggle Menu"
+              class="lg:hidden glass-nav w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-white hover:text-limeaccent-400 transition cursor-pointer"
+            >
+              <span id="mobile-menu-icon" class="material-symbols-rounded text-[20px]">menu</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Collapsible Mobile & Tablet Navigation Drawer -->
+        <div
+          id="mobile-menu-drawer"
+          class="hidden lg:hidden mt-3 glass-card rounded-2xl p-3.5 space-y-1.5 text-sm font-semibold"
+        >
+          <a href="#profil" class="mobile-nav-link flex items-center justify-between px-3.5 py-2.5 rounded-xl text-white/90 hover:bg-white/10">
+            <span>1. Profil Pesantren (Sejarah, Visi Misi, Sambutan &amp; Keunggulan)</span>
+            <span class="material-symbols-rounded text-[18px]">chevron_right</span>
+          </a>
+          <a href="#program" class="mobile-nav-link flex items-center justify-between px-3.5 py-2.5 rounded-xl text-white/90 hover:bg-white/10">
+            <span>2. Program Pendidikan (Kurikulum, Tahfidz, Bahasa &amp; Life Skill)</span>
+            <span class="material-symbols-rounded text-[18px]">chevron_right</span>
+          </a>
+          <a href="#psb" class="mobile-nav-link flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-white/15 text-limeaccent-400">
+            <span>3. Informasi Pendaftaran (PSB 2026/2027)</span>
+            <span class="material-symbols-rounded text-[18px]">how_to_reg</span>
+          </a>
+          <a href="#fasilitas" class="mobile-nav-link flex items-center justify-between px-3.5 py-2.5 rounded-xl text-white/90 hover:bg-white/10">
+            <span>4. Fasilitas Pesantren (Asrama, Masjid, Lab &amp; Perpustakaan)</span>
+            <span class="material-symbols-rounded text-[18px]">apartment</span>
+          </a>
+          <a href="#galeri" class="mobile-nav-link flex items-center justify-between px-3.5 py-2.5 rounded-xl text-white/90 hover:bg-white/10">
+            <span>5. Galeri Foto &amp; Video Profil</span>
+            <span class="material-symbols-rounded text-[18px]">photo_library</span>
+          </a>
+          <a href="#berita" class="mobile-nav-link flex items-center justify-between px-3.5 py-2.5 rounded-xl text-white/90 hover:bg-white/10">
+            <span>6. Berita &amp; Agenda Pesantren</span>
+            <span class="material-symbols-rounded text-[18px]">newspaper</span>
+          </a>
+          <a href="#faq" class="mobile-nav-link flex items-center justify-between px-3.5 py-2.5 rounded-xl text-white/90 hover:bg-white/10">
+            <span>7. FAQ (Tanya Jawab Calon Santri &amp; Wali)</span>
+            <span class="material-symbols-rounded text-[18px]">help</span>
+          </a>
+        </div>
+      </header>
+
+      <!-- Hero Main Content (Bottom Floating Bar: Card Kecil & Action Buttons Berdampingan) -->
+      <div id="beranda" class="relative z-10 flex flex-col md:flex-row items-stretch md:items-end justify-between gap-5 sm:gap-6 mt-auto pt-8 w-full">
+        <!-- 1. Floating Preview Card (Slide Berjalan Kecil di Kiri) -->
+        <div class="shrink-0 w-full sm:w-[290px] lg:w-[310px]">
+          <div class="glass-card p-2.5 sm:p-3 rounded-2xl w-full shadow-2xl">
+            <!-- Sliding Track Viewport -->
+            <div class="relative overflow-hidden rounded-xl">
+              <div
+                id="hero-card-track"
+                class="flex transition-transform duration-700 ease-in-out"
+                style="transform: translateX(0%);"
+              >
+                <!-- Slide 1 -->
+                <div class="w-full shrink-0 space-y-2">
+                  <div class="relative rounded-xl overflow-hidden h-28 sm:h-32">
+                    <img
+                      src="https://images.unsplash.com/photo-1519817650390-64a93db51149?auto=format&fit=crop&w=800&q=80"
+                      alt="Slide 1 - Halaqah Tahfidz"
+                      class="w-full h-full object-cover"
+                    />
+                    <div class="absolute inset-0 bg-gradient-to-t from-forest-950/85 via-transparent to-transparent"></div>
+                    <span class="absolute bottom-2 left-2.5 text-[10px] font-extrabold bg-limeaccent-400 text-forest-950 px-2 py-0.5 rounded-full shadow">
+                      Akreditasi A &bull; Boarding School
+                    </span>
+                  </div>
+                  <p class="text-[11px] sm:text-xs font-semibold text-white/95 leading-snug px-0.5 line-clamp-2">
+                    Lingkungan pendidikan berasrama yang asri, kondusif, dan terpantau secara digital 24 jam.
+                  </p>
+                </div>
+
+                <!-- Slide 2 -->
+                <div class="w-full shrink-0 space-y-2">
+                  <div class="relative rounded-xl overflow-hidden h-28 sm:h-32">
+                    <img
+                      src="https://images.unsplash.com/photo-1584551246679-0daf3d275d0f?auto=format&fit=crop&w=800&q=80"
+                      alt="Slide 2 - Masjid & Tahfidz"
+                      class="w-full h-full object-cover"
+                    />
+                    <div class="absolute inset-0 bg-gradient-to-t from-forest-950/85 via-transparent to-transparent"></div>
+                    <span class="absolute bottom-2 left-2.5 text-[10px] font-extrabold bg-limeaccent-400 text-forest-950 px-2 py-0.5 rounded-full shadow">
+                      Tahfidz 15–30 Juz Bersanad
+                    </span>
+                  </div>
+                  <p class="text-[11px] sm:text-xs font-semibold text-white/95 leading-snug px-0.5 line-clamp-2">
+                    Setoran Ziyadah &amp; Muraja&rsquo;ah harian ba&rsquo;da Subuh dan Maghrib dibimbing Hafidz/ah bersanad.
+                  </p>
+                </div>
+
+                <!-- Slide 3 -->
+                <div class="w-full shrink-0 space-y-2">
+                  <div class="relative rounded-xl overflow-hidden h-28 sm:h-32">
+                    <img
+                      src="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=800&q=80"
+                      alt="Slide 3 - Laboratorium Sains & IT"
+                      class="w-full h-full object-cover"
+                    />
+                    <div class="absolute inset-0 bg-gradient-to-t from-forest-950/85 via-transparent to-transparent"></div>
+                    <span class="absolute bottom-2 left-2.5 text-[10px] font-extrabold bg-limeaccent-400 text-forest-950 px-2 py-0.5 rounded-full shadow">
+                      Sains, IT &amp; Bilingual Area
+                    </span>
+                  </div>
+                  <p class="text-[11px] sm:text-xs font-semibold text-white/95 leading-snug px-0.5 line-clamp-2">
+                    Integrasi kurikulum nasional, laboratorium sains &amp; komputer modern, serta Bahasa Arab &amp; Inggris aktif.
+                  </p>
+                </div>
+
+                <!-- Slide 4 -->
+                <div class="w-full shrink-0 space-y-2">
+                  <div class="relative rounded-xl overflow-hidden h-28 sm:h-32">
+                    <img
+                      src="https://images.unsplash.com/photo-1555854877-bab0e564b8d5?auto=format&fit=crop&w=800&q=80"
+                      alt="Slide 4 - Asrama & Presensi RFID"
+                      class="w-full h-full object-cover"
+                    />
+                    <div class="absolute inset-0 bg-gradient-to-t from-forest-950/85 via-transparent to-transparent"></div>
+                    <span class="absolute bottom-2 left-2.5 text-[10px] font-extrabold bg-limeaccent-400 text-forest-950 px-2 py-0.5 rounded-full shadow">
+                      SIUBA Smart Card RFID &amp; QR
+                    </span>
+                  </div>
+                  <p class="text-[11px] sm:text-xs font-semibold text-white/95 leading-snug px-0.5 line-clamp-2">
+                    Presensi shalat berjamaah, kelas, asrama, dan perizinan santri tercatat real-time di sistem SIUBA.
+                  </p>
+                </div>
+              </div>
+
+              <!-- Prev / Next Controls on Card Image -->
+              <div class="absolute top-2 right-2 flex items-center gap-1 z-10">
+                <button
+                  type="button"
+                  onclick="stepHeroSlide(-1)"
+                  class="w-6 h-6 rounded-full bg-forest-950/75 hover:bg-limeaccent-400 text-white hover:text-forest-950 flex items-center justify-center shadow transition cursor-pointer"
+                  title="Slide Sebelumnya"
+                >
+                  <span class="material-symbols-rounded text-[15px]">chevron_left</span>
+                </button>
+                <button
+                  type="button"
+                  onclick="stepHeroSlide(1)"
+                  class="w-6 h-6 rounded-full bg-forest-950/75 hover:bg-limeaccent-400 text-white hover:text-forest-950 flex items-center justify-center shadow transition cursor-pointer"
+                  title="Slide Berikutnya"
+                >
+                  <span class="material-symbols-rounded text-[15px]">chevron_right</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Slide Indicator Dots -->
+            <div id="hero-slide-dots" class="flex items-center justify-between px-0.5 pt-2">
+              <div class="flex items-center gap-1.5">
+                <button type="button" onclick="goToHeroSlide(0)" class="hero-dot h-1.5 w-6 rounded-full bg-limeaccent-400 transition-all cursor-pointer" aria-label="Slide 1"></button>
+                <button type="button" onclick="goToHeroSlide(1)" class="hero-dot h-1.5 w-2 rounded-full bg-white/35 hover:bg-white/60 transition-all cursor-pointer" aria-label="Slide 2"></button>
+                <button type="button" onclick="goToHeroSlide(2)" class="hero-dot h-1.5 w-2 rounded-full bg-white/35 hover:bg-white/60 transition-all cursor-pointer" aria-label="Slide 3"></button>
+                <button type="button" onclick="goToHeroSlide(3)" class="hero-dot h-1.5 w-2 rounded-full bg-white/35 hover:bg-white/60 transition-all cursor-pointer" aria-label="Slide 4"></button>
+              </div>
+              <span id="hero-slide-counter" class="text-[10px] font-extrabold text-limeaccent-400 tracking-wider">SLIDE 01 / 04</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. Action Buttons (Di Sebelah Kanan Card Kecil) -->
+        <div class="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center justify-start md:justify-end gap-3 sm:gap-3.5 pb-0.5">
+          <a
+            href="#psb"
+            class="inline-flex items-center justify-between sm:justify-start gap-3 bg-limeaccent-400 hover:bg-limeaccent-500 text-forest-950 font-extrabold text-xs sm:text-sm pl-5 sm:pl-6 pr-2 sm:pr-2.5 py-2.5 sm:py-3 rounded-full shadow-xl transition group shrink-0"
+          >
+            <span>Pendaftaran Santri Baru (PSB)</span>
+            <span class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-forest-950 text-limeaccent-400 flex items-center justify-center group-hover:rotate-45 transition-transform shrink-0">
+              <span class="material-symbols-rounded text-[16px] sm:text-[18px]">arrow_outward</span>
+            </span>
+          </a>
+
+          <a
+            href="/login"
+            class="inline-flex items-center justify-center gap-2 glass-nav hover:bg-white/20 text-white font-bold text-xs sm:text-sm px-5 py-2.5 sm:py-3 rounded-full transition shrink-0"
+          >
+            <span class="material-symbols-rounded text-limeaccent-400 text-[18px]">qr_code_scanner</span>
+            <span>Login Sistem Presensi SIUBA</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 2. PILAR PENDIDIKAN STRIP ==================== -->
+  <section class="fluid-container pt-4 pb-2 sm:pt-5 sm:pb-3">
+    <div class="flex flex-wrap items-center justify-between gap-3 sm:gap-6 border-b border-zinc-200/90 pb-3.5 sm:pb-4 text-zinc-500">
+      <div class="text-xs font-extrabold uppercase tracking-wider text-zinc-400 w-full lg:w-auto shrink-0">
+        Pilar Pendidikan Kami:
+      </div>
+      <div id="cms-pillars-grid" class="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-4 w-full lg:w-auto flex-1">
+        <div class="flex items-center gap-2 font-bold text-xs sm:text-sm text-forest-900 bg-white sm:bg-transparent p-2 sm:p-0 rounded-xl border sm:border-0 border-zinc-200/70">
+          <span class="material-symbols-rounded text-forest-700 text-[19px] shrink-0">menu_book</span>
+          <span class="truncate">Tahfidzul Qur&rsquo;an</span>
+        </div>
+        <div class="flex items-center gap-2 font-bold text-xs sm:text-sm text-forest-900 bg-white sm:bg-transparent p-2 sm:p-0 rounded-xl border sm:border-0 border-zinc-200/70">
+          <span class="material-symbols-rounded text-forest-700 text-[19px] shrink-0">translate</span>
+          <span class="truncate">Dwi Bahasa Aktif</span>
+        </div>
+        <div class="flex items-center gap-2 font-bold text-xs sm:text-sm text-forest-900 bg-white sm:bg-transparent p-2 sm:p-0 rounded-xl border sm:border-0 border-zinc-200/70">
+          <span class="material-symbols-rounded text-forest-700 text-[19px] shrink-0">psychology</span>
+          <span class="truncate">Adab &amp; Kepemimpinan</span>
+        </div>
+        <div class="flex items-center gap-2 font-bold text-xs sm:text-sm text-forest-900 bg-white sm:bg-transparent p-2 sm:p-0 rounded-xl border sm:border-0 border-zinc-200/70">
+          <span class="material-symbols-rounded text-forest-700 text-[19px] shrink-0">memory</span>
+          <span class="truncate">Sains &amp; Teknologi IT</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 3. PROFIL PESANTREN, VISI & MISI (SECTION 01) ==================== -->
+  <section id="profil" class="fluid-container pt-3 pb-6 sm:pt-4 sm:pb-8 lg:pb-10 space-y-5 sm:space-y-6">
+    <!-- Top Header Row (Menu Card) -->
+    <div class="section-menu-card p-3.5 sm:p-4 lg:px-5 lg:py-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4 lg:gap-5">
+      <!-- Left: Compact Campus Photo + Section Title -->
+      <div class="flex flex-col sm:flex-row sm:items-center gap-3.5 sm:gap-4 shrink-0">
+        <div class="relative rounded-xl overflow-hidden w-full sm:w-36 md:w-40 h-24 sm:h-20 border border-emerald-900/15 shadow-xs group shrink-0">
+          <img
+            id="cms-profile-img"
+            src="https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&w=600&q=80"
+            alt="Gedung Pesantren Utsman Bin Affan"
+            class="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+          />
+          <div class="absolute inset-0 bg-forest-950/40 flex items-center justify-center">
+            <span class="px-2.5 py-1 rounded-full bg-white/95 text-forest-950 text-[10px] font-extrabold flex items-center gap-1 shadow">
+              <span class="material-symbols-rounded text-[14px] text-forest-700">verified</span>
+              <span id="cms-profile-since">Sejak 2012</span>
+            </span>
+          </div>
+        </div>
+
+        <div class="sm:border-l sm:border-emerald-900/15 sm:pl-4">
+          <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-forest-900/10 border border-forest-900/15 text-forest-900 text-[10px] font-extrabold uppercase tracking-wider mb-1">
+            <span class="w-1.5 h-1.5 rounded-full bg-forest-800"></span>
+            <span>MENU UTAMA &bull; BAGIAN 01</span>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <h2 class="fluid-section-title font-extrabold tracking-tight text-forest-950">
+              PROFIL PESANTREN
+            </h2>
+            <span class="inline-flex items-center justify-center px-2 py-0.5 rounded-full bg-forest-900 text-limeaccent-400 text-[11px] font-extrabold shrink-0">
+              01
+            </span>
+          </div>
+          <div class="flex items-center gap-1.5 mt-0.5">
+            <span class="text-xs font-extrabold text-limeaccent-600 uppercase tracking-widest shrink-0">//</span>
+            <h3 class="fluid-section-title font-bold tracking-tight text-forest-800">
+              VISI, MISI &amp; NILAI INTI
+            </h3>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Description & CTA (Fills remaining width with no middle gap) -->
+      <div class="flex-1 flex flex-col md:flex-row md:items-center justify-between gap-3.5 pt-3 lg:pt-0 border-t lg:border-t-0 lg:border-l border-emerald-900/15 lg:pl-5">
+        <p id="cms-profile-desc" class="text-xs text-zinc-600 leading-relaxed max-w-xl">
+          Lembaga pendidikan Islam terpadu yang menyeimbangkan kafa&rsquo;ah syar&rsquo;iyyah, hafalan Al-Qur&rsquo;an, dan keunggulan akademik modern.
+        </p>
+        <a
+          href="#psb"
+          class="inline-flex items-center gap-2 bg-limeaccent-400 hover:bg-limeaccent-500 text-forest-950 font-extrabold text-xs pl-3.5 pr-1.5 py-1.5 rounded-full transition shrink-0 w-fit shadow-xs"
+        >
+          <span>Gabung Bersama Kami</span>
+          <span class="w-5 h-5 rounded-full bg-forest-950 text-white flex items-center justify-center">
+            <span class="material-symbols-rounded text-[13px]">arrow_forward</span>
+          </span>
+        </a>
+      </div>
+    </div>
+
+    <!-- ==================== FEATURED CARD BESAR: SAMBUTAN PIMPINAN PONDOK ==================== -->
+    <div class="bg-white rounded-[28px] sm:rounded-[32px] border border-zinc-200/90 shadow-md overflow-hidden grid grid-cols-1 lg:grid-cols-12 items-stretch">
+      <!-- Left (5 cols): Foto & Profil Pimpinan Pondok -->
+      <div class="lg:col-span-5 relative min-h-[280px] sm:min-h-[340px] lg:min-h-[380px] overflow-hidden group">
+        <img
+          id="cms-mudir-img"
+          src="https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1000&q=80"
+          alt="Sambutan Pimpinan Pondok Pesantren Utsman Bin Affan"
+          class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition duration-700"
+        />
+        <div class="absolute inset-0 bg-gradient-to-t from-forest-950/95 via-forest-950/45 to-forest-950/20"></div>
+
+        <div class="relative z-10 h-full p-6 sm:p-8 flex flex-col justify-between text-white">
+          <div class="flex items-center justify-between gap-2">
+            <span class="bg-limeaccent-400 text-forest-950 text-xs font-extrabold px-3.5 py-1 rounded-full tracking-wider uppercase shadow">
+              SAMBUTAN PIMPINAN PONDOK
+            </span>
+            <span class="w-10 h-10 rounded-full bg-white/15 backdrop-blur-md flex items-center justify-center text-limeaccent-400">
+              <span class="material-symbols-rounded text-[22px]">format_quote</span>
+            </span>
+          </div>
+
+          <div class="space-y-2 pt-8">
+            <span class="text-[11px] font-bold uppercase tracking-widest text-limeaccent-400 block">Mudir &lsquo;Aam / Pimpinan Pesantren</span>
+            <h3 id="cms-mudir-name" class="text-xl sm:text-2xl font-extrabold text-white leading-tight">
+              KH. Abdullah Gymnastiar, Lc. — Pimpinan Pondok
+            </h3>
+            <p id="cms-mudir-role" class="text-xs text-white/80">
+              Pengasuh &amp; Ketua Dewan Masyayikh Pondok Pesantren Modern Utsman Bin Affan
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right (7 cols): Isi Sambutan Lengkap & Komitmen Pendidikan -->
+      <div class="lg:col-span-7 p-6 sm:p-8 lg:p-10 flex flex-col justify-between space-y-6 bg-gradient-to-br from-white via-white to-limeaccent-400/5">
+        <div class="space-y-4">
+          <div class="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-100 pb-3">
+            <span class="text-xs sm:text-sm font-extrabold text-forest-800 italic">
+              Assalamu&rsquo;alaikum Warahmatullahi Wabarakatuh,
+            </span>
+            <span class="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">Ahlan wa Sahlan di Ponpes Utsman Bin Affan</span>
+          </div>
+
+          <blockquote id="cms-mudir-quote" class="text-base sm:text-xl lg:text-2xl font-extrabold text-forest-950 leading-snug">
+            &ldquo;Kami berkomitmen menjaga amanah orang tua dengan mendidik santri sepenuh hati serta pelaporan kehadiran real-time.&rdquo;
+          </blockquote>
+
+          <div id="cms-mudir-body" class="space-y-3 text-xs sm:text-sm text-zinc-600 leading-relaxed">
+            <p>
+              Segala puji bagi Allah Subhanahu wa Ta&rsquo;ala. Pondok Pesantren Utsman Bin Affan hadir sebagai rumah peradaban bagi generasi muda Islam untuk menghafal dan mentadabburi Al-Qur&rsquo;an, memperdalam ilmu syar&rsquo;i bersanad, sekaligus menguasai sains dan teknologi modern.
+            </p>
+            <p>
+              Kami menyadari bahwa menitipkan putra-putri di pesantren adalah amanah besar. Oleh karena itu, seluruh proses pembinaan di masjid, kelas, hingga kamar asrama dijalankan dengan pendampingan ustadz dan musyrif secara terukur 24 jam serta terintegrasi melalui sistem presensi pintar <strong>SIUBA Digital</strong>.
+            </p>
+          </div>
+        </div>
+
+        <!-- 3 Pilar Komitmen Pimpinan -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-4 border-t border-zinc-200/80 text-xs">
+          <div class="bg-zinc-50 p-3.5 rounded-2xl border border-zinc-200/60 flex items-center gap-2.5">
+            <span class="w-8 h-8 rounded-xl bg-forest-950 text-limeaccent-400 flex items-center justify-center shrink-0">
+              <span class="material-symbols-rounded text-[17px]">verified_user</span>
+            </span>
+            <div>
+              <span class="font-extrabold text-forest-950 block">Amanah 24 Jam</span>
+              <span class="text-[11px] text-zinc-500">Pendampingan Asrama</span>
+            </div>
+          </div>
+
+          <div class="bg-zinc-50 p-3.5 rounded-2xl border border-zinc-200/60 flex items-center gap-2.5">
+            <span class="w-8 h-8 rounded-xl bg-forest-950 text-limeaccent-400 flex items-center justify-center shrink-0">
+              <span class="material-symbols-rounded text-[17px]">menu_book</span>
+            </span>
+            <div>
+              <span class="font-extrabold text-forest-950 block">Sanad Keilmuan</span>
+              <span class="text-[11px] text-zinc-500">Tahfidz &amp; Turats</span>
+            </div>
+          </div>
+
+          <div class="bg-zinc-50 p-3.5 rounded-2xl border border-zinc-200/60 flex items-center gap-2.5">
+            <span class="w-8 h-8 rounded-xl bg-forest-950 text-limeaccent-400 flex items-center justify-center shrink-0">
+              <span class="material-symbols-rounded text-[17px]">qr_code_scanner</span>
+            </span>
+            <div>
+              <span class="font-extrabold text-forest-950 block">Transparan &amp; Akurat</span>
+              <span class="text-[11px] text-zinc-500">Presensi SIUBA Live</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bento Grid: Misi + Visi + Capaian & Profil Santri -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6 lg:gap-8 items-stretch">
+      <!-- Left: Misi Pesantren (4 Poin Utama) -->
+      <div class="md:col-span-1 lg:col-span-4 flex flex-col justify-between bg-white p-5 sm:p-6 rounded-3xl border border-zinc-200/80 shadow-sm">
+        <div>
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-extrabold uppercase tracking-wider text-forest-800">
+              MISI UTAMA PESANTREN
+            </span>
+            <span class="material-symbols-rounded text-forest-700 text-[20px]">flag</span>
+          </div>
+          <div id="cms-misi-list" class="mt-4 sm:mt-5 divide-y divide-zinc-100">
+            <div class="py-3.5 flex items-start gap-3">
+              <span class="text-xs font-extrabold text-limeaccent-600 bg-limeaccent-400/20 px-2 py-0.5 rounded-md shrink-0 mt-0.5">01</span>
+              <p id="cms-misi-1" class="text-xs sm:text-sm font-semibold text-forest-950 leading-relaxed">
+                Menyelenggarakan pendidikan <span class="font-extrabold">Tahfidzul Qur&rsquo;an</span> yang mutqin dan berakhlak Qur&rsquo;ani sesuai pemahaman Ahlussunnah wal Jama&rsquo;ah.
+              </p>
+            </div>
+            <div class="py-3.5 flex items-start gap-3">
+              <span class="text-xs font-extrabold text-limeaccent-600 bg-limeaccent-400/20 px-2 py-0.5 rounded-md shrink-0 mt-0.5">02</span>
+              <p id="cms-misi-2" class="text-xs sm:text-sm font-semibold text-forest-950 leading-relaxed">
+                Mengembangkan kompetensi akademik, sains, dan penguasaan <span class="font-extrabold">Bahasa Arab &amp; Inggris</span> secara aktif.
+              </p>
+            </div>
+            <div class="py-3.5 flex items-start gap-3">
+              <span class="text-xs font-extrabold text-limeaccent-600 bg-limeaccent-400/20 px-2 py-0.5 rounded-md shrink-0 mt-0.5">03</span>
+              <p id="cms-misi-3" class="text-xs sm:text-sm font-semibold text-forest-950 leading-relaxed">
+                Membina kemandirian, jiwa kepemimpinan (leadership), dan kepedulian sosial santri melalui pembiasaan asrama 24 jam.
+              </p>
+            </div>
+            <div class="py-3.5 flex items-start gap-3">
+              <span class="text-xs font-extrabold text-limeaccent-600 bg-limeaccent-400/20 px-2 py-0.5 rounded-md shrink-0 mt-0.5">04</span>
+              <p id="cms-misi-4" class="text-xs sm:text-sm font-semibold text-forest-950 leading-relaxed">
+                Menerapkan tata kelola pesantren modern yang transparan dan akuntabel berbasis teknologi <span class="font-extrabold">SIUBA Digital</span>.
+              </p>
+            </div>
+          </div>
+        </div>
+        <div class="mt-4 pt-4 border-t border-zinc-100 flex items-center justify-between text-xs text-zinc-500">
+          <span>Kurikulum Terpadu Kemenag &amp; Kepesantrenan</span>
+          <span class="font-extrabold text-forest-800">100% Mukim</span>
+        </div>
+      </div>
+
+      <!-- Center: Visi Pesantren & Nilai Inti (Full Height Card) -->
+      <div class="md:col-span-1 lg:col-span-4 flex flex-col">
+        <div class="bg-forest-950 text-white p-6 sm:p-7 rounded-3xl shadow-md space-y-5 flex-1 flex flex-col justify-between relative overflow-hidden">
+          <div class="absolute -right-8 -top-8 w-32 h-32 rounded-full bg-limeaccent-400/10"></div>
+          <div class="space-y-4">
+            <div class="flex items-center justify-between text-xs text-limeaccent-400 font-extrabold uppercase tracking-wider">
+              <span>VISI PESANTREN</span>
+              <span class="w-9 h-9 rounded-full bg-limeaccent-400/15 text-limeaccent-400 flex items-center justify-center">
+                <span class="material-symbols-rounded text-[18px]">visibility</span>
+              </span>
+            </div>
+            <blockquote id="cms-visi" class="text-base sm:text-lg lg:text-xl font-extrabold text-white leading-relaxed">
+              &ldquo;Menjadi Lembaga Pendidikan Islam Terbaik dalam Mencetak Generasi Penghafal Al-Qur&rsquo;an yang Berakhlak Mulia, Cerdas, Mandiri, dan Berwawasan Global.&rdquo;
+            </blockquote>
+          </div>
+
+          <div class="space-y-3 pt-4 border-t border-white/15">
+            <div class="flex flex-wrap items-center gap-2 text-xs text-white/80">
+              <span class="font-extrabold text-limeaccent-400 uppercase tracking-wider">Motto &amp; Nilai Inti:</span>
+              <span id="cms-motto" class="font-semibold">Beriman &bull; Berilmu &bull; Beramal &bull; Berprestasi</span>
+            </div>
+            <div class="grid grid-cols-2 gap-2 text-[11px] font-bold">
+              <div class="bg-white/10 rounded-xl px-3 py-2 flex items-center gap-1.5 text-limeaccent-400">
+                <span class="material-symbols-rounded text-[15px]">mosque</span>
+                <span>Aqidah Salimah</span>
+              </div>
+              <div class="bg-white/10 rounded-xl px-3 py-2 flex items-center gap-1.5 text-limeaccent-400">
+                <span class="material-symbols-rounded text-[15px]">menu_book</span>
+                <span>Mutqin Al-Qur&rsquo;an</span>
+              </div>
+              <div class="bg-white/10 rounded-xl px-3 py-2 flex items-center gap-1.5 text-limeaccent-400">
+                <span class="material-symbols-rounded text-[15px]">volunteer_activism</span>
+                <span>Akhlakul Karimah</span>
+              </div>
+              <div class="bg-white/10 rounded-xl px-3 py-2 flex items-center gap-1.5 text-limeaccent-400">
+                <span class="material-symbols-rounded text-[15px]">public</span>
+                <span>Wawasan Global</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Statistik & Profil Singkat Pesantren -->
+      <div class="md:col-span-2 lg:col-span-4 bg-white p-5 sm:p-6 rounded-3xl border border-zinc-200/80 shadow-sm flex flex-col justify-between">
+        <div class="flex items-center justify-between gap-2">
+          <div>
+            <span class="text-xs font-extrabold uppercase tracking-wider text-forest-800 block">
+              CAPAIAN &amp; PROFIL SANTRI
+            </span>
+            <span class="text-xs text-zinc-400">Kelulusan &amp; Ketuntasan Tahfidz</span>
+          </div>
+          <span class="w-9 h-9 rounded-full bg-forest-950 text-limeaccent-400 flex items-center justify-center shrink-0">
+            <span class="material-symbols-rounded text-[18px]">workspace_premium</span>
+          </span>
+        </div>
+
+        <!-- Responsive SVG Gauge -->
+        <div class="my-4 sm:my-5 flex flex-col items-center justify-center">
+          <div class="relative w-full max-w-[210px] aspect-[2/1] overflow-hidden flex items-end justify-center">
+            <svg viewBox="0 0 200 105" class="w-full h-full">
+              <path d="M 20 95 A 80 80 0 0 1 180 95" fill="none" stroke="#e4ebe5" stroke-width="18" stroke-linecap="butt" stroke-dasharray="10 4" />
+              <path d="M 20 95 A 80 80 0 0 1 168 52" fill="none" stroke="#14492b" stroke-width="18" stroke-linecap="butt" stroke-dasharray="10 4" />
+              <path d="M 168 52 A 80 80 0 0 1 180 95" fill="none" stroke="#84cc16" stroke-width="18" stroke-linecap="butt" stroke-dasharray="10 4" />
+            </svg>
+            <div class="absolute bottom-0 text-center">
+              <span id="cms-stat-kelulusan" class="text-2xl sm:text-3xl font-extrabold text-forest-950">96.8%</span>
+            </div>
+          </div>
+          <p id="cms-stat-kelulusan-desc" class="text-xs text-zinc-500 mt-2.5 text-center max-w-xs">
+            Alumni diterima di PTN Favorit, Timur Tengah (Al-Azhar, Madinah, LIPIA) &amp; Perguruan Tinggi Islam.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2.5 pt-3 border-t border-zinc-100 text-xs">
+          <div class="bg-zinc-50 p-3 rounded-2xl">
+            <span class="text-zinc-400 block">Santri Aktif</span>
+            <span id="cms-stat-santri" class="font-extrabold text-forest-950 text-sm">850+ Santri</span>
+          </div>
+          <div class="bg-zinc-50 p-3 rounded-2xl">
+            <span class="text-zinc-400 block">Pendidik &amp; Musyrif</span>
+            <span id="cms-stat-ustadz" class="font-extrabold text-forest-950 text-sm">95+ Ustadz/ah</span>
+          </div>
+          <div class="bg-zinc-50 p-3 rounded-2xl">
+            <span class="text-zinc-400 block">Jenjang</span>
+            <span id="cms-stat-jenjang" class="font-extrabold text-forest-950 text-sm">SMP IT &amp; SMA IT</span>
+          </div>
+          <div class="bg-zinc-50 p-3 rounded-2xl">
+            <span class="text-zinc-400 block">Fasilitas Asrama</span>
+            <span id="cms-stat-asrama" class="font-extrabold text-forest-950 text-sm">Putra &amp; Putri</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sub-Bagian: Sejarah Pesantren & Keunggulan Pesantren -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 pt-2">
+      <!-- Sejarah Pesantren -->
+      <div class="lg:col-span-5 bg-white p-6 sm:p-7 rounded-3xl border border-zinc-200/80 shadow-xs space-y-3 flex flex-col justify-between">
+        <div class="space-y-2.5">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-extrabold uppercase tracking-wider text-forest-800">SEJARAH PESANTREN</span>
+            <span class="material-symbols-rounded text-forest-700 text-[20px]">history_edu</span>
+          </div>
+          <h4 id="cms-sejarah-title" class="text-base sm:text-lg font-extrabold text-forest-950">Perjalanan Membangun Peradaban Qur&rsquo;ani Sejak 2012</h4>
+          <p id="cms-sejarah-text" class="text-xs sm:text-sm text-zinc-600 leading-relaxed">
+            Didirikan pada tahun 2012 oleh para ulama, akademisi, dan tokoh masyarakat, Pondok Pesantren Utsman Bin Affan bermula dari halaqah tahfidz sederhana dengan 35 santri mukim. Kini telah berkembang menjadi lembaga pendidikan Islam modern berasrama (SMP IT, SMA IT &amp; Takhassus) yang memadukan tradisi keilmuan Islam bersanad dengan inovasi teknologi digital SIUBA.
+          </p>
+        </div>
+        <div class="pt-3 border-t border-zinc-100 flex items-center justify-between text-xs text-zinc-500 font-semibold">
+          <span>Berbadan Hukum Wakaf &amp; Yayasan Resmi</span>
+          <span class="text-forest-800 font-extrabold">Terakreditasi A</span>
+        </div>
+      </div>
+
+      <!-- Keunggulan Pesantren (4 Nilai Lebih) -->
+      <div class="lg:col-span-7 bg-forest-950 text-white p-6 sm:p-7 rounded-3xl shadow-md space-y-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <span class="text-xs font-extrabold uppercase tracking-wider text-limeaccent-400 block">KEUNGGULAN PESANTREN</span>
+            <h4 class="text-base sm:text-lg font-extrabold mt-0.5">Mengapa Memilih Ponpes Utsman Bin Affan?</h4>
+          </div>
+          <span class="w-9 h-9 rounded-full bg-limeaccent-400 text-forest-950 flex items-center justify-center">
+            <span class="material-symbols-rounded text-[18px]">stars</span>
+          </span>
+        </div>
+        <div id="cms-advantages-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
+          <div class="bg-white/10 p-3.5 rounded-2xl space-y-1">
+            <div class="font-extrabold text-limeaccent-400 flex items-center gap-1.5">
+              <span class="material-symbols-rounded text-[16px]">verified</span>
+              <span>1. Sanad Tahfidz &amp; Pembinaan Mutqin</span>
+            </div>
+            <p class="text-white/80 leading-relaxed">Dibimbing langsung oleh para Hafidz/ah bersanad dengan target 15–30 Juz yang teruji kelancarannya.</p>
+          </div>
+          <div class="bg-white/10 p-3.5 rounded-2xl space-y-1">
+            <div class="font-extrabold text-limeaccent-400 flex items-center gap-1.5">
+              <span class="material-symbols-rounded text-[16px]">qr_code_scanner</span>
+              <span>2. Sistem Digital Presensi SIUBA</span>
+            </div>
+            <p class="text-white/80 leading-relaxed">Kehadiran shalat berjamaah, KBM kelas, kamar asrama, dan izin santri terpantau akurat dengan Smart Card RFID/QR.</p>
+          </div>
+          <div class="bg-white/10 p-3.5 rounded-2xl space-y-1">
+            <div class="font-extrabold text-limeaccent-400 flex items-center gap-1.5">
+              <span class="material-symbols-rounded text-[16px]">translate</span>
+              <span>3. Lingkungan Bilingual (Arab &amp; Inggris)</span>
+            </div>
+            <p class="text-white/80 leading-relaxed">Pembiasaan percakapan harian Bahasa Arab dan Inggris untuk membekali santri melanjutkan studi ke Timur Tengah &amp; PTN.</p>
+          </div>
+          <div class="bg-white/10 p-3.5 rounded-2xl space-y-1">
+            <div class="font-extrabold text-limeaccent-400 flex items-center gap-1.5">
+              <span class="material-symbols-rounded text-[16px]">shield_with_heart</span>
+              <span>4. Asrama Ramah Anak &amp; Bebas Bullying</span>
+            </div>
+            <p class="text-white/80 leading-relaxed">Pendampingan musyrif/ah di setiap kamar dengan pendekatan kasih sayang, adab Islami, dan disiplin positif.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 4. PROGRAM PENDIDIKAN & KEHIDUPAN SANTRI (SECTION 02) ==================== -->
+  <section id="program" class="fluid-container py-6 sm:py-8 lg:py-10 space-y-5 sm:space-y-6">
+    <!-- Header (Menu Card) -->
+    <div class="section-menu-card p-3.5 sm:p-4 lg:px-5 lg:py-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4 lg:gap-5">
+      <div class="shrink-0">
+        <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-forest-900/10 border border-forest-900/15 text-forest-900 text-[10px] font-extrabold uppercase tracking-wider mb-1">
+          <span class="w-1.5 h-1.5 rounded-full bg-forest-800"></span>
+          <span>MENU AKADEMIK &bull; BAGIAN 02</span>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <h2 class="fluid-section-title font-extrabold tracking-tight text-forest-950">
+            PROGRAM PENDIDIKAN
+          </h2>
+          <span class="inline-flex items-center justify-center px-2 py-0.5 rounded-full bg-forest-900 text-limeaccent-400 text-[11px] font-extrabold">
+            02
+          </span>
+        </div>
+        <div class="flex flex-wrap items-center gap-1.5 mt-0.5">
+          <span class="text-xs font-extrabold text-limeaccent-600">//</span>
+          <h3 class="fluid-section-title font-bold tracking-tight text-forest-800">
+            5 PILAR KURIKULUM UNGGULAN
+          </h3>
+        </div>
+      </div>
+      <div class="flex-1 flex flex-col md:flex-row md:items-center justify-between gap-3.5 pt-3 lg:pt-0 border-t lg:border-t-0 lg:border-l border-emerald-900/15 lg:pl-5">
+        <p id="cms-programs-desc" class="text-xs text-zinc-600 leading-relaxed max-w-2xl">
+          Dirancang secara komprehensif mencakup Kurikulum Terpadu, Tahfidz Al-Qur&rsquo;an, Bahasa Arab &amp; Inggris, Pembinaan Akhlak &amp; Kepemimpinan, serta Life Skill Islami.
+        </p>
+        <a href="#psb" class="inline-flex items-center gap-1.5 bg-white hover:bg-forest-900 hover:text-limeaccent-400 text-forest-900 border border-emerald-900/20 px-3.5 py-1.5 rounded-full text-xs font-extrabold uppercase tracking-wider transition shrink-0 w-fit">
+          <span>Lihat Pendaftaran</span>
+          <span class="material-symbols-rounded text-[16px]">chevron_right</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- 5 Kartu Program Pendidikan Sesuai Standar Pesantren -->
+    <div id="cms-programs-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-5">
+      <!-- 1. Kurikulum Terpadu -->
+      <div class="bg-white p-5 rounded-3xl border border-zinc-200/80 shadow-xs flex flex-col justify-between space-y-3">
+        <div class="space-y-2.5">
+          <span class="w-10 h-10 rounded-2xl bg-forest-950 text-limeaccent-400 flex items-center justify-center">
+            <span class="material-symbols-rounded">school</span>
+          </span>
+          <span class="text-[10px] font-extrabold uppercase tracking-wider text-forest-700 block">PROGRAM 01</span>
+          <h4 class="text-sm sm:text-base font-extrabold text-forest-950">Kurikulum Terpadu</h4>
+          <p class="text-xs text-zinc-600 leading-relaxed">
+            Integrasi Kurikulum Nasional (Kemendikbud/Kemenag) dengan Kurikulum Diniyah Kepesantrenan (Aqidah, Fiqih, Hadits, Tafsir &amp; Sirah).
+          </p>
+        </div>
+        <span class="text-[11px] font-bold text-forest-800 pt-2 border-t border-zinc-100">SMP IT &amp; SMA IT Resmi</span>
+      </div>
+
+      <!-- 2. Tahfidz Al-Qur'an -->
+      <div class="bg-white p-5 rounded-3xl border border-zinc-200/80 shadow-xs flex flex-col justify-between space-y-3">
+        <div class="space-y-2.5">
+          <span class="w-10 h-10 rounded-2xl bg-forest-950 text-limeaccent-400 flex items-center justify-center">
+            <span class="material-symbols-rounded">menu_book</span>
+          </span>
+          <span class="text-[10px] font-extrabold uppercase tracking-wider text-forest-700 block">PROGRAM 02</span>
+          <h4 class="text-sm sm:text-base font-extrabold text-forest-950">Tahfidz Al-Qur&rsquo;an</h4>
+          <p class="text-xs text-zinc-600 leading-relaxed">
+            Tahsin metode Talaqqi bersanad, setoran Ziyadah &amp; Muraja&rsquo;ah harian pagi-petang, serta Ujian Tasmi&rsquo; sekali duduk.
+          </p>
+        </div>
+        <span class="text-[11px] font-bold text-forest-800 pt-2 border-t border-zinc-100">Target 15 – 30 Juz Mutqin</span>
+      </div>
+
+      <!-- 3. Bahasa Arab dan Inggris -->
+      <div class="bg-white p-5 rounded-3xl border border-zinc-200/80 shadow-xs flex flex-col justify-between space-y-3">
+        <div class="space-y-2.5">
+          <span class="w-10 h-10 rounded-2xl bg-forest-950 text-limeaccent-400 flex items-center justify-center">
+            <span class="material-symbols-rounded">translate</span>
+          </span>
+          <span class="text-[10px] font-extrabold uppercase tracking-wider text-forest-700 block">PROGRAM 03</span>
+          <h4 class="text-sm sm:text-base font-extrabold text-forest-950">Bahasa Arab &amp; Inggris</h4>
+          <p class="text-xs text-zinc-600 leading-relaxed">
+            Pembiasaan komunikasi harian dwibahasa, pemberian mufradat/vocabulary pagi, Nahwu-Sharaf, TOEFL/TOAFL &amp; Muhadatsah.
+          </p>
+        </div>
+        <span class="text-[11px] font-bold text-forest-800 pt-2 border-t border-zinc-100">Bilingual Active Area</span>
+      </div>
+
+      <!-- 4. Pembinaan Akhlak dan Kepemimpinan -->
+      <div class="bg-white p-5 rounded-3xl border border-zinc-200/80 shadow-xs flex flex-col justify-between space-y-3">
+        <div class="space-y-2.5">
+          <span class="w-10 h-10 rounded-2xl bg-forest-950 text-limeaccent-400 flex items-center justify-center">
+            <span class="material-symbols-rounded">psychology</span>
+          </span>
+          <span class="text-[10px] font-extrabold uppercase tracking-wider text-forest-700 block">PROGRAM 04</span>
+          <h4 class="text-sm sm:text-base font-extrabold text-forest-950">Pembinaan Akhlak &amp; Kepemimpinan</h4>
+          <p class="text-xs text-zinc-600 leading-relaxed">
+            Penanaman adab penuntut ilmu, Khitobah/Public Speaking 3 bahasa, manajemen organisasi santri (OSIS/OPPM), &amp; bakti sosial.
+          </p>
+        </div>
+        <span class="text-[11px] font-bold text-forest-800 pt-2 border-t border-zinc-100">Character &amp; Leadership</span>
+      </div>
+
+      <!-- 5. Life Skill Islami -->
+      <div class="bg-white p-5 rounded-3xl border border-zinc-200/80 shadow-xs flex flex-col justify-between space-y-3">
+        <div class="space-y-2.5">
+          <span class="w-10 h-10 rounded-2xl bg-forest-950 text-limeaccent-400 flex items-center justify-center">
+            <span class="material-symbols-rounded">Auto_Awesome</span>
+          </span>
+          <span class="text-[10px] font-extrabold uppercase tracking-wider text-forest-700 block">PROGRAM 05</span>
+          <h4 class="text-sm sm:text-base font-extrabold text-forest-950">Life Skill Islami</h4>
+          <p class="text-xs text-zinc-600 leading-relaxed">
+            Kemandirian hidup berasrama, olahraga sunnah (Panahan &amp; Bela Diri), Literasi Digital/Coding, Jurnalistik &amp; Kewirausahaan Santri.
+          </p>
+        </div>
+        <span class="text-[11px] font-bold text-forest-800 pt-2 border-t border-zinc-100">Mandiri &amp; Produktif</span>
+      </div>
+    </div>
+
+    <!-- Wide Banner with 3 Glass Widgets -->
+    <div class="relative rounded-[24px] sm:rounded-[32px] overflow-hidden p-4 xs:p-6 sm:p-8 lg:p-11 shadow-xl">
+      <img
+        src="https://images.unsplash.com/photo-1519817650390-64a93db51149?auto=format&fit=crop&w=1920&q=80"
+        alt="Program Pendidikan Pesantren"
+        class="absolute inset-0 w-full h-full object-cover"
+      />
+      <div class="absolute inset-0 bg-gradient-to-r from-forest-950/92 via-forest-900/82 to-forest-950/88"></div>
+
+      <div class="relative z-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 pt-2 sm:pt-4">
+        <!-- Widget 1: Tahfidz & Diniyah -->
+        <div class="glass-card rounded-2xl sm:rounded-3xl p-5 sm:p-6 text-white flex flex-col justify-between space-y-5">
+          <div class="flex items-start justify-between gap-2">
+            <div>
+              <span class="text-xs font-bold uppercase tracking-wider text-limeaccent-400 block">TAHFIDZ &amp; ULUMUDDIN</span>
+              <span class="text-xs text-white/75">Halaqah Pagi &amp; Ba&rsquo;da Maghrib</span>
+            </div>
+            <span class="w-9 h-9 rounded-full bg-white text-forest-950 flex items-center justify-center shrink-0">
+              <span class="material-symbols-rounded text-[18px]">menu_book</span>
+            </span>
+          </div>
+          <p class="text-xs text-white/80 leading-relaxed">
+            Program intensif Tahsin Al-Qur&rsquo;an metode Talaqqi, setoran Ziyadah &amp; Muraja&rsquo;ah harian, serta kajian Kitab Turats.
+          </p>
+          <div class="flex items-baseline justify-between gap-3 pt-2 border-t border-white/15">
+            <span class="text-2xl sm:text-3xl font-extrabold tracking-tight text-limeaccent-400">15–30 Juz</span>
+            <span class="text-xs text-white/80 font-semibold">Target Lulusan</span>
+          </div>
+        </div>
+
+        <!-- Widget 2: Disiplin Shalat 5 Waktu -->
+        <div class="glass-card rounded-2xl sm:rounded-3xl p-5 sm:p-6 text-white flex flex-col justify-between space-y-5">
+          <div class="flex items-start justify-between gap-2">
+            <div>
+              <span class="text-xs font-bold uppercase tracking-wider text-limeaccent-400 block">IBADAH &amp; SHALAT 5 WAKTU</span>
+              <span class="text-xs text-white/75">Presensi Kartu Pintar di Masjid</span>
+            </div>
+            <span class="w-9 h-9 rounded-full bg-white text-forest-950 flex items-center justify-center shrink-0">
+              <span class="material-symbols-rounded text-[18px]">mosque</span>
+            </span>
+          </div>
+          <div class="grid grid-cols-5 gap-1.5 sm:gap-2 text-center pt-1">
+            <div class="bg-white/10 rounded-xl py-2 px-1">
+              <span class="material-symbols-rounded text-limeaccent-400 text-[16px] sm:text-[18px]">wb_twilight</span>
+              <span class="block text-[9px] sm:text-[10px] font-bold mt-1 truncate">Subuh</span>
+            </div>
+            <div class="bg-white/10 rounded-xl py-2 px-1">
+              <span class="material-symbols-rounded text-limeaccent-400 text-[16px] sm:text-[18px]">light_mode</span>
+              <span class="block text-[9px] sm:text-[10px] font-bold mt-1 truncate">Dzuhur</span>
+            </div>
+            <div class="bg-white/10 rounded-xl py-2 px-1">
+              <span class="material-symbols-rounded text-limeaccent-400 text-[16px] sm:text-[18px]">wb_sunny</span>
+              <span class="block text-[9px] sm:text-[10px] font-bold mt-1 truncate">Ashar</span>
+            </div>
+            <div class="bg-white/10 rounded-xl py-2 px-1">
+              <span class="material-symbols-rounded text-limeaccent-400 text-[16px] sm:text-[18px]">routine</span>
+              <span class="block text-[9px] sm:text-[10px] font-bold mt-1 truncate">Maghrib</span>
+            </div>
+            <div class="bg-white/10 rounded-xl py-2 px-1">
+              <span class="material-symbols-rounded text-limeaccent-400 text-[16px] sm:text-[18px]">dark_mode</span>
+              <span class="block text-[9px] sm:text-[10px] font-bold mt-1 truncate">Isya</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Widget 3: Jenjang & Ekstrakurikuler -->
+        <div class="md:col-span-2 lg:col-span-1 glass-card rounded-2xl sm:rounded-3xl p-5 sm:p-6 text-white flex flex-col justify-between space-y-5">
+          <div class="flex flex-wrap items-center gap-1.5 bg-forest-950/60 p-1.5 rounded-full text-xs font-bold w-fit">
+            <span class="bg-white text-forest-950 px-3.5 py-1 rounded-full">SMP IT</span>
+            <span class="px-3 py-1 text-white/80">SMA IT</span>
+            <span class="px-3 py-1 text-white/80">Takhassus</span>
+          </div>
+          <div class="space-y-2">
+            <span class="text-xs font-semibold text-white/80 block">Ekstrakurikuler &amp; Life Skill:</span>
+            <div class="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs font-bold">
+              <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-limeaccent-400"></span> Panahan</span>
+              <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-amber-400"></span> Bela Diri</span>
+              <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-sky-400"></span> Robotik &amp; Coding</span>
+              <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-emerald-400"></span> Khitobah 3 Bahasa</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 5. INFORMASI PSB SANTRI BARU (SECTION 03) ==================== -->
+  <section id="psb" class="fluid-container py-6 sm:py-8 lg:py-10 space-y-5 sm:space-y-6">
+    <span id="ppdb" class="sr-only"></span>
+    <!-- Header (Menu Card) -->
+    <div class="section-menu-card p-3.5 sm:p-4 lg:px-5 lg:py-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4 lg:gap-5">
+      <div class="shrink-0">
+        <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-forest-900/10 border border-forest-900/15 text-forest-900 text-[10px] font-extrabold uppercase tracking-wider mb-1">
+          <span class="w-1.5 h-1.5 rounded-full bg-forest-800"></span>
+          <span>MENU PENDAFTARAN &bull; BAGIAN 03</span>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <h2 class="fluid-section-title font-extrabold tracking-tight text-forest-950">
+            PENERIMAAN SANTRI BARU
+          </h2>
+          <span class="inline-flex items-center justify-center px-2 py-0.5 rounded-full bg-forest-900 text-limeaccent-400 text-[11px] font-extrabold">
+            03
+          </span>
+        </div>
+        <div class="flex items-center gap-1.5 mt-0.5">
+          <span class="text-xs font-extrabold text-limeaccent-600">//</span>
+          <h3 id="cms-ppdb-tahun" class="fluid-section-title font-bold tracking-tight text-forest-800">
+            PSB TAHUN AJARAN 2026 / 2027
+          </h3>
+        </div>
+      </div>
+
+      <div class="flex-1 flex flex-col md:flex-row md:items-center justify-between gap-3.5 pt-3 lg:pt-0 border-t lg:border-t-0 lg:border-l border-emerald-900/15 lg:pl-5">
+        <p class="text-xs text-zinc-600 leading-relaxed max-w-xl">
+          Informasi lengkap gelombang pendaftaran, jadwal seleksi, persyaratan berkas, alur registrasi, dan kuota penerimaan santri baru SMP IT &amp; SMA IT.
+        </p>
+        <div class="flex items-center gap-2 text-xs font-extrabold uppercase tracking-wider text-forest-800 shrink-0">
+          <span id="cms-ppdb-status" class="bg-limeaccent-400 text-forest-950 px-3 py-1.5 rounded-full shadow-2xs">GELOMBANG 1 BUKA</span>
+          <span class="bg-white border border-emerald-900/15 px-3 py-1.5 rounded-full text-forest-900">SMP IT &amp; SMA IT</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Content Row: Kuota & Syarat + 2 Jenjang Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6 lg:gap-8 items-stretch">
+      <!-- Left Column: Info Gelombang & Syarat Pendaftaran -->
+      <div class="md:col-span-2 lg:col-span-4 bg-white p-5 sm:p-6 rounded-3xl border border-zinc-200/90 shadow-sm flex flex-col justify-between">
+        <div class="space-y-3.5">
+          <div class="flex items-center justify-between border-b border-zinc-100 pb-3">
+            <div>
+              <span class="text-[11px] font-extrabold uppercase tracking-wider text-forest-800 block">KUOTA PENERIMAAN</span>
+              <div id="cms-ppdb-kuota" class="text-2xl sm:text-3xl font-extrabold text-forest-950 tracking-tight mt-0.5">240 Kursi</div>
+            </div>
+            <span class="w-10 h-10 rounded-2xl bg-forest-950 text-limeaccent-400 flex items-center justify-center shrink-0 shadow-xs">
+              <span class="material-symbols-rounded text-[20px]">how_to_reg</span>
+            </span>
+          </div>
+
+          <p id="cms-ppdb-kuota-desc" class="text-xs text-zinc-600 leading-relaxed">
+            Terdiri dari 120 kursi jenjang <strong>SMP IT</strong> (60 Putra &amp; 60 Putri) dan 120 kursi jenjang <strong>SMA IT / Takhassus</strong> (60 Putra &amp; 60 Putri).
+          </p>
+
+          <div class="bg-zinc-50 border border-zinc-200/70 rounded-2xl p-3.5 space-y-2 text-xs">
+            <div class="flex items-center gap-1.5 font-extrabold text-forest-950 uppercase text-[11px] tracking-wider pb-1 border-b border-zinc-200/80">
+              <span class="material-symbols-rounded text-[15px] text-forest-700">calendar_month</span>
+              <span>Jadwal Gelombang PSB</span>
+            </div>
+            <div class="flex items-center justify-between gap-2 py-1 border-b border-zinc-200/60">
+              <span id="cms-ppdb-g1-label" class="text-zinc-600 font-medium">Gelombang I</span>
+              <span id="cms-ppdb-g1-date" class="font-extrabold text-forest-900 text-right bg-white px-2.5 py-0.5 rounded-lg border border-zinc-200/80 shrink-0">01 Okt – 31 Des 2026</span>
+            </div>
+            <div class="flex items-center justify-between gap-2 py-1 border-b border-zinc-200/60">
+              <span id="cms-ppdb-g2-label" class="text-zinc-600 font-medium">Gelombang II</span>
+              <span id="cms-ppdb-g2-date" class="font-extrabold text-forest-900 text-right bg-white px-2.5 py-0.5 rounded-lg border border-zinc-200/80 shrink-0">01 Jan – 31 Mar 2027</span>
+            </div>
+            <div class="flex items-center justify-between gap-2 pt-0.5">
+              <span id="cms-ppdb-tes-label" class="text-zinc-600 font-medium">Tes &amp; Wawancara</span>
+              <span id="cms-ppdb-tes-date" class="font-extrabold text-forest-900 text-right bg-limeaccent-400/25 px-2.5 py-0.5 rounded-lg text-[11px]">Setiap Sabtu</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="space-y-2 pt-4 border-t border-zinc-100 mt-4">
+          <button
+            type="button"
+            onclick="document.getElementById('ppdb-modal').classList.remove('hidden')"
+            class="w-full inline-flex items-center justify-between bg-limeaccent-400 hover:bg-limeaccent-500 text-forest-950 font-extrabold text-xs pl-4 pr-2 py-2 rounded-full transition cursor-pointer shadow-xs"
+          >
+            <span>Isi Formulir PSB Online</span>
+            <span class="w-7 h-7 rounded-full bg-forest-950 text-white flex items-center justify-center shrink-0">
+              <span class="material-symbols-rounded text-[15px]">edit_document</span>
+            </span>
+          </button>
+          <a
+            href="/psb"
+            class="w-full inline-flex items-center justify-between bg-forest-950 hover:bg-forest-800 text-limeaccent-400 font-extrabold text-xs pl-4 pr-2 py-2 rounded-full transition shadow-xs"
+          >
+            <span>Buka Halaman Lengkap PSB &amp; Biaya</span>
+            <span class="w-7 h-7 rounded-full bg-white/10 text-limeaccent-400 flex items-center justify-center shrink-0">
+              <span class="material-symbols-rounded text-[15px]">open_in_new</span>
+            </span>
+          </a>
+          <p id="cms-ppdb-beasiswa" class="text-[11px] text-zinc-500 text-center leading-snug pt-1">
+            Tersedia jalur Beasiswa Tahfidz (Hafal min. 5–30 Juz), Juara Olimpiade Sains, &amp; Yatim Berprestasi.
+          </p>
+        </div>
+      </div>
+
+      <!-- Card 1: Jenjang SMP IT -->
+      <div class="md:col-span-1 lg:col-span-4 relative rounded-3xl overflow-hidden min-h-[360px] sm:min-h-[400px] shadow-lg group flex flex-col justify-end p-3.5 sm:p-4">
+        <img
+          id="cms-smp-img"
+          src="https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=800&q=80"
+          alt="SMP IT Utsman Bin Affan"
+          class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition duration-700"
+        />
+        <div class="absolute inset-0 bg-gradient-to-t from-forest-950/92 via-forest-950/30 to-transparent"></div>
+
+        <!-- Icon di Pojok Kiri Atas & Keterangan Lulusan di Pojok Kanan Atas -->
+        <div class="absolute top-4 left-4 z-10 w-10 h-10 rounded-full bg-limeaccent-400 text-forest-950 flex items-center justify-center font-bold shadow-md">
+          <span class="material-symbols-rounded text-[20px]">school</span>
+        </div>
+        <div class="absolute top-4 right-4 z-10">
+          <span id="cms-smp-badge" class="text-[11px] font-extrabold bg-forest-950/80 backdrop-blur-md text-white border border-white/20 px-3.5 py-1.5 rounded-full shadow-md">
+            Lulusan SD / MI
+          </span>
+        </div>
+
+        <!-- Box Keterangan Diperkecil & Ramping di Bagian Bawah -->
+        <div class="relative z-10 glass-card rounded-2xl p-3.5 sm:p-4 text-white space-y-2">
+          <div>
+            <h4 id="cms-smp-title" class="text-sm sm:text-base font-extrabold tracking-tight">JENJANG SMP IT (BOARDING)</h4>
+            <p id="cms-smp-desc" class="text-[11.5px] text-white/85 leading-snug mt-0.5">Fondasi Tahsin, Tahfidz 10–15 Juz, Bahasa Arab Dasar &amp; Kurikulum Nasional.</p>
+          </div>
+          <div class="grid grid-cols-3 gap-2 pt-2 border-t border-white/15 text-[10.5px]">
+            <div>
+              <span class="text-white/60 block text-[10px]">Masa Studi</span>
+              <span id="cms-smp-duration" class="font-extrabold text-white">3 Tahun</span>
+            </div>
+            <div>
+              <span class="text-white/60 block text-[10px]">Kuota</span>
+              <span id="cms-smp-kuota" class="font-extrabold text-white">120 Santri</span>
+            </div>
+            <div>
+              <span class="text-white/60 block text-[10px]">Asrama</span>
+              <span id="cms-smp-boarding" class="font-extrabold text-white">Terpisah Pa/Pi</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 2: Jenjang SMA IT & Takhassus -->
+      <div class="md:col-span-1 lg:col-span-4 relative rounded-3xl overflow-hidden min-h-[360px] sm:min-h-[400px] shadow-lg group flex flex-col justify-end p-3.5 sm:p-4">
+        <img
+          id="cms-sma-img"
+          src="https://images.unsplash.com/photo-1519817650390-64a93db51149?auto=format&fit=crop&w=800&q=80"
+          alt="SMA IT Utsman Bin Affan"
+          class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition duration-700"
+        />
+        <div class="absolute inset-0 bg-gradient-to-t from-forest-950/92 via-forest-950/30 to-transparent"></div>
+
+        <!-- Icon di Pojok Kiri Atas & Keterangan Lulusan di Pojok Kanan Atas -->
+        <div class="absolute top-4 left-4 z-10 w-10 h-10 rounded-full bg-limeaccent-400 text-forest-950 flex items-center justify-center font-bold shadow-md">
+          <span class="material-symbols-rounded text-[20px]">workspace_premium</span>
+        </div>
+        <div class="absolute top-4 right-4 z-10">
+          <span id="cms-sma-badge" class="text-[11px] font-extrabold bg-forest-950/80 backdrop-blur-md text-white border border-white/20 px-3.5 py-1.5 rounded-full shadow-md">
+            Lulusan SMP / MTs
+          </span>
+        </div>
+
+        <!-- Box Keterangan Diperkecil & Ramping di Bagian Bawah -->
+        <div class="relative z-10 glass-card rounded-2xl p-3.5 sm:p-4 text-white space-y-2">
+          <div>
+            <h4 id="cms-sma-title" class="text-sm sm:text-base font-extrabold tracking-tight">JENJANG SMA IT &amp; TAKHASSUS</h4>
+            <p id="cms-sma-desc" class="text-[11.5px] text-white/85 leading-snug mt-0.5">Tahfidz 30 Juz Bersanad, Kajian Kitab Kuning, Sains Olimpiade &amp; Persiapan PTN/Timteng.</p>
+          </div>
+          <div class="grid grid-cols-3 gap-2 pt-2 border-t border-white/15 text-[10.5px]">
+            <div>
+              <span class="text-white/60 block text-[10px]">Masa Studi</span>
+              <span id="cms-sma-duration" class="font-extrabold text-white">3 Tahun</span>
+            </div>
+            <div>
+              <span class="text-white/60 block text-[10px]">Kuota</span>
+              <span id="cms-sma-kuota" class="font-extrabold text-white">120 Santri</span>
+            </div>
+            <div>
+              <span class="text-white/60 block text-[10px]">Program</span>
+              <span id="cms-sma-program" class="font-extrabold text-white">MIPA &amp; Syariah</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 6. FASILITAS PESANTREN (SECTION 04) ==================== -->
+  <section id="fasilitas" class="fluid-container py-6 sm:py-8 lg:py-10 space-y-5 sm:space-y-6">
+    <!-- Header (Menu Card) -->
+    <div class="section-menu-card p-3.5 sm:p-4 lg:px-5 lg:py-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4 lg:gap-5">
+      <div class="shrink-0">
+        <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-forest-900/10 border border-forest-900/15 text-forest-900 text-[10px] font-extrabold uppercase tracking-wider mb-1">
+          <span class="w-1.5 h-1.5 rounded-full bg-forest-800"></span>
+          <span>MENU SARANA &bull; BAGIAN 04</span>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <h2 class="fluid-section-title font-extrabold tracking-tight text-forest-950">
+            FASILITAS PESANTREN
+          </h2>
+          <span class="inline-flex items-center justify-center px-2 py-0.5 rounded-full bg-forest-900 text-limeaccent-400 text-[11px] font-extrabold">
+            04
+          </span>
+        </div>
+        <div class="flex items-center gap-1.5 mt-0.5">
+          <span class="text-xs font-extrabold text-limeaccent-600">//</span>
+          <h3 class="fluid-section-title font-bold tracking-tight text-forest-800">
+            SARANA PENDIDIKAN &amp; ASRAMA
+          </h3>
+        </div>
+      </div>
+      <div class="flex-1 flex flex-col md:flex-row md:items-center justify-between gap-3.5 pt-3 lg:pt-0 border-t lg:border-t-0 lg:border-l border-emerald-900/15 lg:pl-5">
+        <p id="cms-facilities-desc" class="text-xs text-zinc-600 leading-relaxed max-w-2xl">
+          Lingkungan belajar dan mukim yang representatif, bersih, aman, serta dilengkapi integrasi reader kartu pintar RFID SIUBA di setiap titik kegiatan.
+        </p>
+        <span class="bg-white border border-emerald-900/15 text-forest-900 text-[11px] font-extrabold px-3 py-1.5 rounded-full shrink-0 w-fit">
+          6 Sarana Terpadu
+        </span>
+      </div>
+    </div>
+
+    <!-- 6 Kartu Fasilitas Utama -->
+    <div id="cms-facilities-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      <!-- 1. Asrama -->
+      <div class="bg-white rounded-3xl border border-zinc-200/80 overflow-hidden shadow-xs group">
+        <div class="relative h-44 overflow-hidden">
+          <img src="https://images.unsplash.com/photo-1555854877-bab0e564b8d5?auto=format&fit=crop&w=800&q=80" alt="Asrama Santri" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
+          <span class="absolute top-3 left-3 bg-limeaccent-400 text-forest-950 text-[11px] font-extrabold px-3 py-1 rounded-full">01. Asrama Santri</span>
+        </div>
+        <div class="p-5 space-y-1.5">
+          <h4 class="font-extrabold text-base text-forest-950">Asrama Putra &amp; Putri Terpisah</h4>
+          <p class="text-xs text-zinc-600 leading-relaxed">Kamar nyaman berventilasi sehat/AC, ranjang &amp; loker pribadi, kamar mandi bersih, layanan laundry, serta pendampingan Musyrif/ah di setiap gedung.</p>
+        </div>
+      </div>
+
+      <!-- 2. Masjid -->
+      <div class="bg-white rounded-3xl border border-zinc-200/80 overflow-hidden shadow-xs group">
+        <div class="relative h-44 overflow-hidden">
+          <img src="https://images.unsplash.com/photo-1584551246679-0daf3d275d0f?auto=format&fit=crop&w=800&q=80" alt="Masjid Jami Pesantren" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
+          <span class="absolute top-3 left-3 bg-limeaccent-400 text-forest-950 text-[11px] font-extrabold px-3 py-1 rounded-full">02. Masjid Jami&rsquo;</span>
+        </div>
+        <div class="p-5 space-y-1.5">
+          <h4 class="font-extrabold text-base text-forest-950">Masjid Jami&rsquo; Pusat Ibadah &amp; Halaqah</h4>
+          <p class="text-xs text-zinc-600 leading-relaxed">Jantung aktivitas shalat berjamaah 5 waktu, halaqah Tahfidzul Qur&rsquo;an, kajian kitab kuning, dan terminal tap RFID kehadiran shalat santri.</p>
+        </div>
+      </div>
+
+      <!-- 3. Laboratorium -->
+      <div class="bg-white rounded-3xl border border-zinc-200/80 overflow-hidden shadow-xs group">
+        <div class="relative h-44 overflow-hidden">
+          <img src="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=800&q=80" alt="Laboratorium Sains & Komputer" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
+          <span class="absolute top-3 left-3 bg-limeaccent-400 text-forest-950 text-[11px] font-extrabold px-3 py-1 rounded-full">03. Laboratorium</span>
+        </div>
+        <div class="p-5 space-y-1.5">
+          <h4 class="font-extrabold text-base text-forest-950">Laboratorium Sains (MIPA) &amp; Komputer IT</h4>
+          <p class="text-xs text-zinc-600 leading-relaxed">Dilengkapi peralatan praktikum Fisika, Kimia, Biologi, serta Laboratorium Komputer &amp; Coding dengan jaringan terfilter aman.</p>
+        </div>
+      </div>
+
+      <!-- 4. Perpustakaan -->
+      <div class="bg-white rounded-3xl border border-zinc-200/80 overflow-hidden shadow-xs group">
+        <div class="relative h-44 overflow-hidden">
+          <img src="https://images.unsplash.com/photo-1521587760476-6c12a4b040da?auto=format&fit=crop&w=800&q=80" alt="Perpustakaan Pesantren" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
+          <span class="absolute top-3 left-3 bg-limeaccent-400 text-forest-950 text-[11px] font-extrabold px-3 py-1 rounded-full">04. Perpustakaan</span>
+        </div>
+        <div class="p-5 space-y-1.5">
+          <h4 class="font-extrabold text-base text-forest-950">Perpustakaan Kitab Turats &amp; Digital</h4>
+          <p class="text-xs text-zinc-600 leading-relaxed">Ribuan koleksi kitab rujukan Islam (Tafsir, Hadits, Fiqih), ensiklopedia sains, buku olimpiade, dan ruang baca ber-AC yang tenang.</p>
+        </div>
+      </div>
+
+      <!-- 5. Lapangan Olahraga -->
+      <div class="bg-white rounded-3xl border border-zinc-200/80 overflow-hidden shadow-xs group">
+        <div class="relative h-44 overflow-hidden">
+          <img src="https://images.unsplash.com/photo-1526232761682-d26e03ac148e?auto=format&fit=crop&w=800&q=80" alt="Lapangan Olahraga" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
+          <span class="absolute top-3 left-3 bg-limeaccent-400 text-forest-950 text-[11px] font-extrabold px-3 py-1 rounded-full">05. Lapangan Olahraga</span>
+        </div>
+        <div class="p-5 space-y-1.5">
+          <h4 class="font-extrabold text-base text-forest-950">Sarana Olahraga &amp; Arena Panahan</h4>
+          <p class="text-xs text-zinc-600 leading-relaxed">Lapangan Futsal, Basket, Voli, Badminton, Tenis Meja, serta area khusus latihan Panahan (Archery) dan Bela Diri Santri.</p>
+        </div>
+      </div>
+
+      <!-- 6. Ruang Praktik -->
+      <div class="bg-white rounded-3xl border border-zinc-200/80 overflow-hidden shadow-xs group">
+        <div class="relative h-44 overflow-hidden">
+          <img src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=800&q=80" alt="Ruang Praktik Santri" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
+          <span class="absolute top-3 left-3 bg-limeaccent-400 text-forest-950 text-[11px] font-extrabold px-3 py-1 rounded-full">06. Ruang Praktik</span>
+        </div>
+        <div class="p-5 space-y-1.5">
+          <h4 class="font-extrabold text-base text-forest-950">Ruang Praktik Bahasa, Multimedia &amp; Keterampilan</h4>
+          <p class="text-xs text-zinc-600 leading-relaxed">Studio podcast &amp; jurnalistik santri, ruang praktik ibadah/dakwah, ruang keterampilan tata boga/kewirausahaan, dan aula serbaguna.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 7. GALERI & VIDEO PROFIL PESANTREN (SECTION 05) ==================== -->
+  <section id="galeri" class="fluid-container py-6 sm:py-8 lg:py-10 space-y-5 sm:space-y-6">
+    <!-- Header (Menu Card) -->
+    <div class="section-menu-card p-3.5 sm:p-4 lg:px-5 lg:py-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4 lg:gap-5">
+      <div class="shrink-0">
+        <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-forest-900/10 border border-forest-900/15 text-forest-900 text-[10px] font-extrabold uppercase tracking-wider mb-1">
+          <span class="w-1.5 h-1.5 rounded-full bg-forest-800"></span>
+          <span>MENU DOKUMENTASI &bull; BAGIAN 05</span>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <h2 class="fluid-section-title font-extrabold tracking-tight text-forest-950">
+            GALERI &amp; VIDEO
+          </h2>
+          <span class="inline-flex items-center justify-center px-2 py-0.5 rounded-full bg-forest-900 text-limeaccent-400 text-[11px] font-extrabold">
+            05
+          </span>
+        </div>
+        <div class="flex items-center gap-1.5 mt-0.5">
+          <span class="text-xs font-extrabold text-limeaccent-600">//</span>
+          <h3 class="fluid-section-title font-bold tracking-tight text-forest-800">
+            DOKUMENTASI &amp; VIDEO PROFIL
+          </h3>
+        </div>
+      </div>
+
+      <!-- Filter Kategori Galeri -->
+      <div class="flex-1 flex flex-wrap items-center lg:justify-end gap-2 text-xs font-bold pt-3 lg:pt-0 border-t lg:border-t-0 lg:border-l border-emerald-900/15 lg:pl-5">
+        <button type="button" onclick="filterGallery('all')" id="gal-btn-all" class="gal-filter-btn bg-forest-950 text-limeaccent-400 px-3.5 py-1.5 rounded-full cursor-pointer transition">Semua</button>
+        <button type="button" onclick="filterGallery('video')" id="gal-btn-video" class="gal-filter-btn bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-100 px-3 py-1.5 rounded-full cursor-pointer transition">Video Profil</button>
+        <button type="button" onclick="filterGallery('kegiatan')" id="gal-btn-kegiatan" class="gal-filter-btn bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-100 px-3 py-1.5 rounded-full cursor-pointer transition">Foto Kegiatan</button>
+        <button type="button" onclick="filterGallery('aktivitas')" id="gal-btn-aktivitas" class="gal-filter-btn bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-100 px-3 py-1.5 rounded-full cursor-pointer transition">Aktivitas Santri</button>
+        <button type="button" onclick="filterGallery('lingkungan')" id="gal-btn-lingkungan" class="gal-filter-btn bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-100 px-3 py-1.5 rounded-full cursor-pointer transition">Lingkungan Pesantren</button>
+      </div>
+    </div>
+
+    <div id="cms-gallery-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-5">
+      <!-- 1. Video Profil Pesantren (Large Feature Card - 6 cols) -->
+      <div data-gal-cat="video" class="gal-item lg:col-span-6 relative rounded-3xl overflow-hidden min-h-[280px] sm:min-h-[340px] shadow-lg group flex flex-col justify-between p-6 text-white">
+        <img id="cms-gv-img" src="https://images.unsplash.com/photo-1519817650390-64a93db51149?auto=format&fit=crop&w=1200&q=80" alt="Video Profil Pondok Pesantren Utsman Bin Affan" class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition duration-700" />
+        <div class="absolute inset-0 bg-gradient-to-t from-forest-950/95 via-forest-950/45 to-forest-950/30"></div>
+
+        <div class="relative z-10 flex items-center justify-between">
+          <span class="bg-limeaccent-400 text-forest-950 text-xs font-extrabold px-3 py-1 rounded-full flex items-center gap-1">
+            <span class="material-symbols-rounded text-[16px]">videocam</span>
+            <span id="cms-gv-badge">VIDEO PROFIL RESMI</span>
+          </span>
+          <span id="cms-gv-duration" class="text-xs font-bold bg-white/15 px-3 py-1 rounded-full">HD &bull; 04:15 Menit</span>
+        </div>
+
+        <div class="relative z-10 my-auto flex justify-center">
+          <button
+            type="button"
+            onclick="openVideoModal()"
+            class="w-16 h-16 rounded-full bg-limeaccent-400 hover:bg-limeaccent-500 text-forest-950 flex items-center justify-center shadow-2xl hover:scale-110 transition cursor-pointer"
+            title="Putar Video Profil Pesantren"
+          >
+            <span class="material-symbols-rounded text-[34px]">play_arrow</span>
+          </button>
+        </div>
+
+        <div class="relative z-10 space-y-1">
+          <h4 id="cms-gv-title" class="text-lg sm:text-xl font-extrabold">Profil Pondok Pesantren Modern Utsman Bin Affan</h4>
+          <p id="cms-gv-desc" class="text-xs text-white/80">Menyaksikan lebih dekat suasana halaqah tahfidz, pembelajaran sains modern, dan kehidupan berasrama 24 jam.</p>
+        </div>
+      </div>
+
+      <!-- 2. Foto Kegiatan (3 cols) -->
+      <div data-gal-cat="kegiatan" class="gal-item lg:col-span-3 relative rounded-3xl overflow-hidden min-h-[260px] shadow-sm group flex flex-col justify-end p-5 text-white">
+        <img src="https://images.unsplash.com/photo-1584551246679-0daf3d275d0f?auto=format&fit=crop&w=800&q=80" alt="Wisuda Tahfidz Akbar" class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition duration-500" />
+        <div class="absolute inset-0 bg-gradient-to-t from-forest-950/90 via-transparent to-transparent"></div>
+        <div class="relative z-10 space-y-1">
+          <span class="text-[10px] font-extrabold uppercase bg-limeaccent-400 text-forest-950 px-2.5 py-0.5 rounded-full">Foto Kegiatan</span>
+          <h4 class="text-sm font-extrabold pt-1">Haflah &amp; Wisuda Akbar Tahfidz 30 Juz</h4>
+          <p class="text-[11px] text-white/75">Ujian terbuka tasmi&rsquo; Al-Qur&rsquo;an di hadapan masyayikh &amp; wali santri.</p>
+        </div>
+      </div>
+
+      <!-- 3. Aktivitas Santri (3 cols) -->
+      <div data-gal-cat="aktivitas" class="gal-item lg:col-span-3 relative rounded-3xl overflow-hidden min-h-[260px] shadow-sm group flex flex-col justify-end p-5 text-white">
+        <img src="https://images.unsplash.com/photo-1577896851231-70ef18881754?auto=format&fit=crop&w=800&q=80" alt="Aktivitas Halaqah & Belajar Santri" class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition duration-500" />
+        <div class="absolute inset-0 bg-gradient-to-t from-forest-950/90 via-transparent to-transparent"></div>
+        <div class="relative z-10 space-y-1">
+          <span class="text-[10px] font-extrabold uppercase bg-white text-forest-950 px-2.5 py-0.5 rounded-full">Aktivitas Santri</span>
+          <h4 class="text-sm font-extrabold pt-1">Halaqah Pagi &amp; KBM Interaktif</h4>
+          <p class="text-[11px] text-white/75">Setoran hafalan harian ba&rsquo;da Subuh dan diskusi sains di kelas.</p>
+        </div>
+      </div>
+
+      <!-- 4. Lingkungan Pesantren (4 cols) -->
+      <div data-gal-cat="lingkungan" class="gal-item lg:col-span-4 relative rounded-3xl overflow-hidden min-h-[230px] shadow-sm group flex flex-col justify-end p-5 text-white">
+        <img src="https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&w=800&q=80" alt="Lingkungan Asri Pesantren" class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition duration-500" />
+        <div class="absolute inset-0 bg-gradient-to-t from-forest-950/90 via-transparent to-transparent"></div>
+        <div class="relative z-10 space-y-1">
+          <span class="text-[10px] font-extrabold uppercase bg-limeaccent-400 text-forest-950 px-2.5 py-0.5 rounded-full">Lingkungan Pesantren</span>
+          <h4 class="text-sm font-extrabold pt-1">Kawasan Kampus Hijau, Asri &amp; Kondusif</h4>
+          <p class="text-[11px] text-white/75">Taman belajar terbuka dan area hijau yang mendukung ketenangan menghafal.</p>
+        </div>
+      </div>
+
+      <!-- 5. Aktivitas Santri — Ekstrakurikuler (4 cols) -->
+      <div data-gal-cat="aktivitas" class="gal-item lg:col-span-4 relative rounded-3xl overflow-hidden min-h-[230px] shadow-sm group flex flex-col justify-end p-5 text-white">
+        <img src="https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=800&q=80" alt="Ekstrakurikuler Panahan & Robotik" class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition duration-500" />
+        <div class="absolute inset-0 bg-gradient-to-t from-forest-950/90 via-transparent to-transparent"></div>
+        <div class="relative z-10 space-y-1">
+          <span class="text-[10px] font-extrabold uppercase bg-white text-forest-950 px-2.5 py-0.5 rounded-full">Aktivitas Santri</span>
+          <h4 class="text-sm font-extrabold pt-1">Latihan Panahan, Robotik &amp; Khitobah</h4>
+          <p class="text-[11px] text-white/75">Pengembangan bakat kepemimpinan, olahraga sunnah, dan literasi teknologi.</p>
+        </div>
+      </div>
+
+      <!-- 6. Foto Kegiatan — Presensi Kartu Pintar SIUBA (4 cols) -->
+      <div data-gal-cat="kegiatan" class="gal-item lg:col-span-4 relative rounded-3xl overflow-hidden min-h-[230px] shadow-sm group flex flex-col justify-end p-5 text-white">
+        <img src="https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=800&q=80" alt="Olimpiade & Kegiatan Pesantren" class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition duration-500" />
+        <div class="absolute inset-0 bg-gradient-to-t from-forest-950/90 via-transparent to-transparent"></div>
+        <div class="relative z-10 space-y-1">
+          <span class="text-[10px] font-extrabold uppercase bg-limeaccent-400 text-forest-950 px-2.5 py-0.5 rounded-full">Foto Kegiatan</span>
+          <h4 class="text-sm font-extrabold pt-1">Kompetisi Sains, Bahasa &amp; Mukhayyam Qur&rsquo;an</h4>
+          <p class="text-[11px] text-white/75">Semangat berprestasi santri dalam ajang nasional maupun kegiatan pondok.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 8. BERITA, KABAR & AGENDA PESANTREN (SECTION 06) ==================== -->
+  <section id="berita" class="fluid-container py-6 sm:py-8 lg:py-10 space-y-5 sm:space-y-6">
+    <!-- Header (Menu Card) -->
+    <div class="section-menu-card p-3.5 sm:p-4 lg:px-5 lg:py-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4 lg:gap-5">
+      <div class="shrink-0">
+        <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-forest-900/10 border border-forest-900/15 text-forest-900 text-[10px] font-extrabold uppercase tracking-wider mb-1">
+          <span class="w-1.5 h-1.5 rounded-full bg-forest-800"></span>
+          <span>MENU PUBLIKASI &bull; BAGIAN 06</span>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <h2 class="fluid-section-title font-extrabold tracking-tight text-forest-950">
+            BERITA &amp; AGENDA
+          </h2>
+          <span class="inline-flex items-center justify-center px-2 py-0.5 rounded-full bg-forest-900 text-limeaccent-400 text-[11px] font-extrabold">
+            06
+          </span>
+        </div>
+        <div class="flex items-center gap-1.5 mt-0.5">
+          <span class="text-xs font-extrabold text-limeaccent-600">//</span>
+          <h3 class="fluid-section-title font-bold tracking-tight text-forest-800">
+            KABAR TERKINI PESANTREN
+          </h3>
+        </div>
+      </div>
+      <div class="flex-1 flex flex-col md:flex-row md:items-center justify-between gap-3.5 pt-3 lg:pt-0 border-t lg:border-t-0 lg:border-l border-emerald-900/15 lg:pl-5">
+        <p class="text-xs text-zinc-600 leading-relaxed max-w-xl">
+          Ikuti perkembangan kegiatan, prestasi santri di tingkat nasional, serta agenda akademik terbaru Pondok Pesantren Utsman Bin Affan.
+        </p>
+        <div class="flex flex-wrap items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wider text-forest-800 shrink-0">
+          <span class="bg-white border border-emerald-900/15 px-2.5 py-1 rounded-full">Prestasi</span>
+          <span class="bg-white border border-emerald-900/15 px-2.5 py-1 rounded-full">Wisuda Tahfidz</span>
+          <span class="bg-white border border-emerald-900/15 px-2.5 py-1 rounded-full">Agenda</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3 News Articles Grid -->
+    <div id="cms-news-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+      <!-- News 1 -->
+      <article class="bg-white rounded-3xl border border-zinc-200/80 shadow-sm overflow-hidden flex flex-col justify-between group">
+        <div>
+          <div class="relative h-48 overflow-hidden">
+            <img
+              src="https://images.unsplash.com/photo-1584551246679-0daf3d275d0f?auto=format&fit=crop&w=800&q=80"
+              alt="Wisuda Tahfidz Akbar"
+              class="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+            />
+            <span class="absolute top-3 left-3 bg-limeaccent-400 text-forest-950 text-[11px] font-extrabold px-3 py-1 rounded-full">
+              Tahfidz Al-Qur&rsquo;an
+            </span>
+          </div>
+          <div class="p-5 sm:p-6 space-y-2.5">
+            <div class="flex items-center gap-2 text-xs text-zinc-400 font-semibold">
+              <span class="material-symbols-rounded text-[15px]">calendar_month</span>
+              <span>25 Oktober 2026</span>
+            </div>
+            <h4 class="text-base sm:text-lg font-extrabold text-forest-950 leading-snug group-hover:text-forest-700 transition">
+              Wisuda Akbar Tahfidzul Qur&rsquo;an: 48 Santri Tuntaskan Setoran 30 Juz Sekali Duduk
+            </h4>
+            <p class="text-xs text-zinc-600 leading-relaxed">
+              Alhamdulillah, sebanyak 48 santri putra dan putri jenjang SMP IT dan SMA IT berhasil menyelesaikan ujian tasmi&rsquo; hafalan 30 juz Al-Qur&rsquo;an tahun ini.
+            </p>
+          </div>
+        </div>
+        <div class="px-5 sm:px-6 pb-5 pt-3 border-t border-zinc-100 flex items-center justify-between text-xs font-bold text-forest-800">
+          <span>Baca Selengkapnya</span>
+          <span class="material-symbols-rounded text-[18px]">arrow_forward</span>
+        </div>
+      </article>
+
+      <!-- News 2 -->
+      <article class="bg-white rounded-3xl border border-zinc-200/80 shadow-sm overflow-hidden flex flex-col justify-between group">
+        <div>
+          <div class="relative h-48 overflow-hidden">
+            <img
+              src="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=800&q=80"
+              alt="Peluncuran SIUBA Smart Card"
+              class="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+            />
+            <span class="absolute top-3 left-3 bg-forest-900 text-limeaccent-400 text-[11px] font-extrabold px-3 py-1 rounded-full">
+              Inovasi Digital
+            </span>
+          </div>
+          <div class="p-5 sm:p-6 space-y-2.5">
+            <div class="flex items-center gap-2 text-xs text-zinc-400 font-semibold">
+              <span class="material-symbols-rounded text-[15px]">calendar_month</span>
+              <span>18 Oktober 2026</span>
+            </div>
+            <h4 class="text-base sm:text-lg font-extrabold text-forest-950 leading-snug group-hover:text-forest-700 transition">
+              Implementasi Penuh SIUBA v1.2: Presensi RFID &amp; QR Terintegrasi di Masjid, Kelas &amp; Asrama
+            </h4>
+            <p class="text-xs text-zinc-600 leading-relaxed">
+              Pesantren Utsman Bin Affan resmi mengoperasikan sistem presensi pintar real-time untuk memantau kehadiran santri dan ustadz secara akurat.
+            </p>
+          </div>
+        </div>
+        <div class="px-5 sm:px-6 pb-5 pt-3 border-t border-zinc-100 flex items-center justify-between text-xs font-bold text-forest-800">
+          <a href="/login" class="hover:underline">Buka Sistem SIUBA</a>
+          <span class="material-symbols-rounded text-[18px]">arrow_forward</span>
+        </div>
+      </article>
+
+      <!-- News 3 -->
+      <article class="md:col-span-2 lg:col-span-1 bg-white rounded-3xl border border-zinc-200/80 shadow-sm overflow-hidden flex flex-col justify-between group">
+        <div>
+          <div class="relative h-48 overflow-hidden">
+            <img
+              src="https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=800&q=80"
+              alt="Juara Olimpiade Sains"
+              class="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+            />
+            <span class="absolute top-3 left-3 bg-limeaccent-400 text-forest-950 text-[11px] font-extrabold px-3 py-1 rounded-full">
+              Prestasi Akademik
+            </span>
+          </div>
+          <div class="p-5 sm:p-6 space-y-2.5">
+            <div class="flex items-center gap-2 text-xs text-zinc-400 font-semibold">
+              <span class="material-symbols-rounded text-[15px]">calendar_month</span>
+              <span>10 Oktober 2026</span>
+            </div>
+            <h4 class="text-base sm:text-lg font-extrabold text-forest-950 leading-snug group-hover:text-forest-700 transition">
+              Delegasi Santri Utsman Bin Affan Raih Medali Emas Olimpiade Sains &amp; Bahasa Arab Nasional
+            </h4>
+            <p class="text-xs text-zinc-600 leading-relaxed">
+              Tim olimpiade pesantren kembali mengharumkan nama lembaga dengan memborong 3 medali emas cabang Matematika, Fisika, dan Debat Bahasa Arab.
+            </p>
+          </div>
+        </div>
+        <div class="px-5 sm:px-6 pb-5 pt-3 border-t border-zinc-100 flex items-center justify-between text-xs font-bold text-forest-800">
+          <span>Baca Selengkapnya</span>
+          <span class="material-symbols-rounded text-[18px]">arrow_forward</span>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <!-- ==================== 9. PORTAL DIGITAL SIUBA & FAQ CALON SANTRI / WALI (SECTION 07) ==================== -->
+  <section id="faq" class="fluid-container py-6 sm:py-8 lg:py-10 space-y-5 sm:space-y-6">
+    <!-- Header (Menu Card) -->
+    <div id="siuba" class="section-menu-card p-3.5 sm:p-4 lg:px-5 lg:py-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4 lg:gap-5">
+      <div class="shrink-0">
+        <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-forest-900/10 border border-forest-900/15 text-forest-900 text-[10px] font-extrabold uppercase tracking-wider mb-1">
+          <span class="w-1.5 h-1.5 rounded-full bg-forest-800"></span>
+          <span>MENU BANTUAN &bull; BAGIAN 07</span>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <h2 class="fluid-section-title font-extrabold tracking-tight text-forest-950">
+            TANYA JAWAB (FAQ)
+          </h2>
+          <span class="inline-flex items-center justify-center px-2 py-0.5 rounded-full bg-forest-900 text-limeaccent-400 text-[11px] font-extrabold">
+            07
+          </span>
+        </div>
+        <div class="flex items-center gap-1.5 mt-0.5">
+          <span class="text-xs font-extrabold text-limeaccent-600">//</span>
+          <h3 class="fluid-section-title font-bold tracking-tight text-forest-800">
+            INFORMASI CALON SANTRI &amp; WALI SANTRI
+          </h3>
+        </div>
+      </div>
+      <div class="flex-1 flex flex-col md:flex-row md:items-center justify-between gap-3.5 pt-3 lg:pt-0 border-t lg:border-t-0 lg:border-l border-emerald-900/15 lg:pl-5">
+        <p class="text-xs text-zinc-600 leading-relaxed max-w-2xl">
+          Pertanyaan yang sering diajukan oleh calon santri dan orang tua/wali santri seputar pendaftaran PSB, kehidupan asrama, perizinan, biaya, serta sistem presensi SIUBA.
+        </p>
+        <span class="bg-white border border-emerald-900/15 text-forest-900 text-[11px] font-extrabold px-3 py-1.5 rounded-full shrink-0 w-fit">
+          Panduan Wali Santri
+        </span>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-stretch">
+      <!-- Left: Login Portal Card -->
+      <div class="lg:col-span-5 flex flex-col justify-between gap-5">
+        <div class="relative rounded-3xl overflow-hidden min-h-[240px] p-6 flex flex-col justify-between text-white shadow-lg flex-1">
+          <img
+            src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=800&q=80"
+            alt="Portal Login SIUBA"
+            class="absolute inset-0 w-full h-full object-cover"
+          />
+          <div class="absolute inset-0 bg-forest-950/80"></div>
+
+          <div class="relative z-10 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-extrabold tracking-wider uppercase text-limeaccent-400">SIUBA ATTENDANCE ENGINE</span>
+              <span class="bg-white/15 text-[11px] font-bold px-2.5 py-0.5 rounded-full">10+ Role Akun</span>
+            </div>
+            <h4 class="text-xl sm:text-2xl font-extrabold">Masuk ke Dashboard Operasional SIUBA</h4>
+            <p class="text-xs text-white/80 leading-relaxed">
+              Kelola sesi absensi kelas, scan kartu QR/RFID santri, input surat izin/sakit, hingga unduh laporan eksekutif.
+            </p>
+          </div>
+
+          <div class="relative z-10 pt-4 flex flex-wrap items-center gap-3">
+            <a
+              href="/login"
+              class="bg-limeaccent-400 hover:bg-limeaccent-500 text-forest-950 text-xs sm:text-sm font-extrabold pl-5 pr-2.5 py-2 rounded-full flex items-center gap-2 transition shadow-md"
+            >
+              <span>Login Aplikasi SIUBA</span>
+              <span class="w-6 h-6 rounded-full bg-forest-950 text-white flex items-center justify-center">
+                <span class="material-symbols-rounded text-[14px]">login</span>
+              </span>
+            </a>
+          </div>
+        </div>
+
+        <div class="bg-white p-5 rounded-3xl border border-zinc-200/80 shadow-sm flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <span class="w-10 h-10 rounded-full bg-forest-900 text-limeaccent-400 flex items-center justify-center font-extrabold text-xs shrink-0">
+              LAN
+            </span>
+            <div>
+              <span class="text-xs font-extrabold uppercase text-forest-950 block">MENDUKUNG MODE OFFLINE &amp; WIFI LOKAL</span>
+              <span class="text-xs text-zinc-500">Tetap berfungsi penuh di lingkungan pesantren tanpa kuota internet</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Accordion FAQ (Pertanyaan Calon Santri & Wali Santri) -->
+      <div class="lg:col-span-7 bg-white p-5 sm:p-7 rounded-3xl border border-zinc-200/80 shadow-sm space-y-3">
+        <span class="text-xs font-extrabold uppercase tracking-wider text-forest-800 block mb-2">
+          PERTANYAAN YANG SERING DIAJUKAN CALON SANTRI &amp; WALI SANTRI (FAQ)
+        </span>
+
+        <div id="cms-faq-list" class="space-y-3">
+        <details class="group border border-zinc-200/80 rounded-2xl p-4 open:bg-zinc-50/70 transition" open>
+          <summary class="flex items-center justify-between cursor-pointer font-bold text-xs sm:text-sm text-forest-950">
+            <span>1. Apakah calon santri yang belum lancar membaca Al-Qur&rsquo;an bisa mendaftar?</span>
+            <span class="material-symbols-rounded text-forest-700 group-open:rotate-180 transition-transform">expand_more</span>
+          </summary>
+          <p class="text-xs text-zinc-600 mt-2.5 leading-relaxed">
+            Bisa. Pada semester awal, santri baru akan mengikuti program matrikulasi <strong>Tahsin Al-Qur&rsquo;an Intensif (Metode Talaqqi)</strong> untuk memperbaiki makharijul huruf dan tajwid sebelum masuk ke target setoran Tahfidz.
+          </p>
+        </details>
+
+        <details class="group border border-zinc-200/80 rounded-2xl p-4 open:bg-zinc-50/70 transition">
+          <summary class="flex items-center justify-between cursor-pointer font-bold text-xs sm:text-sm text-forest-950">
+            <span>2. Apa saja syarat pendaftaran dan bagaimana alur tes seleksinya?</span>
+            <span class="material-symbols-rounded text-forest-700 group-open:rotate-180 transition-transform">expand_more</span>
+          </summary>
+          <p class="text-xs text-zinc-600 mt-2.5 leading-relaxed">
+            Calon santri mengisi formulir online, menyiapkan Akta Kelahiran, KK, Rapor 2 semester terakhir, dan Pas Foto. Tes seleksi dilaksanakan sistem <strong>One Day Service</strong> setiap hari Sabtu meliputi Tes Al-Qur&rsquo;an, Akademik Dasar, Psikotes Asrama, dan Wawancara Wali.
+          </p>
+        </details>
+
+        <details class="group border border-zinc-200/80 rounded-2xl p-4 open:bg-zinc-50/70 transition">
+          <summary class="flex items-center justify-between cursor-pointer font-bold text-xs sm:text-sm text-forest-950">
+            <span>3. Apakah Biaya Bulanan (SPP) sudah mencakup makan dan laundry?</span>
+            <span class="material-symbols-rounded text-forest-700 group-open:rotate-180 transition-transform">expand_more</span>
+          </summary>
+          <p class="text-xs text-zinc-600 mt-2.5 leading-relaxed">
+            Ya, biaya Syahriyah/SPP bulanan bersifat <strong>All-In</strong> (mencakup makan 3 kali sehari bergizi, asrama, layanan laundry pakaian, pemeriksaan kesehatan ringan di Poskestren, serta pendidikan sekolah &amp; tahfidz).
+          </p>
+        </details>
+
+        <details class="group border border-zinc-200/80 rounded-2xl p-4 open:bg-zinc-50/70 transition">
+          <summary class="flex items-center justify-between cursor-pointer font-bold text-xs sm:text-sm text-forest-950">
+            <span>4. Kapan jadwal kunjungan orang tua/wali santri dan bagaimana aturan membawa HP?</span>
+            <span class="material-symbols-rounded text-forest-700 group-open:rotate-180 transition-transform">expand_more</span>
+          </summary>
+          <p class="text-xs text-zinc-600 mt-2.5 leading-relaxed">
+            Santri <strong>tidak diperkenankan membawa HP pribadi</strong> di asrama agar fokus menghafal dan belajar. Komunikasi dengan orang tua difasilitasi melalui telepon asrama terjadwal bersama Musyrif/ah, serta jadwal penjengukan (kunjungan wali) setiap pekan ke-2 dan ke-4 hari Ahad.
+          </p>
+        </details>
+
+        <details class="group border border-zinc-200/80 rounded-2xl p-4 open:bg-zinc-50/70 transition">
+          <summary class="flex items-center justify-between cursor-pointer font-bold text-xs sm:text-sm text-forest-950">
+            <span>5. Bagaimana cara santri melakukan absensi harian dan jika santri sakit/izin?</span>
+            <span class="material-symbols-rounded text-forest-700 group-open:rotate-180 transition-transform">expand_more</span>
+          </summary>
+          <p class="text-xs text-zinc-600 mt-2.5 leading-relaxed">
+            Setiap santri memiliki <strong>Kartu Pintar Santri (CR80 RFID &amp; QR)</strong> untuk tap kehadiran di masjid, kelas, dan kamar asrama. Jika santri sakit atau izin pulang, Musyrif/Kesantrian mencatatnya resmi di modul <strong>Izin &amp; Dispensasi SIUBA</strong> sehingga terpantau real-time oleh pimpinan dan wali kelas.
+          </p>
+        </details>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 8. FOOTER ==================== -->
+  <footer class="fluid-container pt-4 sm:pt-6 pb-8 space-y-8">
+    <!-- Panoramic Strip Image -->
+    <div class="relative rounded-2xl sm:rounded-3xl overflow-hidden min-h-[150px] sm:h-44 shadow-md flex items-center">
+      <img
+        src="https://images.unsplash.com/photo-1584551246679-0daf3d275d0f?auto=format&fit=crop&w=1920&q=80"
+        alt="Pesantren Panorama"
+        class="absolute inset-0 w-full h-full object-cover object-center"
+      />
+      <div class="relative z-10 w-full bg-gradient-to-r from-forest-950/92 via-forest-900/70 to-forest-950/92 p-5 sm:px-10 sm:py-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-white">
+        <div>
+          <span class="text-[11px] sm:text-xs uppercase tracking-widest text-limeaccent-400 font-bold block">Mari Bergabung Bersama Kami</span>
+          <h3 class="text-lg sm:text-2xl font-extrabold mt-0.5">Daftar PSB Santri Baru atau Masuk ke Portal SIUBA</h3>
+        </div>
+        <div class="flex flex-wrap items-center gap-3 shrink-0">
+          <button
+            type="button"
+            onclick="document.getElementById('ppdb-modal').classList.remove('hidden')"
+            class="bg-white hover:bg-zinc-100 text-forest-950 font-extrabold text-xs sm:text-sm px-4 py-2.5 rounded-full flex items-center gap-1.5 shadow transition cursor-pointer"
+          >
+            <span class="material-symbols-rounded text-[18px]">how_to_reg</span>
+            <span>Daftar PSB</span>
+          </button>
+          <a
+            href="/login"
+            class="bg-limeaccent-400 hover:bg-limeaccent-500 text-forest-950 font-extrabold text-xs sm:text-sm px-5 py-2.5 rounded-full flex items-center gap-2 shadow-lg transition"
+          >
+            <span>Login SIUBA</span>
+            <span class="material-symbols-rounded text-[18px]">login</span>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer Links -->
+    <div class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-12 gap-6 sm:gap-8 py-4 sm:py-6 text-xs text-zinc-600">
+      <div class="col-span-2 md:col-span-4 space-y-3">
+        <div class="flex items-center gap-2 font-extrabold text-base text-forest-950">
+          <span class="w-6 h-6 rounded-full bg-forest-900 text-limeaccent-400 flex items-center justify-center shrink-0">
+            <span class="material-symbols-rounded text-[15px]">mosque</span>
+          </span>
+          <span>Ponpes Utsman Bin Affan</span>
+        </div>
+        <p class="text-zinc-500 max-w-sm leading-relaxed">
+          Lembaga Pendidikan Islam Berasrama (SMP IT, SMA IT &amp; Takhassus Tahfidzul Qur&rsquo;an) dengan dukungan Sistem Informasi &amp; Presensi Terpadu (SIUBA).
+        </p>
+        <p class="text-zinc-400 font-semibold pt-1">
+          &copy; 2026 Pondok Pesantren Utsman Bin Affan. Hak Cipta Dilindungi.
+        </p>
+      </div>
+
+      <div class="col-span-1 md:col-span-2 space-y-2">
+        <span class="font-extrabold text-forest-950 uppercase block mb-2">Tentang Kami</span>
+        <a href="#profil" class="block hover:text-forest-900 py-0.5">Profil &amp; Sejarah</a>
+        <a href="#profil" class="block hover:text-forest-900 py-0.5">Visi &amp; Misi</a>
+        <a href="#program" class="block hover:text-forest-900 py-0.5">Program Tahfidz</a>
+        <a href="#berita" class="block hover:text-forest-900 py-0.5">Berita &amp; Prestasi</a>
+      </div>
+
+      <div class="col-span-1 md:col-span-3 space-y-2">
+        <span class="font-extrabold text-forest-950 uppercase block mb-2">Layanan &amp; PSB</span>
+        <a href="#psb" class="block hover:text-forest-900 py-0.5">Info PSB 2026/2027</a>
+        <a href="#psb" class="block hover:text-forest-900 py-0.5">Jalur Beasiswa Tahfidz</a>
+        <a href="/login" class="block hover:text-forest-900 py-0.5">Portal Guru &amp; Musyrif</a>
+        <a href="/login" class="block hover:text-forest-900 py-0.5">Portal Eksekutif Pimpinan</a>
+      </div>
+
+      <div class="col-span-2 md:col-span-3 space-y-2">
+        <span class="font-extrabold text-forest-950 uppercase block mb-2">Sekretariat PSB</span>
+        <span class="block text-zinc-500">Gedung Pusat Ponpes Utsman Bin Affan</span>
+        <span class="block text-zinc-500">Buka: Senin – Sabtu (08.00 – 16.00 WIB)</span>
+        <span class="block text-forest-800 font-bold">WhatsApp PSB: <span id="cms-ppdb-whatsapp">0812-3456-7890</span></span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Bottom Lime Contact Bar -->
+  <div class="bg-limeaccent-400 text-forest-950 py-3.5 px-4 sm:px-6 text-xs font-bold">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-center sm:text-left">
+      <div class="flex items-center gap-2">
+        <span class="material-symbols-rounded text-[16px]">call</span>
+        <span>Call Center &amp; PSB: <span id="cms-contact-phone">(021) 890-1234 / 0812-3456-7890</span></span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="material-symbols-rounded text-[16px]">mail</span>
+        <span id="cms-contact-email">info@utsman.sch.id &bull; admin@utsman.sch.id</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="material-symbols-rounded text-[16px]">location_on</span>
+        <span id="cms-contact-address">Pondok Pesantren Utsman Bin Affan — Indonesia</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL FORMULIR PENDAFTARAN PSB ==================== -->
+  <div
+    id="ppdb-modal"
+    class="hidden fixed inset-0 z-50 bg-forest-950/75 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
+  >
+    <div class="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl border border-zinc-200 space-y-5 relative my-8">
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <span class="text-[11px] font-extrabold uppercase tracking-wider text-limeaccent-600 bg-limeaccent-400/20 px-2.5 py-1 rounded-full">
+            PSB ONLINE 2026 / 2027
+          </span>
+          <h3 class="text-xl font-extrabold text-forest-950 mt-2">
+            Formulir Pendaftaran Calon Santri
+          </h3>
+          <p class="text-xs text-zinc-500">
+            Isi data awal calon santri, panitia PSB akan menghubungi Anda untuk jadwal seleksi.
+          </p>
+        </div>
+        <button
+          type="button"
+          onclick="document.getElementById('ppdb-modal').classList.add('hidden')"
+          class="w-8 h-8 rounded-full bg-zinc-100 hover:bg-zinc-200 text-zinc-600 flex items-center justify-center cursor-pointer shrink-0"
+        >
+          <span class="material-symbols-rounded text-[18px]">close</span>
+        </button>
+      </div>
+
+      <form
+        id="ppdb-form"
+        class="space-y-3.5 text-xs"
+      >
+        <div>
+          <label class="font-bold text-forest-950 block mb-1">Nama Lengkap Calon Santri *</label>
+          <input id="reg-nama" type="text" required placeholder="Contoh: Muhammad Fatih Al-Ayyubi" class="w-full px-3.5 py-2.5 rounded-xl border border-zinc-300 focus:outline-none focus:border-forest-800" />
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="font-bold text-forest-950 block mb-1">Pilihan Jenjang *</label>
+            <select id="reg-jenjang" required class="w-full px-3.5 py-2.5 rounded-xl border border-zinc-300 focus:outline-none focus:border-forest-800 bg-white">
+              <option value="SMP IT">SMP IT (Boarding)</option>
+              <option value="SMA IT">SMA IT (MIPA / Syariah)</option>
+              <option value="Takhassus">Takhassus Tahfidz 30 Juz</option>
+            </select>
+          </div>
+          <div>
+            <label class="font-bold text-forest-950 block mb-1">Jalur Pendaftaran *</label>
+            <select id="reg-jalur" required class="w-full px-3.5 py-2.5 rounded-xl border border-zinc-300 focus:outline-none focus:border-forest-800 bg-white">
+              <option value="Reguler">Jalur Reguler</option>
+              <option value="Beasiswa Tahfidz">Beasiswa Tahfidz</option>
+              <option value="Prestasi Akademik">Prestasi Akademik</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="font-bold text-forest-950 block mb-1">Nama Orang Tua / Wali *</label>
+            <input id="reg-wali" type="text" required placeholder="Nama Ayah / Ibu" class="w-full px-3.5 py-2.5 rounded-xl border border-zinc-300 focus:outline-none focus:border-forest-800" />
+          </div>
+          <div>
+            <label class="font-bold text-forest-950 block mb-1">Nomor WhatsApp Aktif *</label>
+            <input id="reg-wa" type="tel" required placeholder="0812xxxxxxxx" class="w-full px-3.5 py-2.5 rounded-xl border border-zinc-300 focus:outline-none focus:border-forest-800" />
+          </div>
+        </div>
+
+        <div>
+          <label class="font-bold text-forest-950 block mb-1">Asal Sekolah &amp; Kota</label>
+          <input id="reg-sekolah" type="text" placeholder="Contoh: SDIT Al-Hikmah — Jakarta" class="w-full px-3.5 py-2.5 rounded-xl border border-zinc-300 focus:outline-none focus:border-forest-800" />
+        </div>
+
+        <div id="ppdb-success" class="hidden p-4 rounded-2xl bg-emerald-50 border border-emerald-300 text-emerald-950 space-y-2.5">
+          <div class="flex items-center gap-2 font-extrabold text-sm text-emerald-900">
+            <span class="material-symbols-rounded text-emerald-600">verified</span>
+            <span>Alhamdulillah, Pendaftaran Berhasil Dikirim!</span>
+          </div>
+          <p class="text-xs text-zinc-600">
+            Nomor Registrasi Anda: <strong id="ppdb-success-reg" class="bg-white px-2.5 py-1 rounded-md border border-emerald-300 text-forest-950">PSB-2026</strong>
+          </p>
+          <a
+            id="ppdb-wa-admin-btn"
+            href="#"
+            target="_blank"
+            class="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-2.5 px-4 rounded-xl text-xs sm:text-sm shadow transition"
+          >
+            <i class="fa-brands fa-whatsapp text-base"></i>
+            <span>Kirim Notifikasi ke WhatsApp Panitia</span>
+          </a>
+        </div>
+
+        <div class="pt-2 flex items-center justify-end gap-2">
+          <button
+            type="button"
+            onclick="document.getElementById('ppdb-modal').classList.add('hidden')"
+            class="px-4 py-2.5 rounded-full border border-zinc-300 font-bold text-zinc-600 hover:bg-zinc-100 cursor-pointer"
+          >
+            Tutup
+          </button>
+          <button
+            id="ppdb-submit-btn"
+            type="submit"
+            class="bg-forest-950 hover:bg-forest-800 text-limeaccent-400 font-extrabold px-6 py-2.5 rounded-full flex items-center gap-2 cursor-pointer"
+          >
+            <span>Kirim Pendaftaran</span>
+            <span class="material-symbols-rounded text-[16px]">send</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Detail Berita -->
+  <div
+    id="news-detail-modal"
+    class="hidden fixed inset-0 z-50 bg-forest-950/75 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
+  >
+    <div class="bg-white rounded-3xl max-w-2xl w-full overflow-hidden shadow-2xl border border-zinc-200 my-8">
+      <div class="relative h-56 sm:h-64 bg-zinc-200">
+        <img id="modal-news-img" src="" alt="" class="w-full h-full object-cover" />
+        <button
+          type="button"
+          onclick="document.getElementById('news-detail-modal').classList.add('hidden')"
+          class="absolute top-4 right-4 w-9 h-9 rounded-full bg-forest-950/80 text-white flex items-center justify-center cursor-pointer"
+        >
+          <span class="material-symbols-rounded text-[20px]">close</span>
+        </button>
+        <span id="modal-news-cat" class="absolute bottom-4 left-4 bg-limeaccent-400 text-forest-950 text-xs font-extrabold px-3 py-1 rounded-full"></span>
+      </div>
+      <div class="p-6 sm:p-8 space-y-4">
+        <div class="flex items-center gap-2 text-xs text-zinc-400 font-semibold">
+          <span class="material-symbols-rounded text-[15px]">calendar_month</span>
+          <span id="modal-news-date"></span>
+        </div>
+        <h3 id="modal-news-title" class="text-xl sm:text-2xl font-extrabold text-forest-950 leading-snug"></h3>
+        <div id="modal-news-content" class="text-xs sm:text-sm text-zinc-600 leading-relaxed space-y-3 whitespace-pre-line"></div>
+        <div class="pt-4 border-t border-zinc-100 flex justify-end">
+          <button
+            type="button"
+            onclick="document.getElementById('news-detail-modal').classList.add('hidden')"
+            class="px-5 py-2 rounded-full bg-forest-950 text-limeaccent-400 text-xs font-extrabold cursor-pointer"
+          >
+            Tutup Berita
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Video Profil Pesantren (YouTube & Direct MP4 Responsive Player) -->
+  <div
+    id="video-profile-modal"
+    class="hidden fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-3 sm:p-6"
+    onclick="if (event.target === this) closeVideoModal()"
+  >
+    <div class="bg-forest-950 text-white rounded-3xl max-w-4xl w-full overflow-hidden shadow-2xl border border-white/20 flex flex-col max-h-[94vh]">
+      <div class="p-3.5 sm:px-6 flex items-center justify-between border-b border-white/10 bg-forest-900/80">
+        <div class="flex items-center gap-2 text-xs sm:text-sm font-extrabold text-limeaccent-400 truncate pr-2">
+          <span class="material-symbols-rounded text-[20px] text-red-500">smart_display</span>
+          <span id="video-modal-title" class="truncate">Video Profil Resmi Pondok Pesantren</span>
+        </div>
+        <button
+          type="button"
+          onclick="closeVideoModal()"
+          class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center cursor-pointer shrink-0 transition"
+          title="Tutup Video"
+        >
+          <span class="material-symbols-rounded text-[20px]">close</span>
+        </button>
+      </div>
+
+      <div class="p-2 sm:p-4 bg-black/95">
+        <div id="video-modal-container" class="relative w-full aspect-video bg-black rounded-2xl overflow-hidden shadow-inner flex items-center justify-center">
+          <!-- Iframe YouTube / Video Player diinjeksi via JavaScript -->
+        </div>
+      </div>
+
+      <div class="p-4 sm:px-6 bg-forest-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs border-t border-white/10">
+        <p id="video-modal-desc" class="text-white/80 line-clamp-2 leading-relaxed flex-1"></p>
+        <a
+          id="video-modal-yt-btn"
+          href="#"
+          target="_blank"
+          class="shrink-0 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-red-600 hover:bg-red-700 text-white font-extrabold text-xs shadow-md transition"
+        >
+          <i class="fa-brands fa-youtube text-sm"></i>
+          <span>Tonton di YouTube</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 0. Auto-Running Hero Slideshow (Background + Floating Card)
+    var heroSlideIndex = 0;
+    var heroSlideTotal = 4;
+    var heroSlidePaused = false;
+    var heroSlideTimer = null;
+
+    function renderHeroSlidesFromCms(slides) {
+      if (!Array.isArray(slides) || slides.length === 0) return;
+      heroSlideTotal = slides.length;
+      var bgContainer = document.getElementById('hero-bg-slides');
+      var cardTrack = document.getElementById('hero-card-track');
+      var dotsContainer = document.getElementById('hero-slide-dots');
+
+      if (bgContainer) {
+        bgContainer.innerHTML = slides.map(function (s, idx) {
+          var activeCls = idx === heroSlideIndex ? 'opacity-100 scale-105' : 'opacity-0 scale-100';
+          return '<img src="' + (s.bg_image || '') + '" alt="Slide ' + (idx + 1) + '" class="hero-bg-img absolute inset-0 w-full h-full object-cover object-center transition-all duration-1000 ' + activeCls + '" />';
+        }).join('');
+      }
+
+      if (cardTrack) {
+        cardTrack.innerHTML = slides.map(function (s, idx) {
+          return '<div class="w-full shrink-0 space-y-2">' +
+            '<div class="relative rounded-xl overflow-hidden h-28 sm:h-32">' +
+              '<img src="' + (s.card_image || s.bg_image || '') + '" alt="Card Slide ' + (idx + 1) + '" class="w-full h-full object-cover" />' +
+              '<div class="absolute inset-0 bg-gradient-to-t from-forest-950/85 via-transparent to-transparent"></div>' +
+              '<span class="absolute bottom-2 left-2.5 text-[10px] font-extrabold bg-limeaccent-400 text-forest-950 px-2 py-0.5 rounded-full shadow">' + (s.card_badge || 'Ponpes Utsman Bin Affan') + '</span>' +
+            '</div>' +
+            '<p class="text-[11px] sm:text-xs font-semibold text-white/95 leading-snug px-0.5 line-clamp-2">' + (s.card_caption || '') + '</p>' +
+          '</div>';
+        }).join('');
+      }
+
+      if (dotsContainer) {
+        var dotsHtml = slides.map(function (_, idx) {
+          var cls = idx === heroSlideIndex
+            ? 'hero-dot h-1.5 w-6 rounded-full bg-limeaccent-400 transition-all cursor-pointer'
+            : 'hero-dot h-1.5 w-2 rounded-full bg-white/35 hover:bg-white/60 transition-all cursor-pointer';
+          return '<button type="button" onclick="goToHeroSlide(' + idx + ')" class="' + cls + '" aria-label="Slide ' + (idx + 1) + '"></button>';
+        }).join('');
+        dotsContainer.innerHTML = '<div class="flex items-center gap-1.5">' + dotsHtml + '</div>' +
+          '<span id="hero-slide-counter" class="text-[10px] font-extrabold text-limeaccent-400 tracking-wider">SLIDE 01 / 0' + slides.length + '</span>';
+      }
+
+      goToHeroSlide(0);
+    }
+
+    function goToHeroSlide(idx) {
+      if (heroSlideTotal <= 0) return;
+      heroSlideIndex = (idx + heroSlideTotal) % heroSlideTotal;
+
+      var bgImgs = document.querySelectorAll('.hero-bg-img');
+      for (var i = 0; i < bgImgs.length; i++) {
+        if (i === heroSlideIndex) {
+          bgImgs[i].classList.remove('opacity-0', 'scale-100');
+          bgImgs[i].classList.add('opacity-100', 'scale-105');
+        } else {
+          bgImgs[i].classList.remove('opacity-100', 'scale-105');
+          bgImgs[i].classList.add('opacity-0', 'scale-100');
+        }
+      }
+
+      var track = document.getElementById('hero-card-track');
+      if (track) {
+        track.style.transform = 'translateX(-' + (heroSlideIndex * 100) + '%)';
+      }
+
+      var dots = document.querySelectorAll('.hero-dot');
+      for (var j = 0; j < dots.length; j++) {
+        if (j === heroSlideIndex) {
+          dots[j].className = 'hero-dot h-1.5 w-6 rounded-full bg-limeaccent-400 transition-all cursor-pointer';
+        } else {
+          dots[j].className = 'hero-dot h-1.5 w-2 rounded-full bg-white/35 hover:bg-white/60 transition-all cursor-pointer';
+        }
+      }
+
+      var counter = document.getElementById('hero-slide-counter');
+      if (counter) {
+        var curStr = heroSlideIndex + 1 < 10 ? '0' + (heroSlideIndex + 1) : String(heroSlideIndex + 1);
+        var totStr = heroSlideTotal < 10 ? '0' + heroSlideTotal : String(heroSlideTotal);
+        counter.textContent = 'SLIDE ' + curStr + ' / ' + totStr;
+      }
+    }
+
+    function stepHeroSlide(delta) {
+      goToHeroSlide(heroSlideIndex + delta);
+      resetHeroSlideTimer();
+    }
+
+    function pauseHeroSlide(paused) {
+      heroSlidePaused = !!paused;
+    }
+
+    function resetHeroSlideTimer() {
+      if (heroSlideTimer) clearInterval(heroSlideTimer);
+      heroSlideTimer = setInterval(function () {
+        if (!heroSlidePaused) {
+          goToHeroSlide(heroSlideIndex + 1);
+        }
+      }, 4200);
+    }
+
+    resetHeroSlideTimer();
+
+    // Helper YouTube ID Extractor & Video Modal Player
+    window.__CMS_GALLERY_VIDEO__ = null;
+
+    function extractYouTubeId(url) {
+      if (!url) return null;
+      var str = String(url).trim();
+      var m = str.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([\w-]{11})/);
+      return m ? m[1] : null;
+    }
+
+    function openVideoModal(videoUrl, title, desc) {
+      var modal = document.getElementById('video-profile-modal');
+      var container = document.getElementById('video-modal-container');
+      var titleEl = document.getElementById('video-modal-title');
+      var descEl = document.getElementById('video-modal-desc');
+      var ytBtn = document.getElementById('video-modal-yt-btn');
+
+      if (!modal || !container) return;
+
+      var gv = window.__CMS_GALLERY_VIDEO__ || {};
+      var rawUrl = videoUrl || gv.video_url || 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
+      var vTitle = title || gv.title || 'Profil Pondok Pesantren Modern Utsman Bin Affan';
+      var vDesc = desc || gv.desc || 'Menyaksikan suasana halaqah tahfidz, pembelajaran sains modern, dan kehidupan berasrama 24 jam.';
+
+      if (titleEl) titleEl.textContent = vTitle;
+      if (descEl) descEl.textContent = vDesc;
+
+      var ytId = extractYouTubeId(rawUrl);
+      if (ytId) {
+        container.innerHTML = '<iframe class="w-full h-full rounded-xl" src="https://www.youtube.com/embed/' + ytId + '?autoplay=1&rel=0&modestbranding=1" title="' + vTitle.replace(/"/g, '&quot;') + '" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>';
+        if (ytBtn) {
+          ytBtn.href = 'https://www.youtube.com/watch?v=' + ytId;
+          ytBtn.classList.remove('hidden');
+        }
+      } else if (rawUrl && (rawUrl.indexOf('.mp4') !== -1 || rawUrl.indexOf('.webm') !== -1)) {
+        container.innerHTML = '<video controls autoplay class="w-full h-full rounded-xl bg-black object-contain"><source src="' + rawUrl + '" type="video/mp4">Browser Anda tidak mendukung tag video.</video>';
+        if (ytBtn) ytBtn.classList.add('hidden');
+      } else {
+        container.innerHTML = '<iframe class="w-full h-full rounded-xl" src="' + rawUrl + '" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>';
+        if (ytBtn) ytBtn.classList.add('hidden');
+      }
+
+      modal.classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeVideoModal() {
+      var modal = document.getElementById('video-profile-modal');
+      var container = document.getElementById('video-modal-container');
+      if (container) container.innerHTML = '';
+      if (modal) modal.classList.add('hidden');
+      document.body.style.overflow = '';
+    }
+
+    window.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') closeVideoModal();
+    });
+
+    // Filter Galeri & Video
+    function filterGallery(cat) {
+      var items = document.querySelectorAll('.gal-item');
+      for (var i = 0; i < items.length; i++) {
+        var itemCat = items[i].getAttribute('data-gal-cat');
+        if (cat === 'all' || itemCat === cat) {
+          items[i].classList.remove('hidden');
+        } else {
+          items[i].classList.add('hidden');
+        }
+      }
+      var btns = document.querySelectorAll('.gal-filter-btn');
+      for (var j = 0; j < btns.length; j++) {
+        btns[j].className = 'gal-filter-btn bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-100 px-3.5 py-2 rounded-full cursor-pointer transition';
+      }
+      var activeBtn = document.getElementById('gal-btn-' + cat);
+      if (activeBtn) {
+        activeBtn.className = 'gal-filter-btn bg-forest-950 text-limeaccent-400 px-4 py-2 rounded-full cursor-pointer transition';
+      }
+    }
+
+    // 1. Update button label if user already has an active session token
+    if (window.__SIUBA_HAS_TOKEN__) {
+      var btn = document.getElementById('nav-login-btn');
+      var txt = document.getElementById('nav-login-text');
+      if (btn && txt) {
+        btn.setAttribute('href', '/dashboard');
+        txt.textContent = 'Buka Dashboard';
+      }
+    }
+
+    // 2. Mobile & Tablet Hamburger Menu Toggle
+    var menuBtn = document.getElementById('mobile-menu-btn');
+    var menuDrawer = document.getElementById('mobile-menu-drawer');
+    var menuIcon = document.getElementById('mobile-menu-icon');
+
+    if (menuBtn && menuDrawer && menuIcon) {
+      menuBtn.addEventListener('click', function () {
+        var isHidden = menuDrawer.classList.contains('hidden');
+        if (isHidden) {
+          menuDrawer.classList.remove('hidden');
+          menuIcon.textContent = 'close';
+        } else {
+          menuDrawer.classList.add('hidden');
+          menuIcon.textContent = 'menu';
+        }
+      });
+
+      var navLinks = document.querySelectorAll('.mobile-nav-link');
+      for (var i = 0; i < navLinks.length; i++) {
+        navLinks[i].addEventListener('click', function () {
+          menuDrawer.classList.add('hidden');
+          menuIcon.textContent = 'menu';
+        });
+      }
+    }
+
+    // 3. Submit PSB Registration Form to Backend API
+    var ppdbForm = document.getElementById('ppdb-form');
+    if (ppdbForm) {
+      ppdbForm.addEventListener('submit', async function (e) {
+        e.preventDefault();
+        var submitBtn = document.getElementById('ppdb-submit-btn');
+        var origHtml = submitBtn.innerHTML;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span>Mengirim...</span>';
+
+        try {
+          var payload = {
+            nama_lengkap: document.getElementById('reg-nama').value,
+            jenjang: document.getElementById('reg-jenjang').value,
+            jalur: document.getElementById('reg-jalur').value,
+            nama_wali: document.getElementById('reg-wali').value,
+            no_whatsapp: document.getElementById('reg-wa').value,
+            asal_sekolah: document.getElementById('reg-sekolah').value
+          };
+          var res = await fetch('/api/v1/cms/ppdb/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          var data = await res.json();
+          if (res.ok && data && data.success) {
+            var regNum = (data.registration && data.registration.reg_number) || 'PSB-2026';
+            var regLbl = document.getElementById('ppdb-success-reg');
+            if (regLbl) regLbl.textContent = regNum;
+            if (data.admin_whatsapp_url) {
+              var waBtn = document.getElementById('ppdb-wa-admin-btn');
+              if (waBtn) waBtn.href = data.admin_whatsapp_url;
+              try {
+                window.open(data.admin_whatsapp_url, '_blank');
+              } catch (openErr) {}
+            }
+            document.getElementById('ppdb-success').classList.remove('hidden');
+            ppdbForm.reset();
+          } else {
+            document.getElementById('ppdb-success').classList.remove('hidden');
+          }
+        } catch (err) {
+          document.getElementById('ppdb-success').classList.remove('hidden');
+        } finally {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = origHtml;
+        }
+      });
+    }
+
+    // 4. Fetch Dynamic Content (Profil, Visi/Misi, PSB & Berita) from Backend CMS API
+    window.__CMS_NEWS_LIST__ = [];
+    function openNewsDetail(idx) {
+      var item = window.__CMS_NEWS_LIST__[idx];
+      if (!item) return;
+      document.getElementById('modal-news-img').src = item.image_url || 'https://images.unsplash.com/photo-1584551246679-0daf3d275d0f?auto=format&fit=crop&w=800&q=80';
+      document.getElementById('modal-news-cat').textContent = item.category || 'Berita';
+      document.getElementById('modal-news-date').textContent = item.published_date || item.published_date_label || '';
+      document.getElementById('modal-news-title').textContent = item.title || '';
+      document.getElementById('modal-news-content').textContent = item.content || item.excerpt || '';
+      document.getElementById('news-detail-modal').classList.remove('hidden');
+    }
+
+    function setTxt(id, val) {
+      var el = document.getElementById(id);
+      if (el && val !== undefined && val !== null && val !== '') {
+        el.textContent = val;
+      }
+    }
+
+    async function loadCmsData() {
+      try {
+        var res = await fetch('/api/v1/cms/landing', { headers: { 'Accept': 'application/json' } });
+        if (!res.ok) return;
+        var json = await res.json();
+        if (!json) return;
+
+        var p = json.profile || (json.data && json.data.profile) || {};
+        if (Array.isArray(p.hero_slides) && p.hero_slides.length > 0) {
+          renderHeroSlidesFromCms(p.hero_slides);
+        }
+        setTxt('cms-hero-badge', p.pesantren_name || p.hero_badge);
+        setTxt('cms-hero-title', p.hero_title);
+        setTxt('cms-hero-subtitle', p.hero_subtitle);
+
+        // 4 Pilar Strip
+        if (Array.isArray(p.pillars) && p.pillars.length > 0) {
+          var pillarsGrid = document.getElementById('cms-pillars-grid');
+          if (pillarsGrid) {
+            pillarsGrid.innerHTML = p.pillars.map(function (item) {
+              return '<div class="flex items-center gap-2 font-bold text-xs sm:text-sm text-forest-900 bg-white sm:bg-transparent p-2 sm:p-0 rounded-xl border sm:border-0 border-zinc-200/70">' +
+                '<span class="material-symbols-rounded text-forest-700 text-[19px] shrink-0">' + (item.icon || 'verified') + '</span>' +
+                '<span class="truncate">' + (item.label || '') + '</span>' +
+              '</div>';
+            }).join('');
+          }
+        }
+
+        // Profil & Sambutan Pimpinan
+        setTxt('cms-profile-since', p.founded_year || p.profile_since);
+        setTxt('cms-profile-desc', p.profile_description);
+        if (p.profile_image && document.getElementById('cms-profile-img')) {
+          document.getElementById('cms-profile-img').src = p.profile_image;
+        }
+        if (p.mudir_photo && document.getElementById('cms-mudir-img')) {
+          document.getElementById('cms-mudir-img').src = p.mudir_photo;
+        }
+        setTxt('cms-mudir-name', p.mudir_name);
+        setTxt('cms-mudir-role', p.mudir_role);
+        if (p.mudir_quote) setTxt('cms-mudir-quote', '“' + p.mudir_quote + '”');
+        if ((p.mudir_body_1 || p.mudir_body_2) && document.getElementById('cms-mudir-body')) {
+          document.getElementById('cms-mudir-body').innerHTML =
+            (p.mudir_body_1 ? '<p>' + p.mudir_body_1 + '</p>' : '') +
+            (p.mudir_body_2 ? '<p>' + p.mudir_body_2 + '</p>' : '');
+        }
+
+        // Visi, Motto, 4 Misi & Capaian
+        var visiVal = p.vision || p.visi;
+        if (visiVal) setTxt('cms-visi', '“' + visiVal + '”');
+        setTxt('cms-motto', p.motto);
+        var missions = p.missions || [];
+        setTxt('cms-misi-1', missions[0] || p.misi_1);
+        setTxt('cms-misi-2', missions[1] || p.misi_2);
+        setTxt('cms-misi-3', missions[2] || p.misi_3);
+        setTxt('cms-misi-4', missions[3] || p.misi_4);
+        setTxt('cms-stat-kelulusan', p.stat_graduation || p.stat_kelulusan);
+        setTxt('cms-stat-kelulusan-desc', p.stat_kelulusan_desc);
+        setTxt('cms-stat-santri', p.stat_students || p.stat_santri_aktif);
+        setTxt('cms-stat-ustadz', p.stat_teachers || p.stat_ustadz);
+        setTxt('cms-stat-jenjang', p.stat_jenjang);
+        setTxt('cms-stat-asrama', p.stat_asrama);
+
+        // Sejarah & 4 Keunggulan
+        setTxt('cms-sejarah-title', p.sejarah_title);
+        setTxt('cms-sejarah-text', p.sejarah_text);
+        if (Array.isArray(p.advantages) && p.advantages.length > 0) {
+          var advGrid = document.getElementById('cms-advantages-grid');
+          if (advGrid) {
+            advGrid.innerHTML = p.advantages.map(function (item) {
+              return '<div class="bg-white/10 p-3.5 rounded-2xl space-y-1">' +
+                '<div class="font-extrabold text-limeaccent-400 flex items-center gap-1.5">' +
+                  '<span class="material-symbols-rounded text-[16px]">' + (item.icon || 'verified') + '</span>' +
+                  '<span>' + (item.title || '') + '</span>' +
+                '</div>' +
+                '<p class="text-white/80 leading-relaxed">' + (item.desc || '') + '</p>' +
+              '</div>';
+            }).join('');
+          }
+        }
+
+        // 5 Program Pendidikan
+        setTxt('cms-programs-desc', p.programs_desc);
+        if (Array.isArray(p.programs) && p.programs.length > 0) {
+          var progGrid = document.getElementById('cms-programs-grid');
+          if (progGrid) {
+            progGrid.innerHTML = p.programs.map(function (item) {
+              return '<div class="bg-white p-5 rounded-3xl border border-zinc-200/80 shadow-xs flex flex-col justify-between space-y-3">' +
+                '<div class="space-y-2.5">' +
+                  '<span class="w-10 h-10 rounded-2xl bg-forest-950 text-limeaccent-400 flex items-center justify-center">' +
+                    '<span class="material-symbols-rounded">' + (item.icon || 'school') + '</span>' +
+                  '</span>' +
+                  '<span class="text-[10px] font-extrabold uppercase tracking-wider text-forest-700 block">' + (item.code || '') + '</span>' +
+                  '<h4 class="text-sm sm:text-base font-extrabold text-forest-950">' + (item.title || '') + '</h4>' +
+                  '<p class="text-xs text-zinc-600 leading-relaxed">' + (item.desc || '') + '</p>' +
+                '</div>' +
+                '<span class="text-[11px] font-bold text-forest-800 pt-2 border-t border-zinc-100">' + (item.badge || '') + '</span>' +
+              '</div>';
+            }).join('');
+          }
+        }
+
+        // 6 Fasilitas Pesantren
+        setTxt('cms-facilities-desc', p.facilities_desc);
+        if (Array.isArray(p.facilities) && p.facilities.length > 0) {
+          var facGrid = document.getElementById('cms-facilities-grid');
+          if (facGrid) {
+            facGrid.innerHTML = p.facilities.map(function (item) {
+              return '<div class="bg-white rounded-3xl border border-zinc-200/80 overflow-hidden shadow-xs group">' +
+                '<div class="relative h-44 overflow-hidden">' +
+                  '<img src="' + (item.image || '') + '" alt="' + (item.title || '') + '" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" />' +
+                  '<span class="absolute top-3 left-3 bg-limeaccent-400 text-forest-950 text-[11px] font-extrabold px-3 py-1 rounded-full">' + (item.badge || '') + '</span>' +
+                '</div>' +
+                '<div class="p-5 space-y-1.5">' +
+                  '<h4 class="font-extrabold text-base text-forest-950">' + (item.title || '') + '</h4>' +
+                  '<p class="text-xs text-zinc-600 leading-relaxed">' + (item.desc || '') + '</p>' +
+                '</div>' +
+              '</div>';
+            }).join('');
+          }
+        }
+
+        // Galeri & Video Profil
+        var gv = p.gallery_video || {};
+        window.__CMS_GALLERY_VIDEO__ = gv;
+
+        if (Array.isArray(p.gallery_items) && p.gallery_items.length > 0) {
+          var galGrid = document.getElementById('cms-gallery-grid');
+          if (galGrid) {
+            var gvYtId = extractYouTubeId(gv.video_url);
+            var gvImg = gv.image;
+            if (gvYtId && (!gvImg || gvImg.indexOf('unsplash') !== -1)) {
+              gvImg = 'https://img.youtube.com/vi/' + gvYtId + '/hqdefault.jpg';
+            }
+            gvImg = gvImg || 'https://images.unsplash.com/photo-1519817650390-64a93db51149?auto=format&fit=crop&w=1200&q=80';
+
+            var videoHtml = '<div data-gal-cat="video" class="gal-item lg:col-span-6 relative rounded-3xl overflow-hidden min-h-[280px] sm:min-h-[340px] shadow-lg group flex flex-col justify-between p-6 text-white">' +
+              '<img src="' + gvImg + '" alt="Video Profil" class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition duration-700" />' +
+              '<div class="absolute inset-0 bg-gradient-to-t from-forest-950/95 via-forest-950/45 to-forest-950/30"></div>' +
+              '<div class="relative z-10 flex items-center justify-between">' +
+                '<span class="bg-limeaccent-400 text-forest-950 text-xs font-extrabold px-3 py-1 rounded-full flex items-center gap-1.5">' +
+                  '<span class="material-symbols-rounded text-[16px]">smart_display</span>' +
+                  '<span>' + (gv.badge || 'VIDEO PROFIL RESMI') + '</span>' +
+                '</span>' +
+                '<span class="text-xs font-bold bg-white/15 px-3 py-1 rounded-full flex items-center gap-1">' +
+                  (gvYtId ? '<i class="fa-brands fa-youtube text-red-400"></i>' : '') +
+                  '<span>' + (gv.duration || (gvYtId ? 'YouTube HD' : 'HD • 04:15 Menit')) + '</span>' +
+                '</span>' +
+              '</div>' +
+              '<div class="relative z-10 my-auto flex justify-center">' +
+                '<button type="button" onclick="openVideoModal(\'' + (gv.video_url || '').replace(/'/g, "\\'") + '\', \'' + (gv.title || '').replace(/'/g, "\\'") + '\', \'' + (gv.desc || '').replace(/'/g, "\\'") + '\')" class="w-16 h-16 rounded-full bg-limeaccent-400 hover:bg-limeaccent-500 text-forest-950 flex items-center justify-center shadow-2xl hover:scale-115 transition duration-300 cursor-pointer" title="Putar Video Profil Pesantren">' +
+                  '<span class="material-symbols-rounded text-[34px]">play_arrow</span>' +
+                '</button>' +
+              '</div>' +
+              '<div class="relative z-10 space-y-1">' +
+                '<h4 class="text-lg sm:text-xl font-extrabold">' + (gv.title || 'Profil Pondok Pesantren Modern Utsman Bin Affan') + '</h4>' +
+                '<p class="text-xs text-white/80 line-clamp-2">' + (gv.desc || '') + '</p>' +
+              '</div>' +
+            '</div>';
+
+            var itemsHtml = p.gallery_items.map(function (item, idx) {
+              var isVideo = item.type === 'video' || item.category === 'video' || (item.video_url && item.video_url.length > 5);
+              var colSpan = idx < 2 ? 'lg:col-span-3 min-h-[260px]' : 'lg:col-span-4 min-h-[230px]';
+              var badgeCls = idx % 2 === 1 ? 'bg-white text-forest-950' : 'bg-limeaccent-400 text-forest-950';
+
+              var itemYtId = extractYouTubeId(item.video_url);
+              var displayImg = item.image;
+              if (itemYtId && (!displayImg || displayImg.indexOf('unsplash') !== -1)) {
+                displayImg = 'https://img.youtube.com/vi/' + itemYtId + '/hqdefault.jpg';
+              }
+
+              var playOverlay = isVideo
+                ? '<div class="absolute inset-0 flex items-center justify-center z-10">' +
+                    '<div class="w-12 h-12 rounded-full bg-limeaccent-400 hover:bg-limeaccent-500 text-forest-950 flex items-center justify-center shadow-xl group-hover:scale-115 transition duration-300 cursor-pointer">' +
+                      '<span class="material-symbols-rounded text-[26px]">play_arrow</span>' +
+                    '</div>' +
+                  '</div>'
+                : '';
+
+              var clickAttr = isVideo
+                ? 'onclick="openVideoModal(\'' + (item.video_url || '').replace(/'/g, "\\'") + '\', \'' + (item.title || '').replace(/'/g, "\\'") + '\', \'' + (item.desc || '').replace(/'/g, "\\'") + '\')" class="gal-item ' + colSpan + ' relative rounded-3xl overflow-hidden shadow-sm group flex flex-col justify-end p-5 text-white cursor-pointer"'
+                : 'class="gal-item ' + colSpan + ' relative rounded-3xl overflow-hidden shadow-sm group flex flex-col justify-end p-5 text-white"';
+
+              return '<div data-gal-cat="' + (item.category || 'kegiatan') + '" ' + clickAttr + '>' +
+                '<img src="' + (displayImg || '') + '" alt="' + (item.title || '') + '" class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition duration-500" />' +
+                '<div class="absolute inset-0 bg-gradient-to-t from-forest-950/90 via-forest-950/30 to-transparent"></div>' +
+                playOverlay +
+                '<div class="relative z-10 space-y-1">' +
+                  '<span class="text-[10px] font-extrabold uppercase ' + badgeCls + ' px-2.5 py-0.5 rounded-full inline-flex items-center gap-1">' +
+                    (isVideo ? '<span class="material-symbols-rounded text-[13px]">play_circle</span>' : '') +
+                    '<span>' + (item.badge || (isVideo ? 'Video' : 'Foto')) + '</span>' +
+                  '</span>' +
+                  '<h4 class="text-sm font-extrabold pt-1">' + (item.title || '') + '</h4>' +
+                  '<p class="text-[11px] text-white/75 line-clamp-2">' + (item.desc || '') + '</p>' +
+                '</div>' +
+              '</div>';
+            }).join('');
+
+            galGrid.innerHTML = videoHtml + itemsHtml;
+          }
+        }
+
+        // 5 FAQ (Tanya Jawab)
+        if (Array.isArray(p.faqs) && p.faqs.length > 0) {
+          var faqList = document.getElementById('cms-faq-list');
+          if (faqList) {
+            faqList.innerHTML = p.faqs.map(function (item, idx) {
+              var openAttr = idx === 0 ? ' open' : '';
+              return '<details class="group border border-zinc-200/80 rounded-2xl p-4 open:bg-zinc-50/70 transition"' + openAttr + '>' +
+                '<summary class="flex items-center justify-between cursor-pointer font-bold text-xs sm:text-sm text-forest-950">' +
+                  '<span>' + (item.question || '') + '</span>' +
+                  '<span class="material-symbols-rounded text-forest-700 group-open:rotate-180 transition-transform">expand_more</span>' +
+                '</summary>' +
+                '<p class="text-xs text-zinc-600 mt-2.5 leading-relaxed">' + (item.answer || '') + '</p>' +
+              '</details>';
+            }).join('');
+          }
+        }
+
+        // Kontak & Footer
+        setTxt('cms-contact-phone', p.contact_phone);
+        setTxt('cms-contact-email', p.contact_email);
+        setTxt('cms-contact-address', p.contact_address);
+
+        var d = json.ppdb || (json.data && json.data.ppdb) || {};
+        var thn = d.academic_year || d.tahun_ajaran;
+        if (thn) setTxt('cms-ppdb-tahun', 'PSB TAHUN AJARAN ' + thn);
+        setTxt('cms-ppdb-status', d.status_badge || d.status_gelombang);
+        setTxt('cms-ppdb-kuota', d.total_quota || d.total_kuota);
+        setTxt('cms-ppdb-kuota-desc', d.quota_description || d.deskripsi_kuota);
+
+        if (d.wave_items && Array.isArray(d.wave_items) && d.wave_items.length > 0) {
+          if (d.wave_items[0]) {
+            setTxt('cms-ppdb-g1-label', d.wave_items[0].name || 'Gelombang I');
+            setTxt('cms-ppdb-g1-date', d.wave_items[0].date_range || d.wave_items[0].open_date || d.wave_1);
+          }
+          if (d.wave_items[1]) {
+            setTxt('cms-ppdb-g2-label', d.wave_items[1].name || 'Gelombang II');
+            setTxt('cms-ppdb-g2-date', d.wave_items[1].date_range || d.wave_items[1].open_date || d.wave_2);
+          }
+        } else {
+          setTxt('cms-ppdb-g1-label', d.gelombang_1_label);
+          setTxt('cms-ppdb-g1-date', d.wave_1 || d.gelombang_1_waktu);
+          setTxt('cms-ppdb-g2-label', d.gelombang_2_label);
+          setTxt('cms-ppdb-g2-date', d.wave_2 || d.gelombang_2_waktu);
+        }
+
+        setTxt('cms-ppdb-tes-label', d.jadwal_tes_label);
+        setTxt('cms-ppdb-tes-date', d.test_schedule || d.jadwal_tes_waktu);
+        setTxt('cms-ppdb-beasiswa', d.scholarship_note || d.info_beasiswa);
+        if (d.smp_image && document.getElementById('cms-smp-img')) {
+          document.getElementById('cms-smp-img').src = d.smp_image;
+        }
+        setTxt('cms-smp-badge', d.smp_badge);
+        setTxt('cms-smp-title', d.smp_title);
+        setTxt('cms-smp-desc', d.smp_desc);
+        setTxt('cms-smp-duration', d.smp_duration);
+        setTxt('cms-smp-kuota', d.smp_quota || d.smp_kuota);
+        setTxt('cms-smp-boarding', d.smp_boarding);
+        if (d.sma_image && document.getElementById('cms-sma-img')) {
+          document.getElementById('cms-sma-img').src = d.sma_image;
+        }
+        setTxt('cms-sma-badge', d.sma_badge);
+        setTxt('cms-sma-title', d.sma_title);
+        setTxt('cms-sma-desc', d.sma_desc);
+        setTxt('cms-sma-duration', d.sma_duration);
+        setTxt('cms-sma-kuota', d.sma_quota || d.sma_kuota);
+        setTxt('cms-sma-program', d.sma_program);
+        setTxt('cms-ppdb-whatsapp', d.whatsapp_contact || d.whatsapp_ppdb);
+        setTxt('cms-ppdb-fee-reg', d.fee_registration);
+        setTxt('cms-ppdb-fee-spp', d.fee_spp);
+        setTxt('cms-biaya-pendaftaran', d.fee_registration);
+        setTxt('cms-biaya-masuk', d.fee_dsp);
+        setTxt('cms-biaya-bulanan', d.fee_spp);
+        setTxt('cms-biaya-bulanan-desc', d.fee_includes);
+        setTxt('cms-biaya-lainnya', d.fee_uniform_books);
+        setTxt('cms-rekening-resmi', d.bank_account);
+
+        var news = json.news || (json.data && json.data.news) || [];
+        if (news.length > 0) {
+          window.__CMS_NEWS_LIST__ = news;
+          var grid = document.getElementById('cms-news-grid');
+          if (grid) {
+            grid.innerHTML = news.map(function (item, idx) {
+              var badgeClass = idx % 2 === 1
+                ? 'bg-forest-900 text-limeaccent-400'
+                : 'bg-limeaccent-400 text-forest-950';
+              var img = item.image_url || 'https://images.unsplash.com/photo-1584551246679-0daf3d275d0f?auto=format&fit=crop&w=800&q=80';
+              var pubDate = item.published_date || item.published_date_label || '';
+              return '<article onclick="openNewsDetail(' + idx + ')" class="cursor-pointer bg-white rounded-3xl border border-zinc-200/80 shadow-sm overflow-hidden flex flex-col justify-between group">' +
+                '<div>' +
+                  '<div class="relative h-48 overflow-hidden bg-zinc-100">' +
+                    '<img src="' + img + '" alt="" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" />' +
+                    '<span class="absolute top-3 left-3 ' + badgeClass + ' text-[11px] font-extrabold px-3 py-1 rounded-full">' + (item.category || 'Berita') + '</span>' +
+                  '</div>' +
+                  '<div class="p-5 sm:p-6 space-y-2.5">' +
+                    '<div class="flex items-center gap-2 text-xs text-zinc-400 font-semibold">' +
+                      '<span class="material-symbols-rounded text-[15px]">calendar_month</span>' +
+                      '<span>' + pubDate + '</span>' +
+                    '</div>' +
+                    '<h4 class="text-base sm:text-lg font-extrabold text-forest-950 leading-snug group-hover:text-forest-700 transition">' + (item.title || '') + '</h4>' +
+                    '<p class="text-xs text-zinc-600 leading-relaxed">' + (item.excerpt || '') + '</p>' +
+                  '</div>' +
+                '</div>' +
+                '<div class="px-5 sm:px-6 pb-5 pt-3 border-t border-zinc-100 flex items-center justify-between text-xs font-bold text-forest-800">' +
+                  '<span>Baca Selengkapnya</span>' +
+                  '<span class="material-symbols-rounded text-[18px]">arrow_forward</span>' +
+                '</div>' +
+              '</article>';
+            }).join('');
+          }
+        }
+      } catch (e) {
+        // Keep static fallback content if offline
+      }
+    }
+
+    loadCmsData();
+  </script>
+</body>
+</html>

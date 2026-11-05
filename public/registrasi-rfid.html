@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Pusat Registrasi Kartu RFID — SIUBA</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .font-mono { font-family: 'JetBrains Mono', monospace; }
+    @keyframes radar-pulse {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      50% { transform: scale(1.15); opacity: 0.2; }
+      100% { transform: scale(0.95); opacity: 0.8; }
+    }
+    .animate-radar { animation: radar-pulse 2s infinite ease-in-out; }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col antialiased selection:bg-emerald-500 selection:text-white">
+
+  <!-- Header Navigasi -->
+  <header class="bg-slate-900/90 backdrop-blur-md border-b border-slate-800 sticky top-0 z-40">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center shadow-lg shadow-emerald-500/20 text-white font-black text-lg">
+          💳
+        </div>
+        <div>
+          <h1 class="text-sm sm:text-base font-extrabold text-white tracking-tight flex items-center gap-2">
+            Pusat Registrasi RFID
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 uppercase tracking-wider">Nexabsen V.4</span>
+          </h1>
+          <p class="text-[11px] text-slate-400">Tautkan kartu santri secara instan langsung dari mesin RFID</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <a href="/app.html" class="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-700 flex items-center gap-2 transition-all">
+          <span>← Kembali ke Dashboard</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Konten Utama -->
+  <main class="flex-1 max-w-6xl mx-auto w-full p-4 sm:p-6 space-y-6">
+
+    <!-- Grid: Panel Auto-Detect & Panel Form Pendaftaran -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+      <!-- Kolom Kiri: Deteksi Kartu Real-Time (5 Col) -->
+      <div class="lg:col-span-5 bg-slate-800/80 border border-slate-700/80 rounded-3xl p-6 shadow-xl flex flex-col justify-between relative overflow-hidden">
+        <div class="space-y-4">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+              Live Scanner Terminal
+            </span>
+            <span id="scan-status-badge" class="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-slate-700 text-slate-300">
+              Siap Membaca
+            </span>
+          </div>
+
+          <!-- Radar Visualizer -->
+          <div class="relative py-8 flex flex-col items-center justify-center">
+            <div class="w-28 h-28 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center animate-radar absolute"></div>
+            <div class="w-20 h-20 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center z-10 text-3xl shadow-inner">
+              📡
+            </div>
+            <p class="text-xs font-medium text-slate-300 mt-6 text-center max-w-xs leading-relaxed">
+              Tempelkan kartu RFID ke mesin <b class="text-emerald-400">ESP32 / Nexabsen</b>. Kode UID kartu akan muncul otomatis di bawah.
+            </p>
+          </div>
+
+          <!-- Box Kartu Terakhir yang Di-Tap -->
+          <div id="card-detect-box" class="bg-slate-900/90 border border-slate-700/80 rounded-2xl p-4 transition-all duration-300">
+            <div class="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center justify-between mb-2">
+              <span>Kartu Terakhir Terdeteksi:</span>
+              <span id="detect-time" class="text-emerald-400 font-mono text-[10px]">--:--:--</span>
+            </div>
+            <div class="flex items-center justify-between gap-3">
+              <div class="flex items-center gap-3">
+                <span class="text-2xl">🏷️</span>
+                <div>
+                  <div id="detected-uid-display" class="font-mono text-xl sm:text-2xl font-black text-white tracking-widest">
+                    MENUNGGU TAP...
+                  </div>
+                  <div id="detected-device-info" class="text-[11px] text-slate-500 mt-0.5">
+                    Terminal: -
+                  </div>
+                </div>
+              </div>
+              <button id="btn-copy-uid" onclick="copyUid()" class="hidden px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-[11px] font-semibold text-slate-300 border border-slate-700 transition">
+                Salin
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-6 pt-4 border-t border-slate-700/60 text-center">
+          <p class="text-[11px] text-slate-400">
+            Endpoint Hardware: <code class="text-emerald-400 font-mono font-bold bg-slate-900/80 px-2 py-0.5 rounded">/api/tap.php</code>
+          </p>
+        </div>
+      </div>
+
+      <!-- Kolom Kanan: Pasangkan Kartu ke Santri (7 Col) -->
+      <div class="lg:col-span-7 bg-slate-800/80 border border-slate-700/80 rounded-3xl p-6 shadow-xl space-y-6">
+        <div>
+          <h2 class="text-lg font-black text-white tracking-tight flex items-center gap-2">
+            <span>✍️</span> Pasangkan Kartu ke Santri
+          </h2>
+          <p class="text-xs text-slate-400 mt-1">Pilih data santri di bawah untuk mengikat kartu RFID yang terdeteksi.</p>
+        </div>
+
+        <form id="form-pair-card" onsubmit="handlePairCard(event)" class="space-y-4">
+          <!-- Input UID Terpilih -->
+          <div>
+            <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
+              Nomor UID Kartu RFID:
+            </label>
+            <div class="relative">
+              <input type="text" id="input-uid" required placeholder="Contoh: A1B2C3D4 (atau tap kartu pada mesin)" 
+                class="w-full bg-slate-900 border border-slate-700 text-white font-mono font-bold text-sm sm:text-base rounded-2xl px-4 py-3 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 uppercase tracking-wider">
+              <span id="uid-status-pill" class="hidden absolute right-3 top-3 text-[10px] font-bold px-2 py-0.5 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                Terisi Otomatis
+              </span>
+            </div>
+          </div>
+
+          <!-- Pilihan Santri -->
+          <div>
+            <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
+              Pilih Santri Penerima Kartu:
+            </label>
+            <div class="space-y-2">
+              <div class="relative">
+                <input type="text" id="search-student-input" oninput="filterStudentDropdown()" placeholder="Ketik nama atau NIS santri untuk mencari..."
+                  class="w-full bg-slate-900 border border-slate-700 text-white text-xs rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-emerald-500">
+              </div>
+              <select id="select-student" size="5" required
+                class="w-full bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-2xl p-2 focus:outline-none focus:border-emerald-500 divide-y divide-slate-800">
+                <option value="" disabled class="text-slate-500 p-2">Memuat data santri...</option>
+              </select>
+            </div>
+            <p class="text-[11px] text-slate-400 mt-1.5">Hanya menampilkan santri aktif. Santri yang sudah memiliki kartu akan ditandai.</p>
+          </div>
+
+          <div class="pt-2 flex items-center gap-3">
+            <button type="submit" id="btn-submit-pair" class="flex-1 py-3.5 px-6 rounded-2xl bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 text-white text-xs sm:text-sm font-bold shadow-lg shadow-emerald-950/20 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95">
+              <span>Simpan & Tautkan Kartu</span>
+              <span>→</span>
+            </button>
+            <button type="button" onclick="clearForm()" class="py-3.5 px-4 rounded-2xl bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs font-bold transition">
+              Reset
+            </button>
+          </div>
+        </form>
+
+        <div id="alert-box" class="hidden p-4 rounded-2xl text-xs font-semibold"></div>
+      </div>
+
+    </div>
+
+    <!-- Tabel Daftar Santri & Status RFID -->
+    <div class="bg-slate-800/80 border border-slate-700/80 rounded-3xl p-6 shadow-xl space-y-4">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h3 class="text-base font-black text-white tracking-tight flex items-center gap-2">
+            <span>📋</span> Daftar Kepemilikan Kartu Santri
+          </h3>
+          <p class="text-xs text-slate-400">Total data santri dan status pairing kartu RFID.</p>
+        </div>
+        <div class="flex items-center gap-2 flex-wrap">
+          <div class="flex items-center rounded-xl bg-slate-900 border border-slate-700 p-1 text-xs font-bold">
+            <button onclick="setFilter('all')" id="btn-filter-all" class="px-3 py-1 rounded-lg bg-emerald-600 text-white">Semua</button>
+            <button onclick="setFilter('without_rfid')" id="btn-filter-without" class="px-3 py-1 rounded-lg text-slate-400 hover:text-white">Belum Punya Kartu</button>
+            <button onclick="setFilter('with_rfid')" id="btn-filter-with" class="px-3 py-1 rounded-lg text-slate-400 hover:text-white">Sudah Punya Kartu</button>
+          </div>
+          <button onclick="loadStudents()" class="px-3 py-1.5 rounded-xl bg-slate-700 hover:bg-slate-600 text-xs font-bold text-slate-200 transition">
+            ↻ Segarkan
+          </button>
+        </div>
+      </div>
+
+      <!-- Tabel -->
+      <div class="overflow-x-auto rounded-2xl border border-slate-700">
+        <table class="w-full text-left text-xs">
+          <thead class="bg-slate-900 text-slate-400 font-bold uppercase tracking-wider text-[10px] border-b border-slate-700">
+            <tr>
+              <th class="px-4 py-3">Nama Santri</th>
+              <th class="px-4 py-3">NIS</th>
+              <th class="px-4 py-3">Kelas / Asrama</th>
+              <th class="px-4 py-3">Status Kartu</th>
+              <th class="px-4 py-3">UID RFID</th>
+              <th class="px-4 py-3 text-right">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="student-table-body" class="divide-y divide-slate-700/60 bg-slate-800/50">
+            <tr>
+              <td colspan="6" class="text-center py-8 text-slate-500">Memuat data...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    let lastKnownUid = null;
+    let studentsCache = [];
+    let currentFilter = 'all';
+
+    // Suara notifikasi Web Audio API
+    function playBeep() {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, ctx.currentTime); // Nada A5
+        osc.frequency.exponentialRampToValueAtTime(1320, ctx.currentTime + 0.15); // Nada E6
+        gain.gain.setValueAtTime(0.2, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.2);
+      } catch (e) {
+        console.warn('Audio not allowed:', e);
+      }
+    }
+
+    // Polling scan kartu terakhir setiap 1.5 detik
+    async function pollLastScan() {
+      try {
+        const res = await fetch('/api/v1/iot/last-scan');
+        const json = await res.json();
+        if (json.success && json.data) {
+          const scan = json.data;
+          if (scan.uid && scan.uid !== lastKnownUid) {
+            lastKnownUid = scan.uid;
+            playBeep();
+
+            // Update UI
+            document.getElementById('detected-uid-display').textContent = scan.uid;
+            document.getElementById('detected-device-info').textContent = 'Terminal: ' + (scan.device || 'NEXABSEN-01');
+            document.getElementById('detect-time').textContent = scan.tapped_at || new Date().toLocaleTimeString();
+            document.getElementById('btn-copy-uid').classList.remove('hidden');
+
+            const cardBox = document.getElementById('card-detect-box');
+            cardBox.classList.add('border-emerald-500', 'bg-emerald-950/30', 'ring-2', 'ring-emerald-500/30');
+
+            // Otomatis isi ke input form jika form belum dikunci
+            const inputUid = document.getElementById('input-uid');
+            inputUid.value = scan.uid;
+            document.getElementById('uid-status-pill').classList.remove('hidden');
+
+            // Cek apakah UID sudah terdaftar
+            const registered = studentsCache.find(s => s.rfid_uid === scan.uid);
+            const statusBadge = document.getElementById('scan-status-badge');
+            if (registered) {
+              statusBadge.textContent = 'Terdaftar: ' + registered.name;
+              statusBadge.className = 'text-[11px] font-bold px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30';
+            } else {
+              statusBadge.textContent = 'Kartu Baru Siap Dipasangkan!';
+              statusBadge.className = 'text-[11px] font-bold px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 animate-pulse';
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Polling error:', err);
+      }
+    }
+
+    setInterval(pollLastScan, 1500);
+
+    // Ambil Data Santri
+    async function loadStudents() {
+      try {
+        const res = await fetch('/api/v1/iot/students');
+        const json = await res.json();
+        if (json.success) {
+          studentsCache = json.data || [];
+          renderStudentDropdown();
+          renderStudentTable();
+        }
+      } catch (err) {
+        console.error('Failed to load students:', err);
+      }
+    }
+
+    function renderStudentDropdown() {
+      const select = document.getElementById('select-student');
+      const search = (document.getElementById('search-student-input').value || '').toLowerCase();
+      select.innerHTML = '';
+
+      const filtered = studentsCache.filter(s => {
+        return s.name.toLowerCase().includes(search) || (s.student_number || '').toLowerCase().includes(search);
+      });
+
+      if (filtered.length === 0) {
+        select.innerHTML = '<option value="" disabled class="text-slate-500 p-2">Santri tidak ditemukan</option>';
+        return;
+      }
+
+      filtered.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s.id;
+        opt.className = 'p-2 text-xs font-semibold cursor-pointer';
+        const hasBadge = s.has_rfid ? ` [RFID: ${s.rfid_uid}]` : ' (Belum ada RFID)';
+        opt.textContent = `${s.name} (${s.student_number}) — ${s.classroom}${hasBadge}`;
+        select.appendChild(opt);
+      });
+    }
+
+    function filterStudentDropdown() {
+      renderStudentDropdown();
+    }
+
+    function setFilter(filter) {
+      currentFilter = filter;
+      ['all', 'without', 'with'].forEach(f => {
+        const btn = document.getElementById(`btn-filter-${f}`);
+        if (f === filter || (filter === 'without_rfid' && f === 'without') || (filter === 'with_rfid' && f === 'with')) {
+          btn.className = 'px-3 py-1 rounded-lg bg-emerald-600 text-white font-bold';
+        } else {
+          btn.className = 'px-3 py-1 rounded-lg text-slate-400 hover:text-white';
+        }
+      });
+      renderStudentTable();
+    }
+
+    function renderStudentTable() {
+      const tbody = document.getElementById('student-table-body');
+      tbody.innerHTML = '';
+
+      let list = studentsCache;
+      if (currentFilter === 'without_rfid') {
+        list = list.filter(s => !s.has_rfid);
+      } else if (currentFilter === 'with_rfid') {
+        list = list.filter(s => s.has_rfid);
+      }
+
+      if (list.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-slate-500">Tidak ada data santri yang sesuai filter.</td></tr>';
+        return;
+      }
+
+      list.forEach(s => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-700/30 transition';
+
+        tr.innerHTML = `
+          <td class="px-4 py-3 font-bold text-white">${s.name}</td>
+          <td class="px-4 py-3 font-mono text-slate-300">${s.student_number || '-'}</td>
+          <td class="px-4 py-3 text-slate-300">${s.classroom} <span class="text-slate-500">/ ${s.dormitory}</span></td>
+          <td class="px-4 py-3">
+            ${s.has_rfid 
+              ? '<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">● Terpasang</span>' 
+              : '<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-700 text-slate-400">○ Belum Ada</span>'}
+          </td>
+          <td class="px-4 py-3 font-mono font-bold ${s.has_rfid ? 'text-emerald-400' : 'text-slate-500'}">
+            ${s.rfid_uid || '-'}
+          </td>
+          <td class="px-4 py-3 text-right">
+            ${s.has_rfid 
+              ? `<button onclick="unregisterCard(${s.id}, '${s.name}')" class="px-2.5 py-1 rounded-lg bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-500/30 text-[11px] font-bold transition">Lepas</button>`
+              : `<button onclick="selectForPairing(${s.id})" class="px-2.5 py-1 rounded-lg bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white border border-emerald-500/30 text-[11px] font-bold transition">Pilih</button>`}
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function selectForPairing(studentId) {
+      const select = document.getElementById('select-student');
+      select.value = studentId;
+      document.getElementById('search-student-input').focus();
+    }
+
+    // Submit Tautkan Kartu
+    async function handlePairCard(e) {
+      e.preventDefault();
+      const studentId = document.getElementById('select-student').value;
+      const uid = document.getElementById('input-uid').value.trim();
+
+      if (!studentId) {
+        showAlert('Silakan pilih salah satu santri.', 'error');
+        return;
+      }
+      if (!uid) {
+        showAlert('Nomor UID tidak boleh kosong.', 'error');
+        return;
+      }
+
+      const btn = document.getElementById('btn-submit-pair');
+      btn.disabled = true;
+      btn.innerHTML = '<span>Menyimpan...</span>';
+
+      try {
+        const res = await fetch('/api/v1/iot/register-rfid', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({
+            student_id: studentId,
+            rfid_uid: uid
+          })
+        });
+
+        const json = await res.json();
+        if (json.success) {
+          showAlert(json.message || 'Kartu berhasil ditautkan!', 'success');
+          await loadStudents();
+          clearForm();
+        } else {
+          showAlert(json.message || 'Gagal menautkan kartu.', 'error');
+        }
+      } catch (err) {
+        showAlert('Terjadi kesalahan jaringan atau server.', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<span>Simpan & Tautkan Kartu</span> <span>→</span>';
+      }
+    }
+
+    // Lepas Kartu
+    async function unregisterCard(studentId, studentName) {
+      if (!confirm(`Apakah Anda yakin ingin melepas kartu RFID dari santri "${studentName}"?`)) {
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/v1/iot/unregister-rfid', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({ student_id: studentId })
+        });
+        const json = await res.json();
+        if (json.success) {
+          showAlert(json.message, 'success');
+          await loadStudents();
+        } else {
+          showAlert(json.message || 'Gagal melepas kartu.', 'error');
+        }
+      } catch (err) {
+        showAlert('Terjadi kendala saat melepas kartu.', 'error');
+      }
+    }
+
+    function showAlert(msg, type) {
+      const box = document.getElementById('alert-box');
+      box.textContent = msg;
+      box.className = `p-4 rounded-2xl text-xs font-bold border transition-all ${
+        type === 'success' 
+          ? 'bg-emerald-950/80 text-emerald-200 border-emerald-600 block' 
+          : 'bg-rose-950/80 text-rose-200 border-rose-600 block'
+      }`;
+      setTimeout(() => {
+        box.className = 'hidden';
+      }, 5000);
+    }
+
+    function clearForm() {
+      document.getElementById('input-uid').value = '';
+      document.getElementById('uid-status-pill').classList.add('hidden');
+      document.getElementById('search-student-input').value = '';
+      renderStudentDropdown();
+    }
+
+    function copyUid() {
+      const uid = document.getElementById('detected-uid-display').textContent.trim();
+      if (uid && uid !== 'MENUNGGU TAP...') {
+        navigator.clipboard.writeText(uid);
+        alert('UID ' + uid + ' berhasil disalin!');
+      }
+    }
+
+    // Inisialisasi awal
+    loadStudents();
+  </script>
+</body>
+</html>

@@ -1,0 +1,1907 @@
+<!doctype html>
+<html lang="id" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CMS Landing Page (7 Sub-Menu) — SIUBA Pondok Pesantren Utsman Bin Affan</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,400,1,0" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Urbanist', 'sans-serif'],
+          },
+          colors: {
+            forest: {
+              950: '#071f12',
+              900: '#0d331d',
+              800: '#14492b',
+              700: '#1c633b',
+            },
+            limeaccent: {
+              400: '#a3e635',
+              500: '#84cc16',
+            }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-[#f4f6f0] text-forest-950 font-sans antialiased min-h-screen flex flex-col">
+
+  <!-- Top Header Navigation -->
+  <header class="bg-forest-950 text-white sticky top-0 z-40 shadow-md border-b border-white/10">
+    <div class="max-w-[1440px] mx-auto px-4 sm:px-6 py-3.5 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <a
+          href="/dashboard"
+          class="inline-flex items-center gap-1.5 bg-white/10 hover:bg-white/20 text-white text-xs font-bold px-3.5 py-2 rounded-full transition"
+        >
+          <span class="material-symbols-rounded text-[16px]">arrow_back</span>
+          <span>Dashboard SIUBA</span>
+        </a>
+        <div class="h-5 w-[1px] bg-white/15 hidden sm:block"></div>
+        <div class="flex items-center gap-2">
+          <span class="w-8 h-8 rounded-full bg-limeaccent-400 text-forest-950 flex items-center justify-center font-extrabold">
+            <span class="material-symbols-rounded text-[18px]">edit_note</span>
+          </span>
+          <div>
+            <h1 class="text-sm sm:text-base font-extrabold leading-tight">CMS Landing Page Terpadu</h1>
+            <p class="text-[11px] text-white/65 hidden sm:block">Kelola Seluruh Konten Beranda Website (7 Sub-Menu Lengkap)</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2.5">
+        <button
+          type="button"
+          onclick="saveAllCmsProfile()"
+          id="top-save-btn"
+          class="inline-flex items-center gap-1.5 bg-white hover:bg-zinc-100 text-forest-950 text-xs font-extrabold px-4 py-2 rounded-full transition shadow cursor-pointer"
+        >
+          <span class="material-symbols-rounded text-[16px]">save</span>
+          <span>Simpan Semua Konten</span>
+        </button>
+        <a
+          href="/manajemen-psb"
+          class="inline-flex items-center gap-1.5 bg-white/10 hover:bg-white/20 text-limeaccent-400 border border-limeaccent-400/30 text-xs font-extrabold px-3.5 py-2 rounded-full transition"
+        >
+          <span class="material-symbols-rounded text-[16px]">school</span>
+          <span class="hidden md:inline">Manajemen PSB</span>
+        </a>
+        <a
+          href="/beranda"
+          target="_blank"
+          class="inline-flex items-center gap-1.5 bg-limeaccent-400 hover:bg-limeaccent-500 text-forest-950 text-xs font-extrabold px-4 py-2 rounded-full transition shadow"
+        >
+          <span class="material-symbols-rounded text-[16px]">open_in_new</span>
+          <span>Lihat Landing Page</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Workspace Container with Left Sub-Menu Sidebar -->
+  <main class="max-w-[1440px] w-full mx-auto px-4 sm:px-6 py-6 sm:py-8 flex-1">
+    <!-- Notification Toast -->
+    <div id="toast" class="hidden mb-5 p-4 rounded-2xl bg-emerald-900 text-limeaccent-400 text-xs sm:text-sm font-bold flex items-center justify-between shadow-lg">
+      <div class="flex items-center gap-2.5">
+        <span class="material-symbols-rounded text-[20px]">check_circle</span>
+        <span id="toast-msg">Perubahan berhasil disimpan!</span>
+      </div>
+      <button onclick="document.getElementById('toast').classList.add('hidden')" class="text-white/70 hover:text-white cursor-pointer">
+        <span class="material-symbols-rounded text-[18px]">close</span>
+      </button>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      <!-- LEFT SIDEBAR: SUB-MENU CMS LANDING PAGE -->
+      <aside class="lg:col-span-3 bg-white rounded-3xl border border-zinc-200/90 shadow-xs p-4 space-y-3 lg:sticky lg:top-20">
+        <div class="px-2 pt-1 pb-2 border-b border-zinc-100 flex items-center justify-between">
+          <div>
+            <span class="text-[10px] font-extrabold uppercase tracking-wider text-forest-700 block">NAVIGASI KONTEN</span>
+            <h2 class="text-sm font-extrabold text-forest-950">Sub-Menu CMS Website</h2>
+          </div>
+          <span class="px-2 py-0.5 rounded-full bg-limeaccent-400/25 text-forest-900 text-[10px] font-extrabold">8 Bagian</span>
+        </div>
+
+        <nav class="flex lg:flex-col gap-1.5 overflow-x-auto pb-1 lg:pb-0 text-xs font-bold">
+          <button
+            type="button"
+            onclick="switchTab('tab-hero')"
+            id="btn-tab-hero"
+            class="cms-tab-btn w-full text-left px-3.5 py-2.5 rounded-2xl bg-forest-950 text-limeaccent-400 flex items-center justify-between gap-2 transition cursor-pointer shrink-0"
+          >
+            <span class="flex items-center gap-2.5 truncate">
+              <span class="material-symbols-rounded text-[18px]">view_carousel</span>
+              <span class="truncate">01. Hero &amp; Slide Berjalan</span>
+            </span>
+            <span class="text-[10px] px-1.5 py-0.5 rounded bg-white/10">4 Slide</span>
+          </button>
+
+          <button
+            type="button"
+            onclick="switchTab('tab-profile')"
+            id="btn-tab-profile"
+            class="cms-tab-btn w-full text-left px-3.5 py-2.5 rounded-2xl bg-zinc-50 hover:bg-zinc-100 text-zinc-700 flex items-center justify-between gap-2 transition cursor-pointer shrink-0"
+          >
+            <span class="flex items-center gap-2.5 truncate">
+              <span class="material-symbols-rounded text-[18px]">account_balance</span>
+              <span class="truncate">02. Profil, Sambutan &amp; Visi</span>
+            </span>
+            <span class="text-[10px] px-1.5 py-0.5 rounded bg-zinc-200/70 text-zinc-600">Lengkap</span>
+          </button>
+
+          <button
+            type="button"
+            onclick="switchTab('tab-programs')"
+            id="btn-tab-programs"
+            class="cms-tab-btn w-full text-left px-3.5 py-2.5 rounded-2xl bg-zinc-50 hover:bg-zinc-100 text-zinc-700 flex items-center justify-between gap-2 transition cursor-pointer shrink-0"
+          >
+            <span class="flex items-center gap-2.5 truncate">
+              <span class="material-symbols-rounded text-[18px]">school</span>
+              <span class="truncate">03. Program Pendidikan</span>
+            </span>
+            <span class="text-[10px] px-1.5 py-0.5 rounded bg-zinc-200/70 text-zinc-600">5 Pilar</span>
+          </button>
+
+          <button
+            type="button"
+            onclick="switchTab('tab-ppdb')"
+            id="btn-tab-ppdb"
+            class="cms-tab-btn w-full text-left px-3.5 py-2.5 rounded-2xl bg-zinc-50 hover:bg-zinc-100 text-zinc-700 flex items-center justify-between gap-2 transition cursor-pointer shrink-0"
+          >
+            <span class="flex items-center gap-2.5 truncate">
+              <span class="material-symbols-rounded text-[18px]">how_to_reg</span>
+              <span class="truncate">04. Info PSB &amp; 2 Jenjang</span>
+            </span>
+            <span class="text-[10px] px-1.5 py-0.5 rounded bg-limeaccent-400/30 text-forest-900 font-extrabold">3 Card</span>
+          </button>
+
+          <button
+            type="button"
+            onclick="switchTab('tab-facilities')"
+            id="btn-tab-facilities"
+            class="cms-tab-btn w-full text-left px-3.5 py-2.5 rounded-2xl bg-zinc-50 hover:bg-zinc-100 text-zinc-700 flex items-center justify-between gap-2 transition cursor-pointer shrink-0"
+          >
+            <span class="flex items-center gap-2.5 truncate">
+              <span class="material-symbols-rounded text-[18px]">apartment</span>
+              <span class="truncate">05. Fasilitas Pesantren</span>
+            </span>
+            <span class="text-[10px] px-1.5 py-0.5 rounded bg-zinc-200/70 text-zinc-600">6 Sarana</span>
+          </button>
+
+          <button
+            type="button"
+            onclick="switchTab('tab-gallery')"
+            id="btn-tab-gallery"
+            class="cms-tab-btn w-full text-left px-3.5 py-2.5 rounded-2xl bg-zinc-50 hover:bg-zinc-100 text-zinc-700 flex items-center justify-between gap-2 transition cursor-pointer shrink-0"
+          >
+            <span class="flex items-center gap-2.5 truncate">
+              <span class="material-symbols-rounded text-[18px]">perm_media</span>
+              <span class="truncate">06. Galeri &amp; Video Profil</span>
+            </span>
+            <span class="text-[10px] px-1.5 py-0.5 rounded bg-zinc-200/70 text-zinc-600">Foto/Video</span>
+          </button>
+
+          <button
+            type="button"
+            onclick="switchTab('tab-news')"
+            id="btn-tab-news"
+            class="cms-tab-btn w-full text-left px-3.5 py-2.5 rounded-2xl bg-zinc-50 hover:bg-zinc-100 text-zinc-700 flex items-center justify-between gap-2 transition cursor-pointer shrink-0"
+          >
+            <span class="flex items-center gap-2.5 truncate">
+              <span class="material-symbols-rounded text-[18px]">newspaper</span>
+              <span class="truncate">07. Berita &amp; Agenda</span>
+            </span>
+            <span id="news-count-badge" class="text-[10px] px-1.5 py-0.5 rounded bg-limeaccent-400 text-forest-950 font-extrabold">0</span>
+          </button>
+
+          <button
+            type="button"
+            onclick="switchTab('tab-faq')"
+            id="btn-tab-faq"
+            class="cms-tab-btn w-full text-left px-3.5 py-2.5 rounded-2xl bg-zinc-50 hover:bg-zinc-100 text-zinc-700 flex items-center justify-between gap-2 transition cursor-pointer shrink-0"
+          >
+            <span class="flex items-center gap-2.5 truncate">
+              <span class="material-symbols-rounded text-[18px]">help</span>
+              <span class="truncate">08. FAQ &amp; Kontak Resmi</span>
+            </span>
+            <span class="text-[10px] px-1.5 py-0.5 rounded bg-zinc-200/70 text-zinc-600">5 FAQ</span>
+          </button>
+        </nav>
+
+        <div class="pt-3 border-t border-zinc-100 space-y-2 text-[11px] text-zinc-500">
+          <p class="px-1 leading-relaxed">
+            Untuk mengatur Kuota PSB, Biaya Pendidikan, dan Seleksi Pendaftar, gunakan menu khusus:
+          </p>
+          <a
+            href="/manajemen-psb"
+            class="w-full inline-flex items-center justify-between px-3.5 py-2.5 rounded-2xl bg-emerald-50 hover:bg-emerald-100 text-forest-900 font-extrabold transition"
+          >
+            <span>Buka Manajemen PSB</span>
+            <span class="material-symbols-rounded text-[16px]">arrow_forward</span>
+          </a>
+        </div>
+      </aside>
+
+      <!-- RIGHT CONTENT AREA (7 PANELS) -->
+      <div class="lg:col-span-9 space-y-6">
+
+        <!-- ==================== SUB-MENU 01: HERO, SLIDE BERJALAN & PILAR STRIP ==================== -->
+        <section id="tab-hero" class="space-y-6">
+          <!-- Hero Text & Headline -->
+          <div class="bg-white rounded-3xl p-6 sm:p-8 border border-zinc-200/80 shadow-xs space-y-5">
+            <div class="flex items-center justify-between border-b border-zinc-100 pb-4">
+              <div>
+                <span class="text-[11px] font-extrabold uppercase tracking-wider text-forest-700">SUB-MENU 01 &bull; BAGIAN ATAS</span>
+                <h2 class="text-lg font-extrabold text-forest-950">Teks Utama Hero Banner &amp; Strip 4 Pilar Pendidikan</h2>
+                <p class="text-xs text-zinc-500">Mengatur judul besar halaman depan, sub-judul, dan 4 ikon pilar di bawah hero.</p>
+              </div>
+              <span class="w-10 h-10 rounded-2xl bg-forest-950 text-limeaccent-400 flex items-center justify-center shrink-0">
+                <span class="material-symbols-rounded">Rocket_Launch</span>
+              </span>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+              <div>
+                <label class="font-bold text-forest-950 block mb-1.5">Nama Pesantren / Label Badge Hero</label>
+                <input id="p-pesantren_name" type="text" class="w-full px-3.5 py-2.5 rounded-xl border border-zinc-300 focus:outline-none focus:border-forest-800" />
+              </div>
+              <div>
+                <label class="font-bold text-forest-950 block mb-1.5">Label Tahun Berdiri (Sejak ...)</label>
+                <input id="p-founded_year" type="text" class="w-full px-3.5 py-2.5 rounded-xl border border-zinc-300 focus:outline-none focus:border-forest-800" />
+              </div>
+              <div class="sm:col-span-2">
+                <label class="font-bold text-forest-950 block mb-1.5">Judul Utama Hero (Headline Besar)</label>
+                <input id="p-hero_title" type="text" class="w-full px-3.5 py-2.5 rounded-xl border border-zinc-300 focus:outline-none focus:border-forest-800 font-bold" />
+              </div>
+              <div class="sm:col-span-2">
+                <label class="font-bold text-forest-950 block mb-1.5">Sub-Judul Hero (Deskripsi Bawah Tombol PSB)</label>
+                <textarea id="p-hero_subtitle" rows="2" class="w-full px-3.5 py-2.5 rounded-xl border border-zinc-300 focus:outline-none focus:border-forest-800"></textarea>
+              </div>
+            </div>
+
+            <!-- 4 Pilar Pendidikan Strip -->
+            <div class="pt-4 border-t border-zinc-100 space-y-3">
+              <h3 class="text-xs font-extrabold uppercase tracking-wider text-forest-800">4 Strip Pilar Pendidikan (Di Bawah Hero Banner)</h3>
+              <div id="cms-pillars-editor" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs"></div>
+            </div>
+          </div>
+
+          <!-- 4 Slide Berjalan (Hero Background & Floating Card) -->
+          <div class="bg-white rounded-3xl p-6 sm:p-8 border border-zinc-200/80 shadow-xs space-y-5">
+            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-100 pb-4">
+              <div>
+                <span class="text-[11px] font-extrabold uppercase tracking-wider text-forest-700">SLIDESHOW OTOMATIS</span>
+                <h3 class="text-lg font-extrabold text-forest-950">4 Slide Berjalan (Gambar Background Hero &amp; Card Kanan)</h3>
+                <p class="text-xs text-zinc-500">Ganti foto melalui link URL atau pilih file gambar langsung dari komputer/HP Anda.</p>
+              </div>
+              <span class="text-[11px] font-extrabold bg-limeaccent-400/25 text-forest-900 px-3 py-1 rounded-full">Auto-Slide 4.2 Detik</span>
+            </div>
+
+            <div id="hero-slides-editor" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+
+            <div class="pt-2 flex justify-end">
+              <button type="button" onclick="saveAllCmsProfile()" class="bg-forest-950 hover:bg-forest-800 text-limeaccent-400 font-extrabold text-xs sm:text-sm px-6 py-3 rounded-full flex items-center gap-2 shadow-md transition cursor-pointer">
+                <span class="material-symbols-rounded text-[18px]">save</span>
+                <span>Simpan Hero &amp; Slide Berjalan</span>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================== SUB-MENU 02: PROFIL, SAMBUTAN, VISI MISI, SEJARAH & KEUNGGULAN ==================== -->
+        <section id="tab-profile" class="hidden space-y-6">
+          <!-- Header Profil & Sambutan Pimpinan -->
+          <div class="bg-white rounded-3xl p-6 sm:p-8 border border-zinc-200/80 shadow-xs space-y-5">
+            <div class="flex items-center justify-between border-b border-zinc-100 pb-4">
+              <div>
+                <span class="text-[11px] font-extrabold uppercase tracking-wider text-forest-700">SUB-MENU 02 &bull; PROFIL &amp; SAMBUTAN</span>
+                <h2 class="text-lg font-extrabold text-forest-950">Header Profil &amp; Card Besar Sambutan Pimpinan Pondok</h2>
+                <p class="text-xs text-zinc-500">Edit foto gedung kecil, foto pimpinan, kutipan, serta isi paragraf sambutan.</p>
+              </div>
+              <span class="w-10 h-10 rounded-2xl bg-forest-950 text-limeaccent-400 flex items-center justify-center shrink-0">
+                <span class="material-symbols-rounded">record_voice_over</span>
+              </span>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+              <div class="sm:col-span-2">
+                <label class="font-bold text-forest-950 block mb-1.5">Deskripsi Singkat pada Card Menu Profil (Bagian 01)</label>
+                <textarea id="p-profile_description" rows="2" class="w-full px-3.5 py-2.5 rounded-xl border border-zinc-300 focus:outline-none focus:border-forest-800"></textarea>
+              </div>
+              <div class="sm:col-span-2">
+                <label class="font-bold text-forest-950 block mb-1.5">Foto Kecil Gedung Pesantren (Card Menu Profil)</label>
+                <div class="flex flex-col sm:flex-row gap-2.5 items-start sm:items-center">
+                  <img id="preview-profile_image" src="" alt="Preview" class="w-24 h-16 rounded-xl object-cover border border-zinc-200 bg-zinc-100 shrink-0" />
+                  <input id="p-profile_image" type="text" placeholder="https://..." oninput="document.getElementById('preview-profile_image').src = this.value" class="w-full px-3.5 py-2 rounded-xl border border-zinc-300" />
+                  <label class="px-3.5 py-2 rounded-xl bg-forest-950 text-limeaccent-400 font-bold cursor-pointer shrink-0 hover:bg-forest-800 transition">
+                    <span>Upload Foto</span>
+                    <input type="file" accept="image/*" class="hidden" onchange="uploadSingleImageFile(this, 'p-profile_image', 'preview-profile_image')" />
+                  </label>
+                </div>
+              </div>
+
+              <div>
+                <label class="font-bold text-forest-950 block mb-1.5">Nama &amp; Gelar Pimpinan Pondok</label>
+                <input id="p-mudir_name" type="text" class="w-full px-3.5 py-2.5 rounded-xl border border-zinc-300 focus:outline-none focus:border-forest-800 font-bold" />
+              </div>
+              <div>
+                <label class="font-bold text-forest-950 block mb-1.5">Jabatan / Keterangan Bawah Nama Pimpinan</label>
+                <input id="p-mudir_role" type="text" class="w-full px-3.5 py-2.5 rounded-xl border border-zinc-300 focus:outline-none focus:border-forest-800" />
+              </div>
+
+              <div class="sm:col-span-2">
+                <label class="font-bold text-forest-950 block mb-1.5">Foto Pimpinan Pondok (Card Sambutan)</label>
+                <div class="flex flex-col sm:flex-row gap-2.5 items-start sm:items-center">
+                  <img id="preview-mudir_photo" src="" alt="Preview Pimpinan" class="w-24 h-20 rounded-xl object-cover border border-zinc-200 bg-zinc-100 shrink-0" />
+                  <input id="p-mudir_photo" type="text" placeholder="https://..." oninput="document.getElementById('preview-mudir_photo').src = this.value" class="w-full px-3.5 py-2 rounded-xl border border-zinc-300" />
+                  <label class="px-3.5 py-2 rounded-xl bg-forest-950 text-limeaccent-400 font-bold cursor-pointer shrink-0 hover:bg-forest-800 transition">
+                    <span>Upload Foto</span>
+                    <input type="file" accept="image/*" class="hidden" onchange="uploadSingleImageFile(this, 'p-mudir_photo', 'preview-mudir_photo')" />
+                  </label>
+                </div>
+              </div>
+
+              <div class="sm:col-span-2">
+                <label class="font-bold text-forest-950 block mb-1.5">Kutipan Utama Sambutan (Teks Tebal)</label>
+                <textarea id="p-mudir_quote" rows="2" class="w-full px-3.5 py-2.5 rounded-xl border border-zinc-300 focus:outline-none focus:border-forest-800 font-bold"></textarea>
+              </div>
+              <div>
+                <label class="font-bold text-forest-950 block mb-1.5">Isi Sambutan — Paragraf 1</label>
+                <textarea id="p-mudir_body_1" rows="3" class="w-full px-3.5 py-2.5 rounded-xl border border-zinc-300 focus:outline-none focus:border-forest-800"></textarea>
+              </div>
+              <div>
+                <label class="font-bold text-forest-950 block mb-1.5">Isi Sambutan — Paragraf 2</label>
+                <textarea id="p-mudir_body_2" rows="3" class="w-full px-3.5 py-2.5 rounded-xl border border-zinc-300 focus:outline-none focus:border-forest-800"></textarea>
+              </div>
+            </div>
+          </div>
+
+          <!-- Visi, Motto, 4 Misi & Statistik Capaian -->
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="bg-white rounded-3xl p-6 sm:p-8 border border-zinc-200/80 shadow-xs space-y-4 text-xs">
+              <h3 class="text-base font-extrabold text-forest-950 border-b border-zinc-100 pb-3">Visi, Motto &amp; 4 Misi Utama</h3>
+              <div>
+                <label class="font-bold text-forest-950 block mb-1">Visi Pesantren</label>
+                <textarea id="p-vision" rows="2" class="w-full px-3.5 py-2 rounded-xl border border-zinc-300"></textarea>
+              </div>
+              <div>
+                <label class="font-bold text-forest-950 block mb-1">Motto &amp; Nilai Inti</label>
+                <input id="p-motto" type="text" class="w-full px-3.5 py-2 rounded-xl border border-zinc-300" />
+              </div>
+              <div>
+                <label class="font-bold text-forest-950 block mb-1">Misi 01</label>
+                <input id="p-misi-0" type="text" class="w-full px-3.5 py-2 rounded-xl border border-zinc-300" />
+              </div>
+              <div>
+                <label class="font-bold text-forest-950 block mb-1">Misi 02</label>
+                <input id="p-misi-1" type="text" class="w-full px-3.5 py-2 rounded-xl border border-zinc-300" />
+              </div>
+              <div>
+                <label class="font-bold text-forest-950 block mb-1">Misi 03</label>
+                <input id="p-misi-2" type="text" class="w-full px-3.5 py-2 rounded-xl border border-zinc-300" />
+              </div>
+              <div>
+                <label class="font-bold text-forest-950 block mb-1">Misi 04</label>
+                <input id="p-misi-3" type="text" class="w-full px-3.5 py-2 rounded-xl border border-zinc-300" />
+              </div>
+            </div>
+
+            <div class="bg-white rounded-3xl p-6 sm:p-8 border border-zinc-200/80 shadow-xs space-y-4 text-xs">
+              <h3 class="text-base font-extrabold text-forest-950 border-b border-zinc-100 pb-3">Capaian Santri &amp; Sejarah Pesantren</h3>
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="font-bold text-forest-950 block mb-1">Persentase Kelulusan</label>
+                  <input id="p-stat_graduation" type="text" class="w-full px-3.5 py-2 rounded-xl border border-zinc-300 font-bold" />
+                </div>
+                <div>
+                  <label class="font-bold text-forest-950 block mb-1">Jumlah Santri Aktif</label>
+                  <input id="p-stat_students" type="text" class="w-full px-3.5 py-2 rounded-xl border border-zinc-300 font-bold" />
+                </div>
+                <div>
+                  <label class="font-bold text-forest-950 block mb-1">Jumlah Ustadz/ah</label>
+                  <input id="p-stat_teachers" type="text" class="w-full px-3.5 py-2 rounded-xl border border-zinc-300 font-bold" />
+                </div>
+                <div>
+                  <label class="font-bold text-forest-950 block mb-1">Jenjang Pendidikan</label>
+                  <input id="p-stat_jenjang" type="text" class="w-full px-3.5 py-2 rounded-xl border border-zinc-300" />
+                </div>
+                <div>
+                  <label class="font-bold text-forest-950 block mb-1">Fasilitas Asrama</label>
+                  <input id="p-stat_asrama" type="text" class="w-full px-3.5 py-2 rounded-xl border border-zinc-300" />
+                </div>
+                <div>
+                  <label class="font-bold text-forest-950 block mb-1">Ket. Sebaran Alumni</label>
+                  <input id="p-stat_kelulusan_desc" type="text" class="w-full px-3.5 py-2 rounded-xl border border-zinc-300" />
+                </div>
+              </div>
+
+              <div class="pt-3 border-t border-zinc-100 space-y-3">
+                <div>
+                  <label class="font-bold text-forest-950 block mb-1">Judul Sejarah Pesantren</label>
+                  <input id="p-sejarah_title" type="text" class="w-full px-3.5 py-2 rounded-xl border border-zinc-300 font-bold" />
+                </div>
+                <div>
+                  <label class="font-bold text-forest-950 block mb-1">Uraian Sejarah Pesantren</label>
+                  <textarea id="p-sejarah_text" rows="3" class="w-full px-3.5 py-2 rounded-xl border border-zinc-300"></textarea>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 4 Keunggulan Pesantren -->
+          <div class="bg-white rounded-3xl p-6 sm:p-8 border border-zinc-200/80 shadow-xs space-y-4">
+            <div class="flex items-center justify-between border-b border-zinc-100 pb-3">
+              <div>
+                <h3 class="text-base font-extrabold text-forest-950">4 Poin Keunggulan Pesantren (Mengapa Memilih Ponpes Utsman Bin Affan?)</h3>
+                <p class="text-xs text-zinc-500">Ditampilkan pada kartu hijau gelap di sebelah kanan Sejarah Pesantren.</p>
+              </div>
+            </div>
+            <div id="cms-advantages-editor" class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs"></div>
+
+            <div class="pt-2 flex justify-end">
+              <button type="button" onclick="saveAllCmsProfile()" class="bg-forest-950 hover:bg-forest-800 text-limeaccent-400 font-extrabold text-xs sm:text-sm px-6 py-3 rounded-full flex items-center gap-2 shadow-md transition cursor-pointer">
+                <span class="material-symbols-rounded text-[18px]">save</span>
+                <span>Simpan Profil, Sambutan &amp; Keunggulan</span>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================== SUB-MENU 03: PROGRAM PENDIDIKAN (5 PILAR) ==================== -->
+        <section id="tab-programs" class="hidden space-y-6">
+          <div class="bg-white rounded-3xl p-6 sm:p-8 border border-zinc-200/80 shadow-xs space-y-5">
+            <div class="flex items-center justify-between border-b border-zinc-100 pb-4">
+              <div>
+                <span class="text-[11px] font-extrabold uppercase tracking-wider text-forest-700">SUB-MENU 03 &bull; BAGIAN 02</span>
+                <h2 class="text-lg font-extrabold text-forest-950">Program Pendidikan (5 Kartu Pilar Kurikulum Unggulan)</h2>
+                <p class="text-xs text-zinc-500">Edit deskripsi menu program dan 5 kartu program pendidikan pesantren.</p>
+              </div>
+              <span class="w-10 h-10 rounded-2xl bg-forest-950 text-limeaccent-400 flex items-center justify-center shrink-0">
+                <span class="material-symbols-rounded">school</span>
+              </span>
+            </div>
+
+            <div class="text-xs">
+              <label class="font-bold text-forest-950 block mb-1.5">Deskripsi Singkat pada Card Menu Program Pendidikan</label>
+              <textarea id="p-programs_desc" rows="2" class="w-full px-3.5 py-2.5 rounded-xl border border-zinc-300 focus:outline-none focus:border-forest-800"></textarea>
+            </div>
+
+            <div id="cms-programs-editor" class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs"></div>
+
+            <div class="pt-2 flex justify-end">
+              <button type="button" onclick="saveAllCmsProfile()" class="bg-forest-950 hover:bg-forest-800 text-limeaccent-400 font-extrabold text-xs sm:text-sm px-6 py-3 rounded-full flex items-center gap-2 shadow-md transition cursor-pointer">
+                <span class="material-symbols-rounded text-[18px]">save</span>
+                <span>Simpan Program Pendidikan</span>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================== SUB-MENU 04: INFO PSB & 2 KARTU JENJANG (SMP IT & SMA IT) ==================== -->
+        <section id="tab-ppdb" class="hidden space-y-6">
+          <!-- Card 1: Kuota Penerimaan & Jadwal Gelombang -->
+          <div class="bg-white rounded-3xl p-6 sm:p-8 border border-zinc-200/80 shadow-xs space-y-5">
+            <div class="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-100 pb-4">
+              <div>
+                <span class="text-[11px] font-extrabold uppercase tracking-wider text-forest-700">SUB-MENU 04 &bull; BAGIAN 03 BERANDA</span>
+                <h2 class="text-lg font-extrabold text-forest-950">Penerimaan Santri Baru (Card Kuota Penerimaan &amp; 2 Card Jenjang)</h2>
+                <p class="text-xs text-zinc-500">Edit ketiga kartu pada bagian Penerimaan Santri Baru (Kuota 240 Kursi, Card Jenjang SMP IT &amp; Card Jenjang SMA IT beserta foto background).</p>
+              </div>
+              <a href="/manajemen-psb" class="inline-flex items-center gap-1.5 bg-limeaccent-400/25 hover:bg-limeaccent-400/40 text-forest-950 text-xs font-extrabold px-3.5 py-2 rounded-full transition">
+                <span class="material-symbols-rounded text-[16px]">payments</span>
+                <span>Kelola Rincian Biaya &amp; Seleksi PSB</span>
+              </a>
+            </div>
+
+            <div class="p-4 sm:p-5 rounded-2xl bg-zinc-50 border border-zinc-200/80 space-y-4 text-xs">
+              <div class="flex items-center justify-between border-b border-zinc-200/70 pb-2.5">
+                <span class="font-extrabold text-forest-950 uppercase text-sm">1. Card Kiri: Kuota Penerimaan &amp; Jadwal Gelombang PSB</span>
+                <span class="px-2.5 py-0.5 rounded-full bg-forest-950 text-limeaccent-400 text-[10px] font-extrabold">Card 01</span>
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                <div>
+                  <label class="font-bold text-forest-950 block mb-1">Tahun Ajaran PSB</label>
+                  <input id="ppdb-academic_year" type="text" placeholder="2026 / 2027" class="w-full px-3.5 py-2 rounded-xl border border-zinc-300 bg-white font-bold" />
+                </div>
+                <div>
+                  <label class="font-bold text-forest-950 block mb-1">Badge Status Gelombang</label>
+                  <input id="ppdb-status_badge" type="text" placeholder="GELOMBANG 1 BUKA" class="w-full px-3.5 py-2 rounded-xl border border-zinc-300 bg-white font-bold" />
+                </div>
+                <div>
+                  <label class="font-bold text-forest-950 block mb-1">Total Kuota Penerimaan</label>
+                  <input id="ppdb-total_quota" type="text" placeholder="240 Kursi" class="w-full px-3.5 py-2 rounded-xl border border-zinc-300 bg-white font-extrabold" />
+                </div>
+                <div class="sm:col-span-3">
+                  <label class="font-bold text-forest-950 block mb-1">Deskripsi Rincian Kuota</label>
+                  <textarea id="ppdb-quota_description" rows="2" class="w-full px-3.5 py-2 rounded-xl border border-zinc-300 bg-white"></textarea>
+                </div>
+                <div>
+                  <label class="font-bold text-forest-950 block mb-1">Waktu Gelombang I</label>
+                  <input id="ppdb-wave_1" type="text" placeholder="01 Okt – 31 Des 2026" class="w-full px-3.5 py-2 rounded-xl border border-zinc-300 bg-white" />
+                </div>
+                <div>
+                  <label class="font-bold text-forest-950 block mb-1">Waktu Gelombang II</label>
+                  <input id="ppdb-wave_2" type="text" placeholder="01 Jan – 31 Mar 2027" class="w-full px-3.5 py-2 rounded-xl border border-zinc-300 bg-white" />
+                </div>
+                <div>
+                  <label class="font-bold text-forest-950 block mb-1">Jadwal Tes &amp; Wawancara</label>
+                  <input id="ppdb-test_schedule" type="text" placeholder="Setiap Sabtu (Pukul 08.00 – 14.00 WIB)" class="w-full px-3.5 py-2 rounded-xl border border-zinc-300 bg-white" />
+                </div>
+                <div class="sm:col-span-3">
+                  <label class="font-bold text-forest-950 block mb-1">Catatan Beasiswa (Teks di Bawah Tombol)</label>
+                  <input id="ppdb-scholarship_note" type="text" class="w-full px-3.5 py-2 rounded-xl border border-zinc-300 bg-white" />
+                </div>
+              </div>
+            </div>
+
+            <!-- Card 2 & Card 3: Jenjang SMP IT & Jenjang SMA IT -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 text-xs">
+              <!-- Card 2: SMP IT -->
+              <div class="p-4 sm:p-5 rounded-2xl bg-zinc-50 border border-zinc-200/80 space-y-3.5">
+                <div class="flex items-center justify-between border-b border-zinc-200/70 pb-2.5">
+                  <span class="font-extrabold text-forest-950 uppercase text-sm">2. Card Tengah: Jenjang SMP IT</span>
+                  <span class="px-2.5 py-0.5 rounded-full bg-limeaccent-400 text-forest-950 text-[10px] font-extrabold">Card 02</span>
+                </div>
+                <div class="relative h-36 rounded-2xl overflow-hidden bg-zinc-200 border border-zinc-300">
+                  <img id="preview-ppdb-smp_image" src="" alt="Preview SMP IT" class="w-full h-full object-cover" />
+                  <span class="absolute bottom-2 left-2.5 bg-black/70 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full">Foto Background Card SMP IT</span>
+                </div>
+                <div>
+                  <label class="font-bold text-zinc-700 block mb-1">Foto Background Card SMP IT (URL / Upload File)</label>
+                  <div class="flex gap-1.5">
+                    <input id="ppdb-smp_image" type="text" oninput="document.getElementById('preview-ppdb-smp_image').src = this.value" class="w-full px-3 py-2 rounded-xl border border-zinc-300 bg-white" />
+                    <label class="px-3 py-2 rounded-xl bg-forest-950 text-limeaccent-400 font-bold cursor-pointer shrink-0 flex items-center">
+                      <span>Upload</span>
+                      <input type="file" accept="image/*" class="hidden" onchange="uploadSingleImageFile(this, 'ppdb-smp_image', 'preview-ppdb-smp_image')" />
+                    </label>
+                  </div>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label class="font-bold text-zinc-700 block mb-1">Label Badge Kanan Atas</label>
+                    <input id="ppdb-smp_badge" type="text" placeholder="Lulusan SD / MI" class="w-full px-3 py-2 rounded-xl border border-zinc-300 bg-white" />
+                  </div>
+                  <div>
+                    <label class="font-bold text-zinc-700 block mb-1">Judul Card SMP IT</label>
+                    <input id="ppdb-smp_title" type="text" placeholder="JENJANG SMP IT (BOARDING)" class="w-full px-3 py-2 rounded-xl border border-zinc-300 bg-white font-bold" />
+                  </div>
+                </div>
+                <div>
+                  <label class="font-bold text-zinc-700 block mb-1">Deskripsi Kurikulum SMP IT</label>
+                  <textarea id="ppdb-smp_desc" rows="2" class="w-full px-3 py-2 rounded-xl border border-zinc-300 bg-white"></textarea>
+                </div>
+                <div class="grid grid-cols-3 gap-2">
+                  <div>
+                    <label class="font-bold text-zinc-700 block mb-1">Masa Studi</label>
+                    <input id="ppdb-smp_duration" type="text" placeholder="3 Tahun" class="w-full px-2.5 py-1.5 rounded-xl border border-zinc-300 bg-white font-bold" />
+                  </div>
+                  <div>
+                    <label class="font-bold text-zinc-700 block mb-1">Kuota SMP</label>
+                    <input id="ppdb-smp_quota" type="text" placeholder="120 Santri" class="w-full px-2.5 py-1.5 rounded-xl border border-zinc-300 bg-white font-bold" />
+                  </div>
+                  <div>
+                    <label class="font-bold text-zinc-700 block mb-1">Info Asrama</label>
+                    <input id="ppdb-smp_boarding" type="text" placeholder="Terpisah Pa/Pi" class="w-full px-2.5 py-1.5 rounded-xl border border-zinc-300 bg-white font-bold" />
+                  </div>
+                </div>
+              </div>
+
+              <!-- Card 3: SMA IT & Takhassus -->
+              <div class="p-4 sm:p-5 rounded-2xl bg-zinc-50 border border-zinc-200/80 space-y-3.5">
+                <div class="flex items-center justify-between border-b border-zinc-200/70 pb-2.5">
+                  <span class="font-extrabold text-forest-950 uppercase text-sm">3. Card Kanan: Jenjang SMA IT &amp; Takhassus</span>
+                  <span class="px-2.5 py-0.5 rounded-full bg-limeaccent-400 text-forest-950 text-[10px] font-extrabold">Card 03</span>
+                </div>
+                <div class="relative h-36 rounded-2xl overflow-hidden bg-zinc-200 border border-zinc-300">
+                  <img id="preview-ppdb-sma_image" src="" alt="Preview SMA IT" class="w-full h-full object-cover" />
+                  <span class="absolute bottom-2 left-2.5 bg-black/70 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full">Foto Background Card SMA IT</span>
+                </div>
+                <div>
+                  <label class="font-bold text-zinc-700 block mb-1">Foto Background Card SMA IT (URL / Upload File)</label>
+                  <div class="flex gap-1.5">
+                    <input id="ppdb-sma_image" type="text" oninput="document.getElementById('preview-ppdb-sma_image').src = this.value" class="w-full px-3 py-2 rounded-xl border border-zinc-300 bg-white" />
+                    <label class="px-3 py-2 rounded-xl bg-forest-950 text-limeaccent-400 font-bold cursor-pointer shrink-0 flex items-center">
+                      <span>Upload</span>
+                      <input type="file" accept="image/*" class="hidden" onchange="uploadSingleImageFile(this, 'ppdb-sma_image', 'preview-ppdb-sma_image')" />
+                    </label>
+                  </div>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label class="font-bold text-zinc-700 block mb-1">Label Badge Kanan Atas</label>
+                    <input id="ppdb-sma_badge" type="text" placeholder="Lulusan SMP / MTs" class="w-full px-3 py-2 rounded-xl border border-zinc-300 bg-white" />
+                  </div>
+                  <div>
+                    <label class="font-bold text-zinc-700 block mb-1">Judul Card SMA IT</label>
+                    <input id="ppdb-sma_title" type="text" placeholder="JENJANG SMA IT & TAKHASSUS" class="w-full px-3 py-2 rounded-xl border border-zinc-300 bg-white font-bold" />
+                  </div>
+                </div>
+                <div>
+                  <label class="font-bold text-zinc-700 block mb-1">Deskripsi Kurikulum SMA IT</label>
+                  <textarea id="ppdb-sma_desc" rows="2" class="w-full px-3 py-2 rounded-xl border border-zinc-300 bg-white"></textarea>
+                </div>
+                <div class="grid grid-cols-3 gap-2">
+                  <div>
+                    <label class="font-bold text-zinc-700 block mb-1">Masa Studi</label>
+                    <input id="ppdb-sma_duration" type="text" placeholder="3 Tahun" class="w-full px-2.5 py-1.5 rounded-xl border border-zinc-300 bg-white font-bold" />
+                  </div>
+                  <div>
+                    <label class="font-bold text-zinc-700 block mb-1">Kuota SMA</label>
+                    <input id="ppdb-sma_quota" type="text" placeholder="120 Santri" class="w-full px-2.5 py-1.5 rounded-xl border border-zinc-300 bg-white font-bold" />
+                  </div>
+                  <div>
+                    <label class="font-bold text-zinc-700 block mb-1">Info Program</label>
+                    <input id="ppdb-sma_program" type="text" placeholder="MIPA & Syariah" class="w-full px-2.5 py-1.5 rounded-xl border border-zinc-300 bg-white font-bold" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card 4: Kontak Admin & Notifikasi WhatsApp PSB -->
+            <div class="p-4 sm:p-5 rounded-2xl bg-emerald-50/60 border border-emerald-200/90 space-y-3.5 text-xs">
+              <div class="flex items-center justify-between border-b border-emerald-200/80 pb-2.5">
+                <div class="flex items-center gap-2">
+                  <i class="fa-brands fa-whatsapp text-emerald-600 text-lg"></i>
+                  <span class="font-extrabold text-forest-950 uppercase text-sm">4. Notifikasi WhatsApp Admin Panitia PSB</span>
+                </div>
+                <span class="px-2.5 py-0.5 rounded-full bg-emerald-600 text-white text-[10px] font-extrabold">Auto WA Notif Aktif</span>
+              </div>
+              <p class="text-[11px] text-zinc-600 leading-relaxed">
+                Setiap kali calon santri mendaftar di Web Portal PSB atau Modal Pendaftaran Landing Page, sistem otomatis menyiapkan dan memicu notifikasi pendaftaran lengkap langsung ke WhatsApp Admin Panitia yang tertera di bawah ini.
+              </p>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <div>
+                  <label class="font-bold text-forest-950 block mb-1">Nomor WhatsApp Admin Panitia (Penerima Notifikasi) *</label>
+                  <input id="ppdb-whatsapp_contact" type="text" placeholder="Contoh: 0812-3456-7890" class="w-full px-3.5 py-2 rounded-xl border border-zinc-300 bg-white font-bold" />
+                  <span class="text-[10px] text-zinc-500 mt-1 block">Nomor HP panitia aktif. Format bebas (08... / 628...).</span>
+                </div>
+                <div>
+                  <label class="font-bold text-forest-950 block mb-1">Nama Ketua / Kontak Panitia PSB</label>
+                  <input id="ppdb-admin_contact_name" type="text" placeholder="Contoh: Ustadz H. Ahmad Fauzi, S.Pd.I" class="w-full px-3.5 py-2 rounded-xl border border-zinc-300 bg-white font-semibold" />
+                  <span class="text-[10px] text-zinc-500 mt-1 block">Nama panitia yang dicantumkan pada informasi kontak PSB.</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="pt-2 flex justify-end">
+              <button type="button" onclick="saveCmsPpdbSection()" class="bg-forest-950 hover:bg-forest-800 text-limeaccent-400 font-extrabold text-xs sm:text-sm px-6 py-3 rounded-full flex items-center gap-2 shadow-md transition cursor-pointer">
+                <span class="material-symbols-rounded text-[18px]">save</span>
+                <span>Simpan Informasi PSB &amp; Kontak Notifikasi WA</span>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================== SUB-MENU 05: FASILITAS PESANTREN (6 SARANA) ==================== -->
+        <section id="tab-facilities" class="hidden space-y-6">
+          <div class="bg-white rounded-3xl p-6 sm:p-8 border border-zinc-200/80 shadow-xs space-y-5">
+            <div class="flex items-center justify-between border-b border-zinc-100 pb-4">
+              <div>
+                <span class="text-[11px] font-extrabold uppercase tracking-wider text-forest-700">SUB-MENU 04 &bull; BAGIAN 04</span>
+                <h2 class="text-lg font-extrabold text-forest-950">Fasilitas Pesantren (6 Sarana Pendidikan &amp; Asrama)</h2>
+                <p class="text-xs text-zinc-500">Ubah nama fasilitas, penjelasan, serta foto masing-masing sarana (Asrama, Masjid, Lab, Perpustakaan, Olahraga, Ruang Praktik).</p>
+              </div>
+              <span class="w-10 h-10 rounded-2xl bg-forest-950 text-limeaccent-400 flex items-center justify-center shrink-0">
+                <span class="material-symbols-rounded">apartment</span>
+              </span>
+            </div>
+
+            <div class="text-xs">
+              <label class="font-bold text-forest-950 block mb-1.5">Deskripsi Singkat pada Card Menu Fasilitas Pesantren</label>
+              <textarea id="p-facilities_desc" rows="2" class="w-full px-3.5 py-2.5 rounded-xl border border-zinc-300 focus:outline-none focus:border-forest-800"></textarea>
+            </div>
+
+            <div id="cms-facilities-editor" class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs"></div>
+
+            <div class="pt-2 flex justify-end">
+              <button type="button" onclick="saveAllCmsProfile()" class="bg-forest-950 hover:bg-forest-800 text-limeaccent-400 font-extrabold text-xs sm:text-sm px-6 py-3 rounded-full flex items-center gap-2 shadow-md transition cursor-pointer">
+                <span class="material-symbols-rounded text-[18px]">save</span>
+                <span>Simpan 6 Fasilitas Pesantren</span>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================== SUB-MENU 06: GALERI FOTO & VIDEO PROFIL ==================== -->
+        <section id="tab-gallery" class="hidden space-y-6">
+          <!-- Form Tambah Foto / Video Baru (Otomatis Tampil Terbaru / Paling Atas) -->
+          <div class="bg-white rounded-3xl p-6 sm:p-8 border-2 border-limeaccent-400/70 shadow-sm space-y-5">
+            <div class="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-100 pb-4">
+              <div>
+                <span class="text-[11px] font-extrabold uppercase tracking-wider text-forest-700">TAMBAH DOKUMENTASI BARU &bull; OTOMATIS TAMPIL TERBARU</span>
+                <h2 class="text-lg font-extrabold text-forest-950">Tambah Foto Kegiatan / Video Baru ke Galeri</h2>
+                <p class="text-xs text-zinc-500">Foto atau video yang baru Anda tambahkan di sini akan otomatis diletakkan pada urutan pertama (<strong>TERBARU</strong>) di Landing Page.</p>
+              </div>
+              <span class="px-3 py-1 rounded-full bg-limeaccent-400 text-forest-950 text-xs font-extrabold flex items-center gap-1.5 shadow-2xs">
+                <span class="material-symbols-rounded text-[16px]">add_photo_alternate</span>
+                <span>Tampil Paling Baru</span>
+              </span>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5 text-xs">
+              <div>
+                <label class="font-bold text-forest-950 block mb-1">Jenis Media *</label>
+                <select id="new-gal-type" onchange="toggleNewGalVideoRow()" class="w-full px-3.5 py-2.5 rounded-xl border border-zinc-300 bg-white font-bold text-forest-950">
+                  <option value="photo">Foto Dokumentasi</option>
+                  <option value="video">Video Kegiatan / Profil</option>
+                </select>
+              </div>
+              <div>
+                <label class="font-bold text-forest-950 block mb-1">Kategori Filter di Landing Page *</label>
+                <select id="new-gal-category" onchange="syncNewGalBadge()" class="w-full px-3.5 py-2.5 rounded-xl border border-zinc-300 bg-white font-bold text-forest-950">
+                  <option value="kegiatan">Foto Kegiatan</option>
+                  <option value="aktivitas">Aktivitas Santri</option>
+                  <option value="lingkungan">Lingkungan Pesantren</option>
+                  <option value="video">Video Profil</option>
+                </select>
+              </div>
+              <div>
+                <label class="font-bold text-forest-950 block mb-1">Label Badge Kartu</label>
+                <input id="new-gal-badge" type="text" value="Foto Kegiatan" placeholder="Foto Kegiatan / Video" class="w-full px-3.5 py-2.5 rounded-xl border border-zinc-300 bg-white font-bold" />
+              </div>
+
+              <div class="sm:col-span-2">
+                <label class="font-bold text-forest-950 block mb-1">Judul Foto / Video Terbaru *</label>
+                <input id="new-gal-title" type="text" placeholder="Contoh: Kunjungan Edukasi & Rihlah Ilmiah Santri 2026" class="w-full px-3.5 py-2.5 rounded-xl border border-zinc-300 bg-white font-bold" />
+              </div>
+              <div>
+                <label class="font-bold text-forest-950 block mb-1">Keterangan Singkat (Caption)</label>
+                <input id="new-gal-desc" type="text" placeholder="Keterangan singkat 1 kalimat..." class="w-full px-3.5 py-2.5 rounded-xl border border-zinc-300 bg-white" />
+              </div>
+
+              <div class="sm:col-span-3">
+                <label class="font-bold text-forest-950 block mb-1.5">Pilih File Gambar / Foto (atau Tempel URL Gambar) *</label>
+                <div class="flex flex-col sm:flex-row gap-3 items-start sm:items-center bg-zinc-50 p-3 rounded-2xl border border-zinc-200/80">
+                  <img id="preview-new-gal-image" src="https://images.unsplash.com/photo-1584551246679-0daf3d275d0f?auto=format&fit=crop&w=600&q=80" alt="Preview" class="w-28 h-20 rounded-xl object-cover border border-zinc-300 bg-zinc-200 shrink-0" />
+                  <div class="flex-1 w-full space-y-2">
+                    <div class="flex gap-2">
+                      <input id="new-gal-image" type="text" placeholder="https://... atau klik tombol Pilih File Foto di kanan ->" oninput="if(this.value) document.getElementById('preview-new-gal-image').src = this.value" class="w-full px-3.5 py-2 rounded-xl border border-zinc-300 bg-white" />
+                      <label class="px-4 py-2 rounded-xl bg-forest-950 hover:bg-forest-800 text-limeaccent-400 font-extrabold cursor-pointer shrink-0 flex items-center gap-1.5 shadow-xs transition">
+                        <span class="material-symbols-rounded text-[16px]">upload_file</span>
+                        <span>Pilih File Foto</span>
+                        <input type="file" accept="image/*" class="hidden" onchange="uploadSingleImageFile(this, 'new-gal-image', 'preview-new-gal-image')" />
+                      </label>
+                    </div>
+                    <p class="text-[11px] text-zinc-500">Mendukung format JPG, PNG, WebP langsung dari perangkat Anda maupun link gambar.</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Opsi Tambahan Khusus Jika Jenis Media = Video -->
+              <div id="new-gal-video-row" class="hidden sm:col-span-3 p-4 rounded-2xl bg-emerald-50/70 border border-emerald-900/15 space-y-3">
+                <div class="flex items-center justify-between">
+                  <span class="font-extrabold text-forest-950 uppercase flex items-center gap-1.5">
+                    <span class="material-symbols-rounded text-[18px] text-red-600">smart_display</span>
+                    <span>Sinkronisasi Video YouTube (Tanpa Perlu Upload File)</span>
+                  </span>
+                  <label class="inline-flex items-center gap-2 font-bold text-forest-900 cursor-pointer">
+                    <input id="new-gal-set-featured" type="checkbox" class="rounded border-zinc-300 text-forest-900" />
+                    <span>Jadikan juga sebagai Video Utama (Kartu Besar 6 Kolom)</span>
+                  </label>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div class="sm:col-span-2">
+                    <label class="font-bold text-zinc-700 block mb-1">Link Video YouTube / URL MP4 *</label>
+                    <div class="flex gap-1.5">
+                      <input id="new-gal-video_url" type="text" oninput="onYouTubeUrlInput(this, 'new-gal-image', 'preview-new-gal-image', 'new-gal-yt-badge')" placeholder="Contoh: https://www.youtube.com/watch?v=... atau https://youtu.be/..." class="w-full px-3 py-2 rounded-xl border border-zinc-300 bg-white" />
+                      <button type="button" onclick="testPlayYouTube(getVal('new-gal-video_url'))" class="px-3 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold cursor-pointer shrink-0 flex items-center gap-1 transition" title="Coba Putar Video">
+                        <span class="material-symbols-rounded text-[16px]">play_circle</span>
+                        <span>Tes</span>
+                      </button>
+                    </div>
+                    <div id="new-gal-yt-badge" class="mt-1.5 hidden"></div>
+                    <p class="text-[11px] text-zinc-500 mt-1">
+                      💡 <strong>Sinkron Otomatis YouTube:</strong> Cukup tempel link YouTube Anda di sini. Foto thumbnail dan pemutar video akan otomatis tersinkron tanpa perlu mengunggah file apa pun ke server!
+                    </p>
+                  </div>
+                  <div>
+                    <label class="font-bold text-zinc-700 block mb-1">Label Durasi Video</label>
+                    <input id="new-gal-duration" type="text" value="YouTube HD" placeholder="HD • 04:15 Menit" class="w-full px-3 py-2 rounded-xl border border-zinc-300 bg-white" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="pt-1 flex justify-end">
+              <button
+                type="button"
+                onclick="addNewGalleryItem()"
+                class="bg-limeaccent-400 hover:bg-limeaccent-500 text-forest-950 font-extrabold text-xs sm:text-sm px-6 py-3 rounded-full flex items-center gap-2 shadow-md transition cursor-pointer"
+              >
+                <span class="material-symbols-rounded text-[18px]">add_circle</span>
+                <span>Tambahkan ke Galeri &amp; Tampilkan Paling Baru</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-3xl p-6 sm:p-8 border border-zinc-200/80 shadow-xs space-y-5">
+            <div class="flex items-center justify-between border-b border-zinc-100 pb-4">
+              <div>
+                <span class="text-[11px] font-extrabold uppercase tracking-wider text-forest-700">SUB-MENU 06 &bull; DAFTAR GALERI AKTIF</span>
+                <h3 class="text-lg font-extrabold text-forest-950">Kartu Utama Video Profil &amp; Daftar Dokumentasi Galeri</h3>
+                <p class="text-xs text-zinc-500">Urutan #1 adalah dokumentasi terbaru yang tampil paling awal di halaman depan.</p>
+              </div>
+              <span id="gal-total-badge" class="px-3 py-1 rounded-full bg-forest-950 text-limeaccent-400 text-xs font-extrabold">5 Item</span>
+            </div>
+
+            <!-- Video Profil Utama -->
+            <div class="p-4 rounded-2xl bg-zinc-50 border border-zinc-200/80 space-y-3 text-xs">
+              <div class="flex items-center justify-between">
+                <span class="font-extrabold text-forest-950 uppercase flex items-center gap-1.5">
+                  <i class="fa-brands fa-youtube text-red-600 text-base"></i>
+                  <span>Kartu Besar: Video Profil Resmi (6 Kolom Kiri)</span>
+                </span>
+                <span class="px-2.5 py-0.5 rounded-full bg-limeaccent-400 text-forest-950 text-[10px] font-extrabold">Video Utama</span>
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label class="font-bold text-zinc-700 block mb-1">Label Badge Video</label>
+                  <input id="gv-badge" type="text" class="w-full px-3 py-2 rounded-xl border border-zinc-300 bg-white" />
+                </div>
+                <div>
+                  <label class="font-bold text-zinc-700 block mb-1">Label Kualitas &amp; Durasi</label>
+                  <input id="gv-duration" type="text" class="w-full px-3 py-2 rounded-xl border border-zinc-300 bg-white" />
+                </div>
+                <div class="sm:col-span-2">
+                  <label class="font-bold text-zinc-700 block mb-1">Judul Video Profil</label>
+                  <input id="gv-title" type="text" class="w-full px-3 py-2 rounded-xl border border-zinc-300 bg-white font-bold" />
+                </div>
+                <div class="sm:col-span-2">
+                  <label class="font-bold text-zinc-700 block mb-1">Deskripsi Video Profil</label>
+                  <input id="gv-desc" type="text" class="w-full px-3 py-2 rounded-xl border border-zinc-300 bg-white" />
+                </div>
+                <div class="sm:col-span-2">
+                  <label class="font-bold text-zinc-700 block mb-1">Link Video YouTube * (Cukup Tempel Link)</label>
+                  <div class="flex gap-2">
+                    <input id="gv-video_url" type="text" oninput="onYouTubeUrlInput(this, 'gv-image', 'preview-gv-image', 'gv-yt-badge')" placeholder="https://www.youtube.com/watch?v=... atau https://youtu.be/..." class="w-full px-3 py-2 rounded-xl border border-zinc-300 bg-white font-mono" />
+                    <button type="button" onclick="testPlayYouTube(getVal('gv-video_url'))" class="px-3.5 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold cursor-pointer shrink-0 flex items-center gap-1.5 transition" title="Coba Putar Video">
+                      <span class="material-symbols-rounded text-[16px]">play_circle</span>
+                      <span>Tes Putar</span>
+                    </button>
+                  </div>
+                  <div id="gv-yt-badge" class="mt-1.5 hidden"></div>
+                  <p class="text-[11px] text-zinc-500 mt-1">
+                    Cukup tempelkan link video YouTube profil pesantren Anda di sini. Thumbnail dan pemutar akan otomatis tersinkron.
+                  </p>
+                </div>
+                <div class="sm:col-span-2">
+                  <label class="font-bold text-zinc-700 block mb-1">Foto Sampul / Thumbnail Video Profil (Otomatis dari YouTube jika link YouTube)</label>
+                  <div class="flex flex-col sm:flex-row gap-2.5 items-start sm:items-center">
+                    <img id="preview-gv-image" src="" alt="Preview Video" class="w-28 h-16 rounded-xl object-cover border border-zinc-200 bg-zinc-100 shrink-0" />
+                    <input id="gv-image" type="text" oninput="document.getElementById('preview-gv-image').src = this.value" class="w-full px-3 py-2 rounded-xl border border-zinc-300 bg-white" />
+                    <label class="px-3.5 py-2 rounded-xl bg-forest-950 text-limeaccent-400 font-bold cursor-pointer shrink-0">
+                      <span>Upload Foto</span>
+                      <input type="file" accept="image/*" class="hidden" onchange="uploadSingleImageFile(this, 'gv-image', 'preview-gv-image')" />
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Daftar Kartu Galeri Foto & Video -->
+            <div class="space-y-3">
+              <h3 class="text-xs font-extrabold uppercase tracking-wider text-forest-800">Daftar Kartu Dokumentasi Foto &amp; Video (Urutan Terbaru di Atas)</h3>
+              <div id="cms-gallery-editor" class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs"></div>
+            </div>
+
+            <div class="pt-2 flex justify-end">
+              <button type="button" onclick="saveAllCmsProfile()" class="bg-forest-950 hover:bg-forest-800 text-limeaccent-400 font-extrabold text-xs sm:text-sm px-6 py-3 rounded-full flex items-center gap-2 shadow-md transition cursor-pointer">
+                <span class="material-symbols-rounded text-[18px]">save</span>
+                <span>Simpan Seluruh Galeri &amp; Video</span>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================== SUB-MENU 06: BERITA & AGENDA PESANTREN ==================== -->
+        <section id="tab-news" class="hidden space-y-6">
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            <!-- Form Tambah / Edit Berita -->
+            <form id="form-news" class="lg:col-span-5 bg-white rounded-3xl p-6 border border-zinc-200/80 shadow-xs space-y-4 lg:sticky lg:top-20">
+              <div class="flex items-center justify-between border-b border-zinc-100 pb-3">
+                <div>
+                  <span class="text-[10px] font-extrabold uppercase tracking-wider text-forest-700 block">SUB-MENU 06 &bull; PUBLIKASI</span>
+                  <h3 id="news-form-title" class="text-base font-extrabold text-forest-950">Tambah Berita / Agenda Baru</h3>
+                </div>
+                <button type="button" id="btn-cancel-edit" onclick="resetNewsForm()" class="hidden text-xs font-bold text-red-600 hover:underline cursor-pointer">
+                  Batal Edit
+                </button>
+              </div>
+
+              <input type="hidden" id="news-id" value="" />
+
+              <div class="space-y-3 text-xs">
+                <div>
+                  <label class="font-bold text-forest-950 block mb-1">Judul Berita / Artikel *</label>
+                  <input id="news-title" type="text" required placeholder="Contoh: Wisuda Akbar Tahfidz 30 Juz..." class="w-full px-3.5 py-2.5 rounded-xl border border-zinc-300 focus:outline-none focus:border-forest-800" />
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                  <div>
+                    <label class="font-bold text-forest-950 block mb-1">Kategori Label *</label>
+                    <input id="news-category" type="text" required placeholder="Tahfidz / Prestasi" class="w-full px-3.5 py-2.5 rounded-xl border border-zinc-300 focus:outline-none focus:border-forest-800" />
+                  </div>
+                  <div>
+                    <label class="font-bold text-forest-950 block mb-1">Tanggal Tayang *</label>
+                    <input id="news-date" type="text" required placeholder="25 Oktober 2026" class="w-full px-3.5 py-2.5 rounded-xl border border-zinc-300 focus:outline-none focus:border-forest-800" />
+                  </div>
+                </div>
+
+                <div>
+                  <label class="font-bold text-forest-950 block mb-1">URL Gambar Sampul / Upload Foto</label>
+                  <div class="flex gap-2">
+                    <input id="news-image" type="text" placeholder="https://images.unsplash.com/..." class="w-full px-3.5 py-2 rounded-xl border border-zinc-300 focus:outline-none focus:border-forest-800" />
+                    <label class="px-3 py-2 rounded-xl bg-forest-950 text-limeaccent-400 font-bold cursor-pointer shrink-0 flex items-center">
+                      <span>Upload</span>
+                      <input type="file" accept="image/*" class="hidden" onchange="uploadSingleImageFile(this, 'news-image', null)" />
+                    </label>
+                  </div>
+                </div>
+
+                <div>
+                  <label class="font-bold text-forest-950 block mb-1">Ringkasan Berita (Tampil di Kartu) *</label>
+                  <textarea id="news-excerpt" rows="3" required placeholder="Ringkasan singkat 1-2 kalimat..." class="w-full px-3.5 py-2.5 rounded-xl border border-zinc-300 focus:outline-none focus:border-forest-800"></textarea>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                class="w-full bg-limeaccent-400 hover:bg-limeaccent-500 text-forest-950 font-extrabold text-xs sm:text-sm py-3 rounded-full flex items-center justify-center gap-2 shadow transition cursor-pointer"
+              >
+                <span class="material-symbols-rounded text-[18px]">publish</span>
+                <span id="news-submit-label">Terbitkan Berita</span>
+              </button>
+            </form>
+
+            <!-- Daftar Berita -->
+            <div class="lg:col-span-7 space-y-4">
+              <div class="bg-white rounded-3xl p-6 border border-zinc-200/80 shadow-xs">
+                <h3 class="text-base font-extrabold text-forest-950 mb-1">Daftar Berita &amp; Agenda Aktif</h3>
+                <p class="text-xs text-zinc-500 mb-4">Klik tombol Edit untuk mengubah isi berita, atau Hapus untuk menurunkan artikel dari beranda.</p>
+                <div id="news-list-container" class="space-y-3"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================== SUB-MENU 07: FAQ (TANYA JAWAB) & KONTAK RESMI ==================== -->
+        <section id="tab-faq" class="hidden space-y-6">
+          <div class="bg-white rounded-3xl p-6 sm:p-8 border border-zinc-200/80 shadow-xs space-y-5">
+            <div class="flex items-center justify-between border-b border-zinc-100 pb-4">
+              <div>
+                <span class="text-[11px] font-extrabold uppercase tracking-wider text-forest-700">SUB-MENU 07 &bull; BAGIAN 07 &amp; FOOTER</span>
+                <h2 class="text-lg font-extrabold text-forest-950">Daftar Pertanyaan Umum (5 FAQ) &amp; Kontak Resmi Pesantren</h2>
+                <p class="text-xs text-zinc-500">Edit 5 tanya-jawab calon santri/wali serta nomor telepon, email, dan alamat pada footer website.</p>
+              </div>
+              <span class="w-10 h-10 rounded-2xl bg-forest-950 text-limeaccent-400 flex items-center justify-center shrink-0">
+                <span class="material-symbols-rounded">quiz</span>
+              </span>
+            </div>
+
+            <!-- 5 FAQ Editor -->
+            <div id="cms-faqs-editor" class="space-y-3 text-xs"></div>
+
+            <!-- Kontak & Footer -->
+            <div class="pt-4 border-t border-zinc-100 space-y-4 text-xs">
+              <h3 class="text-sm font-extrabold uppercase tracking-wider text-forest-800">Kontak Resmi &amp; Baris Alamat Bawah (Footer)</h3>
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <label class="font-bold text-forest-950 block mb-1.5">Telepon / Call Center</label>
+                  <input id="p-contact_phone" type="text" class="w-full px-3.5 py-2.5 rounded-xl border border-zinc-300" />
+                </div>
+                <div>
+                  <label class="font-bold text-forest-950 block mb-1.5">Email Resmi</label>
+                  <input id="p-contact_email" type="text" class="w-full px-3.5 py-2.5 rounded-xl border border-zinc-300" />
+                </div>
+                <div>
+                  <label class="font-bold text-forest-950 block mb-1.5">Alamat Singkat Footer</label>
+                  <input id="p-contact_address" type="text" class="w-full px-3.5 py-2.5 rounded-xl border border-zinc-300" />
+                </div>
+              </div>
+            </div>
+
+            <div class="pt-2 flex justify-end">
+              <button type="button" onclick="saveAllCmsProfile()" class="bg-forest-950 hover:bg-forest-800 text-limeaccent-400 font-extrabold text-xs sm:text-sm px-6 py-3 rounded-full flex items-center gap-2 shadow-md transition cursor-pointer">
+                <span class="material-symbols-rounded text-[18px]">save</span>
+                <span>Simpan FAQ &amp; Kontak Resmi</span>
+              </button>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </div>
+  </main>
+
+  <script>
+    var ALL_TABS = ['tab-hero', 'tab-profile', 'tab-programs', 'tab-ppdb', 'tab-facilities', 'tab-gallery', 'tab-news', 'tab-faq'];
+    var currentNews = [];
+    var currentHeroSlides = [];
+    var currentPillars = [];
+    var currentAdvantages = [];
+    var currentPrograms = [];
+    var currentFacilities = [];
+    var currentGalleryItems = [];
+    var currentFaqs = [];
+
+    function showToast(msg) {
+      var t = document.getElementById('toast');
+      document.getElementById('toast-msg').textContent = msg;
+      t.classList.remove('hidden');
+      setTimeout(function () { t.classList.add('hidden'); }, 4500);
+    }
+
+    function switchTab(tabId) {
+      if (ALL_TABS.indexOf(tabId) === -1) tabId = 'tab-hero';
+      ALL_TABS.forEach(function (id) {
+        var sec = document.getElementById(id);
+        var btn = document.getElementById('btn-' + id);
+        if (sec) sec.classList.toggle('hidden', id !== tabId);
+        if (btn) {
+          if (id === tabId) {
+            btn.className = 'cms-tab-btn w-full text-left px-3.5 py-2.5 rounded-2xl bg-forest-950 text-limeaccent-400 flex items-center justify-between gap-2 transition cursor-pointer shrink-0 shadow-xs';
+          } else {
+            btn.className = 'cms-tab-btn w-full text-left px-3.5 py-2.5 rounded-2xl bg-zinc-50 hover:bg-zinc-100 text-zinc-700 flex items-center justify-between gap-2 transition cursor-pointer shrink-0';
+          }
+        }
+      });
+    }
+
+    function uploadSingleImageFile(fileInput, targetInputId, previewImgId) {
+      if (!fileInput.files || !fileInput.files[0]) return;
+      var reader = new FileReader();
+      reader.onload = function (e) {
+        var dataUrl = e.target.result;
+        var inp = document.getElementById(targetInputId);
+        if (inp) inp.value = dataUrl;
+        if (previewImgId) {
+          var prev = document.getElementById(previewImgId);
+          if (prev) prev.src = dataUrl;
+        }
+      };
+      reader.readAsDataURL(fileInput.files[0]);
+    }
+
+    // 1. Render 4 Hero Slides Editor
+    function renderHeroSlidesEditor(slides) {
+      currentHeroSlides = (Array.isArray(slides) && slides.length > 0) ? slides : [
+        { bg_image: '', card_image: '', card_badge: 'Slide 1', card_caption: '' },
+        { bg_image: '', card_image: '', card_badge: 'Slide 2', card_caption: '' },
+        { bg_image: '', card_image: '', card_badge: 'Slide 3', card_caption: '' },
+        { bg_image: '', card_image: '', card_badge: 'Slide 4', card_caption: '' }
+      ];
+      var container = document.getElementById('hero-slides-editor');
+      if (!container) return;
+      container.innerHTML = currentHeroSlides.map(function (s, idx) {
+        return '<div class="p-4 rounded-2xl bg-zinc-50 border border-zinc-200/80 space-y-3 text-xs">' +
+          '<div class="flex items-center justify-between border-b border-zinc-200/70 pb-2">' +
+            '<span class="font-extrabold text-forest-950 uppercase">SLIDE 0' + (idx + 1) + '</span>' +
+            '<span class="text-[11px] font-bold text-limeaccent-500 bg-forest-950 px-2.5 py-0.5 rounded-full">Aktif</span>' +
+          '</div>' +
+          '<div class="grid grid-cols-2 gap-2">' +
+            '<div class="relative h-20 rounded-xl overflow-hidden bg-zinc-200 border border-zinc-300">' +
+              '<img id="preview-bg-' + idx + '" src="' + (s.bg_image || '') + '" alt="" class="w-full h-full object-cover" />' +
+              '<span class="absolute bottom-1 left-1.5 bg-black/65 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">Background Hero</span>' +
+            '</div>' +
+            '<div class="relative h-20 rounded-xl overflow-hidden bg-zinc-200 border border-zinc-300">' +
+              '<img id="preview-card-' + idx + '" src="' + (s.card_image || s.bg_image || '') + '" alt="" class="w-full h-full object-cover" />' +
+              '<span class="absolute bottom-1 left-1.5 bg-limeaccent-400 text-forest-950 text-[9px] font-extrabold px-1.5 py-0.5 rounded">Card Kanan</span>' +
+            '</div>' +
+          '</div>' +
+          '<div>' +
+            '<label class="font-bold text-zinc-700 block mb-1">Gambar Background Hero (URL / Upload)</label>' +
+            '<div class="flex gap-1.5">' +
+              '<input id="slide-bg-' + idx + '" type="text" value="' + (s.bg_image || '').replace(/"/g, '&quot;') + '" oninput="document.getElementById(\'preview-bg-' + idx + '\').src = this.value" class="w-full px-3 py-1.5 rounded-xl border border-zinc-300 bg-white" />' +
+              '<label class="px-2.5 py-1.5 rounded-xl bg-forest-950 text-limeaccent-400 font-bold cursor-pointer shrink-0 flex items-center">' +
+                '<span>File</span>' +
+                '<input type="file" accept="image/*" class="hidden" onchange="uploadSingleImageFile(this, \'slide-bg-' + idx + '\', \'preview-bg-' + idx + '\')" />' +
+              '</label>' +
+            '</div>' +
+          '</div>' +
+          '<div>' +
+            '<label class="font-bold text-zinc-700 block mb-1">Gambar Card Kanan (URL / Upload)</label>' +
+            '<div class="flex gap-1.5">' +
+              '<input id="slide-card-' + idx + '" type="text" value="' + (s.card_image || '').replace(/"/g, '&quot;') + '" oninput="document.getElementById(\'preview-card-' + idx + '\').src = this.value" class="w-full px-3 py-1.5 rounded-xl border border-zinc-300 bg-white" />' +
+              '<label class="px-2.5 py-1.5 rounded-xl bg-forest-950 text-limeaccent-400 font-bold cursor-pointer shrink-0 flex items-center">' +
+                '<span>File</span>' +
+                '<input type="file" accept="image/*" class="hidden" onchange="uploadSingleImageFile(this, \'slide-card-' + idx + '\', \'preview-card-' + idx + '\')" />' +
+              '</label>' +
+            '</div>' +
+          '</div>' +
+          '<div class="grid grid-cols-1 sm:grid-cols-2 gap-2">' +
+            '<div>' +
+              '<label class="font-bold text-zinc-700 block mb-1">Label Badge Hijau Card</label>' +
+              '<input id="slide-badge-' + idx + '" type="text" value="' + (s.card_badge || '').replace(/"/g, '&quot;') + '" class="w-full px-3 py-1.5 rounded-xl border border-zinc-300 bg-white" />' +
+            '</div>' +
+            '<div>' +
+              '<label class="font-bold text-zinc-700 block mb-1">Teks Keterangan Card</label>' +
+              '<input id="slide-caption-' + idx + '" type="text" value="' + (s.card_caption || '').replace(/"/g, '&quot;') + '" class="w-full px-3 py-1.5 rounded-xl border border-zinc-300 bg-white" />' +
+            '</div>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+    }
+
+    // 2. Render 4 Pillars Strip Editor
+    function renderPillarsEditor(pillars) {
+      currentPillars = (Array.isArray(pillars) && pillars.length > 0) ? pillars : [
+        { icon: 'menu_book', label: 'Tahfidzul Qur’an' },
+        { icon: 'translate', label: 'Dwi Bahasa Aktif' },
+        { icon: 'psychology', label: 'Adab & Kepemimpinan' },
+        { icon: 'memory', label: 'Sains & Teknologi IT' }
+      ];
+      var el = document.getElementById('cms-pillars-editor');
+      if (!el) return;
+      el.innerHTML = currentPillars.map(function (item, idx) {
+        return '<div class="p-3 rounded-2xl bg-zinc-50 border border-zinc-200/80 space-y-2">' +
+          '<span class="text-[10px] font-extrabold uppercase text-forest-700 block">PILAR 0' + (idx + 1) + '</span>' +
+          '<input id="pillar-icon-' + idx + '" type="hidden" value="' + (item.icon || 'star') + '" />' +
+          '<input id="pillar-label-' + idx + '" type="text" value="' + (item.label || '').replace(/"/g, '&quot;') + '" class="w-full px-3 py-1.5 rounded-xl border border-zinc-300 bg-white font-bold" />' +
+        '</div>';
+      }).join('');
+    }
+
+    // 3. Render 4 Advantages Editor
+    function renderAdvantagesEditor(advantages) {
+      currentAdvantages = (Array.isArray(advantages) && advantages.length > 0) ? advantages : [
+        { icon: 'verified', title: '1. Sanad Tahfidz & Pembinaan Mutqin', desc: '' },
+        { icon: 'qr_code_scanner', title: '2. Sistem Digital Presensi SIUBA', desc: '' },
+        { icon: 'translate', title: '3. Lingkungan Bilingual (Arab & Inggris)', desc: '' },
+        { icon: 'shield_with_heart', title: '4. Asrama Ramah Anak & Bebas Bullying', desc: '' }
+      ];
+      var el = document.getElementById('cms-advantages-editor');
+      if (!el) return;
+      el.innerHTML = currentAdvantages.map(function (item, idx) {
+        return '<div class="p-4 rounded-2xl bg-zinc-50 border border-zinc-200/80 space-y-2.5">' +
+          '<input id="adv-icon-' + idx + '" type="hidden" value="' + (item.icon || 'verified') + '" />' +
+          '<div>' +
+            '<label class="font-bold text-zinc-700 block mb-1">Judul Keunggulan 0' + (idx + 1) + '</label>' +
+            '<input id="adv-title-' + idx + '" type="text" value="' + (item.title || '').replace(/"/g, '&quot;') + '" class="w-full px-3 py-1.5 rounded-xl border border-zinc-300 bg-white font-bold" />' +
+          '</div>' +
+          '<div>' +
+            '<label class="font-bold text-zinc-700 block mb-1">Penjelasan Keunggulan</label>' +
+            '<textarea id="adv-desc-' + idx + '" rows="2" class="w-full px-3 py-1.5 rounded-xl border border-zinc-300 bg-white">' + (item.desc || '') + '</textarea>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+    }
+
+    // 4. Render 5 Programs Editor
+    function renderProgramsEditor(programs) {
+      currentPrograms = (Array.isArray(programs) && programs.length > 0) ? programs : [];
+      var el = document.getElementById('cms-programs-editor');
+      if (!el) return;
+      el.innerHTML = currentPrograms.map(function (item, idx) {
+        return '<div class="p-4 rounded-2xl bg-zinc-50 border border-zinc-200/80 space-y-2.5">' +
+          '<div class="flex items-center justify-between">' +
+            '<span class="font-extrabold text-forest-900">KARTU PROGRAM 0' + (idx + 1) + '</span>' +
+            '<input id="prog-icon-' + idx + '" type="hidden" value="' + (item.icon || 'school') + '" />' +
+            '<input id="prog-code-' + idx + '" type="text" value="' + (item.code || 'PROGRAM 0' + (idx + 1)).replace(/"/g, '&quot;') + '" class="w-28 text-right px-2 py-0.5 rounded bg-white border border-zinc-200 text-[10px] font-extrabold" />' +
+          '</div>' +
+          '<div>' +
+            '<label class="font-bold text-zinc-700 block mb-1">Nama Program Pendidikan</label>' +
+            '<input id="prog-title-' + idx + '" type="text" value="' + (item.title || '').replace(/"/g, '&quot;') + '" class="w-full px-3 py-1.5 rounded-xl border border-zinc-300 bg-white font-bold" />' +
+          '</div>' +
+          '<div>' +
+            '<label class="font-bold text-zinc-700 block mb-1">Deskripsi Program</label>' +
+            '<textarea id="prog-desc-' + idx + '" rows="2" class="w-full px-3 py-1.5 rounded-xl border border-zinc-300 bg-white">' + (item.desc || '') + '</textarea>' +
+          '</div>' +
+          '<div>' +
+            '<label class="font-bold text-zinc-700 block mb-1">Label Target Bawah</label>' +
+            '<input id="prog-badge-' + idx + '" type="text" value="' + (item.badge || '').replace(/"/g, '&quot;') + '" class="w-full px-3 py-1.5 rounded-xl border border-zinc-300 bg-white" />' +
+          '</div>' +
+        '</div>';
+      }).join('');
+    }
+
+    // 5. Render 6 Facilities Editor
+    function renderFacilitiesEditor(facilities) {
+      currentFacilities = (Array.isArray(facilities) && facilities.length > 0) ? facilities : [];
+      var el = document.getElementById('cms-facilities-editor');
+      if (!el) return;
+      el.innerHTML = currentFacilities.map(function (item, idx) {
+        return '<div class="p-4 rounded-2xl bg-zinc-50 border border-zinc-200/80 space-y-2.5">' +
+          '<div class="flex items-center gap-3">' +
+            '<img id="preview-fac-' + idx + '" src="' + (item.image || '') + '" alt="" class="w-20 h-14 rounded-xl object-cover border border-zinc-300 bg-zinc-200 shrink-0" />' +
+            '<div class="flex-1">' +
+              '<label class="font-bold text-zinc-700 block mb-1">Label Badge (Misal: 0' + (idx + 1) + '. Asrama)</label>' +
+              '<input id="fac-badge-' + idx + '" type="text" value="' + (item.badge || '').replace(/"/g, '&quot;') + '" class="w-full px-3 py-1.5 rounded-xl border border-zinc-300 bg-white font-bold" />' +
+            '</div>' +
+          '</div>' +
+          '<div>' +
+            '<label class="font-bold text-zinc-700 block mb-1">Judul Fasilitas</label>' +
+            '<input id="fac-title-' + idx + '" type="text" value="' + (item.title || '').replace(/"/g, '&quot;') + '" class="w-full px-3 py-1.5 rounded-xl border border-zinc-300 bg-white font-bold" />' +
+          '</div>' +
+          '<div>' +
+            '<label class="font-bold text-zinc-700 block mb-1">Deskripsi Fasilitas</label>' +
+            '<textarea id="fac-desc-' + idx + '" rows="2" class="w-full px-3 py-1.5 rounded-xl border border-zinc-300 bg-white">' + (item.desc || '') + '</textarea>' +
+          '</div>' +
+          '<div>' +
+            '<label class="font-bold text-zinc-700 block mb-1">Foto Fasilitas (URL / Upload File)</label>' +
+            '<div class="flex gap-1.5">' +
+              '<input id="fac-img-' + idx + '" type="text" value="' + (item.image || '').replace(/"/g, '&quot;') + '" oninput="document.getElementById(\'preview-fac-' + idx + '\').src = this.value" class="w-full px-3 py-1.5 rounded-xl border border-zinc-300 bg-white" />' +
+              '<label class="px-2.5 py-1.5 rounded-xl bg-forest-950 text-limeaccent-400 font-bold cursor-pointer shrink-0 flex items-center">' +
+                '<span>Upload</span>' +
+                '<input type="file" accept="image/*" class="hidden" onchange="uploadSingleImageFile(this, \'fac-img-' + idx + '\', \'preview-fac-' + idx + '\')" />' +
+              '</label>' +
+            '</div>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+    }
+
+    // YouTube URL Extractor & Live Thumbnail Auto-Sync
+    function extractYouTubeId(url) {
+      if (!url) return null;
+      var str = String(url).trim();
+      var m = str.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([\w-]{11})/);
+      return m ? m[1] : null;
+    }
+
+    function onYouTubeUrlInput(inputEl, targetImgInputId, targetPreviewImgId, badgeFeedbackId) {
+      var val = (inputEl.value || '').trim();
+      var ytId = extractYouTubeId(val);
+      var badge = document.getElementById(badgeFeedbackId);
+
+      if (ytId) {
+        var ytThumb = 'https://img.youtube.com/vi/' + ytId + '/hqdefault.jpg';
+        if (targetPreviewImgId && document.getElementById(targetPreviewImgId)) {
+          document.getElementById(targetPreviewImgId).src = ytThumb;
+        }
+        if (targetImgInputId && document.getElementById(targetImgInputId)) {
+          var curImg = document.getElementById(targetImgInputId).value.trim();
+          if (!curImg || curImg.indexOf('unsplash') !== -1 || curImg.indexOf('img.youtube.com') !== -1) {
+            document.getElementById(targetImgInputId).value = ytThumb;
+          }
+        }
+        if (badge) {
+          badge.innerHTML = '<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-100 text-red-800 font-extrabold text-[11px] border border-red-200">' +
+            '<i class="fa-brands fa-youtube text-red-600 text-sm"></i>' +
+            '<span>Tersinkron dengan YouTube (ID: <code>' + ytId + '</code>) • Thumbnail otomatis terpasang!</span>' +
+          '</span>';
+          badge.classList.remove('hidden');
+        }
+      } else {
+        if (badge) badge.classList.add('hidden');
+      }
+    }
+
+    function testPlayYouTube(url) {
+      var target = (url || '').trim();
+      if (!target) {
+        alert('Silakan tempelkan link video YouTube terlebih dahulu.');
+        return;
+      }
+      var ytId = extractYouTubeId(target);
+      if (ytId) {
+        window.open('https://www.youtube.com/watch?v=' + ytId, '_blank');
+      } else {
+        window.open(target, '_blank');
+      }
+    }
+
+    // 6. Render Gallery Items Editor (Supports Unlimited Photos & Videos, Add/Delete/Move to Top)
+    function toggleNewGalVideoRow() {
+      var typeVal = getVal('new-gal-type');
+      var row = document.getElementById('new-gal-video-row');
+      if (row) {
+        row.classList.toggle('hidden', typeVal !== 'video');
+      }
+      if (typeVal === 'video') {
+        setVal('new-gal-category', 'video');
+        setVal('new-gal-badge', 'Video Kegiatan');
+      }
+    }
+
+    function syncNewGalBadge() {
+      var cat = getVal('new-gal-category');
+      var map = {
+        kegiatan: 'Foto Kegiatan',
+        aktivitas: 'Aktivitas Santri',
+        lingkungan: 'Lingkungan Pesantren',
+        video: 'Video Kegiatan'
+      };
+      if (map[cat]) {
+        setVal('new-gal-badge', map[cat]);
+      }
+      if (cat === 'video') {
+        setVal('new-gal-type', 'video');
+        toggleNewGalVideoRow();
+      }
+    }
+
+    function syncGalleryItemsFromDom() {
+      currentGalleryItems = currentGalleryItems.map(function (oldItem, idx) {
+        return {
+          type: getVal('gal-type-' + idx) || oldItem.type || 'photo',
+          category: getVal('gal-cat-' + idx) || oldItem.category || 'kegiatan',
+          badge: getVal('gal-badge-' + idx) || oldItem.badge || 'Foto Kegiatan',
+          title: getVal('gal-title-' + idx) || oldItem.title || '',
+          desc: getVal('gal-desc-' + idx) || oldItem.desc || '',
+          image: getVal('gal-img-' + idx) || oldItem.image || '',
+          video_url: getVal('gal-vid-' + idx) !== '' ? getVal('gal-vid-' + idx) : (oldItem.video_url || ''),
+          duration: getVal('gal-dur-' + idx) !== '' ? getVal('gal-dur-' + idx) : (oldItem.duration || '')
+        };
+      });
+    }
+
+    async function addNewGalleryItem() {
+      syncGalleryItemsFromDom();
+      var typeVal = getVal('new-gal-type') || 'photo';
+      var catVal = getVal('new-gal-category') || (typeVal === 'video' ? 'video' : 'kegiatan');
+      var badgeVal = getVal('new-gal-badge') || (typeVal === 'video' ? 'Video Kegiatan' : 'Foto Kegiatan');
+      var titleVal = getVal('new-gal-title').trim();
+      var descVal = getVal('new-gal-desc').trim();
+      var imgVal = getVal('new-gal-image').trim() || document.getElementById('preview-new-gal-image').src;
+      var vidUrl = getVal('new-gal-video_url').trim();
+      var durVal = getVal('new-gal-duration').trim() || 'HD • 03:45 Menit';
+
+      if (!titleVal) {
+        alert('Mohon isi Judul Foto / Video terlebih dahulu.');
+        document.getElementById('new-gal-title').focus();
+        return;
+      }
+
+      var ytId = extractYouTubeId(vidUrl);
+      if (typeVal === 'video' && ytId && (!imgVal || imgVal.indexOf('unsplash') !== -1)) {
+        imgVal = 'https://img.youtube.com/vi/' + ytId + '/hqdefault.jpg';
+      }
+
+      var newItem = {
+        type: typeVal,
+        category: catVal,
+        badge: badgeVal,
+        title: titleVal,
+        desc: descVal || 'Dokumentasi terbaru Pondok Pesantren Modern Utsman Bin Affan.',
+        image: imgVal,
+        video_url: typeVal === 'video' ? vidUrl : '',
+        duration: typeVal === 'video' ? (durVal || (ytId ? 'YouTube HD' : 'HD • 03:45 Menit')) : ''
+      };
+
+      // Prepend at index 0 so it appears as the newest item on the Landing Page
+      currentGalleryItems.unshift(newItem);
+
+      // If user checked "Jadikan juga sebagai Video Utama", update the featured video card too
+      var setFeaturedEl = document.getElementById('new-gal-set-featured');
+      if (typeVal === 'video' && setFeaturedEl && setFeaturedEl.checked) {
+        setVal('gv-badge', badgeVal.toUpperCase());
+        setVal('gv-duration', durVal);
+        setVal('gv-title', titleVal);
+        setVal('gv-desc', newItem.desc);
+        setVal('gv-image', imgVal);
+        setVal('gv-video_url', vidUrl);
+        if (document.getElementById('preview-gv-image')) {
+          document.getElementById('preview-gv-image').src = imgVal;
+        }
+      }
+
+      renderGalleryEditor(currentGalleryItems);
+
+      // Clear new item form
+      setVal('new-gal-title', '');
+      setVal('new-gal-desc', '');
+      setVal('new-gal-image', '');
+      setVal('new-gal-video_url', '');
+      if (setFeaturedEl) setFeaturedEl.checked = false;
+
+      await saveAllCmsProfile();
+      showToast('Foto/Video terbaru "' + titleVal + '" berhasil ditambahkan & langsung tampil di urutan paling atas Landing Page!');
+    }
+
+    async function moveGalleryItemToTop(idx) {
+      syncGalleryItemsFromDom();
+      if (idx <= 0 || idx >= currentGalleryItems.length) return;
+      var picked = currentGalleryItems.splice(idx, 1)[0];
+      currentGalleryItems.unshift(picked);
+      renderGalleryEditor(currentGalleryItems);
+      await saveAllCmsProfile();
+      showToast('Item "' + (picked.title || 'Galeri') + '" dijadikan urutan #1 (Terbaru) di Landing Page!');
+    }
+
+    async function removeGalleryItem(idx) {
+      syncGalleryItemsFromDom();
+      if (!confirm('Hapus foto/video ini dari galeri Landing Page?')) return;
+      currentGalleryItems.splice(idx, 1);
+      renderGalleryEditor(currentGalleryItems);
+      await saveAllCmsProfile();
+      showToast('Item galeri berhasil dihapus.');
+    }
+
+    function renderGalleryEditor(items) {
+      currentGalleryItems = (Array.isArray(items) && items.length > 0) ? items : [];
+      var badgeTotal = document.getElementById('gal-total-badge');
+      if (badgeTotal) badgeTotal.textContent = currentGalleryItems.length + ' Item';
+      var el = document.getElementById('cms-gallery-editor');
+      if (!el) return;
+      el.innerHTML = currentGalleryItems.map(function (item, idx) {
+        var cat = item.category || 'kegiatan';
+        var itemType = item.type || (cat === 'video' || item.video_url ? 'video' : 'photo');
+        var newestBadge = idx === 0
+          ? '<span class="px-2.5 py-0.5 rounded-full bg-limeaccent-400 text-forest-950 text-[10px] font-extrabold">TERBARU #1</span>'
+          : '<span class="px-2 py-0.5 rounded-full bg-zinc-200 text-zinc-700 text-[10px] font-bold">Urutan #' + (idx + 1) + '</span>';
+
+        return '<div class="p-4 rounded-2xl bg-zinc-50 border ' + (idx === 0 ? 'border-emerald-700/40 ring-1 ring-limeaccent-400/50' : 'border-zinc-200/80') + ' space-y-2.5">' +
+          '<div class="flex items-center justify-between border-b border-zinc-200/70 pb-2">' +
+            '<div class="flex items-center gap-2">' +
+              newestBadge +
+              '<span class="text-[11px] font-extrabold uppercase text-forest-900">' + (itemType === 'video' ? '🎬 VIDEO' : '📷 FOTO') + '</span>' +
+            '</div>' +
+            '<div class="flex items-center gap-1.5">' +
+              (idx > 0 ? '<button type="button" onclick="moveGalleryItemToTop(' + idx + ')" class="px-2.5 py-1 rounded-lg bg-white border border-zinc-200 hover:bg-limeaccent-400/30 text-[10px] font-extrabold text-forest-900 cursor-pointer" title="Jadikan Urutan Terbaru #1">&#8593; Jadikan Terbaru</button>' : '') +
+              '<button type="button" onclick="removeGalleryItem(' + idx + ')" class="px-2.5 py-1 rounded-lg bg-red-50 border border-red-200 hover:bg-red-100 text-[10px] font-extrabold text-red-700 cursor-pointer">Hapus</button>' +
+            '</div>' +
+          '</div>' +
+          '<input id="gal-type-' + idx + '" type="hidden" value="' + itemType + '" />' +
+          '<div class="flex items-center gap-3">' +
+            '<img id="preview-gal-' + idx + '" src="' + (item.image || '') + '" alt="" class="w-20 h-14 rounded-xl object-cover border border-zinc-300 bg-zinc-200 shrink-0" />' +
+            '<div class="flex-1 grid grid-cols-2 gap-2">' +
+              '<div>' +
+                '<label class="font-bold text-zinc-700 block mb-1">Filter Kategori</label>' +
+                '<select id="gal-cat-' + idx + '" class="w-full px-2.5 py-1.5 rounded-xl border border-zinc-300 bg-white font-bold">' +
+                  '<option value="kegiatan" ' + (cat === 'kegiatan' ? 'selected' : '') + '>Foto Kegiatan</option>' +
+                  '<option value="aktivitas" ' + (cat === 'aktivitas' ? 'selected' : '') + '>Aktivitas Santri</option>' +
+                  '<option value="lingkungan" ' + (cat === 'lingkungan' ? 'selected' : '') + '>Lingkungan</option>' +
+                  '<option value="video" ' + (cat === 'video' ? 'selected' : '') + '>Video Profil</option>' +
+                '</select>' +
+              '</div>' +
+              '<div>' +
+                '<label class="font-bold text-zinc-700 block mb-1">Label Badge</label>' +
+                '<input id="gal-badge-' + idx + '" type="text" value="' + (item.badge || '').replace(/"/g, '&quot;') + '" class="w-full px-2.5 py-1.5 rounded-xl border border-zinc-300 bg-white" />' +
+              '</div>' +
+            '</div>' +
+          '</div>' +
+          '<div>' +
+            '<label class="font-bold text-zinc-700 block mb-1">Judul Dokumentasi</label>' +
+            '<input id="gal-title-' + idx + '" type="text" value="' + (item.title || '').replace(/"/g, '&quot;') + '" class="w-full px-3 py-1.5 rounded-xl border border-zinc-300 bg-white font-bold" />' +
+          '</div>' +
+          '<div>' +
+            '<label class="font-bold text-zinc-700 block mb-1">Keterangan Singkat</label>' +
+            '<input id="gal-desc-' + idx + '" type="text" value="' + (item.desc || '').replace(/"/g, '&quot;') + '" class="w-full px-3 py-1.5 rounded-xl border border-zinc-300 bg-white" />' +
+          '</div>' +
+          '<div>' +
+            '<label class="font-bold text-zinc-700 block mb-1">Foto / Thumbnail (URL / Upload File)</label>' +
+            '<div class="flex gap-1.5">' +
+              '<input id="gal-img-' + idx + '" type="text" value="' + (item.image || '').replace(/"/g, '&quot;') + '" oninput="document.getElementById(\'preview-gal-' + idx + '\').src = this.value" class="w-full px-3 py-1.5 rounded-xl border border-zinc-300 bg-white" />' +
+              '<label class="px-2.5 py-1.5 rounded-xl bg-forest-950 text-limeaccent-400 font-bold cursor-pointer shrink-0 flex items-center">' +
+                '<span>Upload</span>' +
+                '<input type="file" accept="image/*" class="hidden" onchange="uploadSingleImageFile(this, \'gal-img-' + idx + '\', \'preview-gal-' + idx + '\')" />' +
+              '</label>' +
+            '</div>' +
+          '</div>' +
+          '<div class="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">' +
+            '<div class="sm:col-span-2">' +
+              '<label class="font-bold text-zinc-700 block mb-1">Link Video YouTube / MP4 (Cukup Tempel Link)</label>' +
+              '<div class="flex gap-1.5">' +
+                '<input id="gal-vid-' + idx + '" type="text" oninput="onYouTubeUrlInput(this, \'gal-img-' + idx + '\', \'preview-gal-' + idx + '\', \'gal-yt-badge-' + idx + '\')" placeholder="https://www.youtube.com/watch?v=..." value="' + (item.video_url || '').replace(/"/g, '&quot;') + '" class="w-full px-3 py-1.5 rounded-xl border border-zinc-300 bg-white" />' +
+                '<button type="button" onclick="testPlayYouTube(document.getElementById(\'gal-vid-' + idx + '\').value)" class="px-2.5 py-1.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-[11px] cursor-pointer shrink-0 transition" title="Tes Putar Video">&#9654; Tes</button>' +
+              '</div>' +
+              '<div id="gal-yt-badge-' + idx + '" class="mt-1 ' + (extractYouTubeId(item.video_url) ? '' : 'hidden') + '">' +
+                (extractYouTubeId(item.video_url) ? '<span class="inline-flex items-center gap-1 text-[10px] font-bold text-red-600 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full"><i class="fa-brands fa-youtube"></i> YouTube ID: <code>' + extractYouTubeId(item.video_url) + '</code></span>' : '') +
+              '</div>' +
+            '</div>' +
+            '<div>' +
+              '<label class="font-bold text-zinc-700 block mb-1">Durasi Video</label>' +
+              '<input id="gal-dur-' + idx + '" type="text" placeholder="YouTube HD" value="' + (item.duration || (extractYouTubeId(item.video_url) ? 'YouTube HD' : 'HD • 03:45')).replace(/"/g, '&quot;') + '" class="w-full px-3 py-1.5 rounded-xl border border-zinc-300 bg-white" />' +
+            '</div>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+    }
+
+    // 7. Render 5 FAQs Editor
+    function renderFaqsEditor(faqs) {
+      currentFaqs = (Array.isArray(faqs) && faqs.length > 0) ? faqs : [];
+      var el = document.getElementById('cms-faqs-editor');
+      if (!el) return;
+      el.innerHTML = currentFaqs.map(function (item, idx) {
+        return '<div class="p-4 rounded-2xl bg-zinc-50 border border-zinc-200/80 space-y-2">' +
+          '<div>' +
+            '<label class="font-bold text-forest-950 block mb-1">Pertanyaan FAQ 0' + (idx + 1) + '</label>' +
+            '<input id="faq-q-' + idx + '" type="text" value="' + (item.question || '').replace(/"/g, '&quot;') + '" class="w-full px-3.5 py-2 rounded-xl border border-zinc-300 bg-white font-bold" />' +
+          '</div>' +
+          '<div>' +
+            '<label class="font-bold text-zinc-600 block mb-1">Jawaban Lengkap</label>' +
+            '<textarea id="faq-a-' + idx + '" rows="2" class="w-full px-3.5 py-2 rounded-xl border border-zinc-300 bg-white">' + (item.answer || '') + '</textarea>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+    }
+
+    function setVal(id, val) {
+      var el = document.getElementById(id);
+      if (el) el.value = val !== undefined && val !== null ? val : '';
+    }
+
+    function getVal(id) {
+      var el = document.getElementById(id);
+      return el ? el.value : '';
+    }
+
+    async function fetchCmsData() {
+      try {
+        var res = await fetch('/api/v1/cms/landing');
+        var json = await res.json();
+        if (!json) return;
+
+        var p = json.profile || (json.data && json.data.profile) || {};
+        setVal('p-pesantren_name', p.pesantren_name);
+        setVal('p-founded_year', p.founded_year);
+        setVal('p-hero_title', p.hero_title);
+        setVal('p-hero_subtitle', p.hero_subtitle);
+
+        setVal('p-profile_description', p.profile_description);
+        setVal('p-profile_image', p.profile_image);
+        if (document.getElementById('preview-profile_image')) {
+          document.getElementById('preview-profile_image').src = p.profile_image || '';
+        }
+
+        setVal('p-mudir_name', p.mudir_name);
+        setVal('p-mudir_role', p.mudir_role);
+        setVal('p-mudir_photo', p.mudir_photo);
+        if (document.getElementById('preview-mudir_photo')) {
+          document.getElementById('preview-mudir_photo').src = p.mudir_photo || '';
+        }
+        setVal('p-mudir_quote', p.mudir_quote);
+        setVal('p-mudir_body_1', p.mudir_body_1);
+        setVal('p-mudir_body_2', p.mudir_body_2);
+
+        setVal('p-vision', p.vision);
+        setVal('p-motto', p.motto);
+        var missions = p.missions || [];
+        setVal('p-misi-0', missions[0] || '');
+        setVal('p-misi-1', missions[1] || '');
+        setVal('p-misi-2', missions[2] || '');
+        setVal('p-misi-3', missions[3] || '');
+
+        setVal('p-stat_graduation', p.stat_graduation);
+        setVal('p-stat_students', p.stat_students);
+        setVal('p-stat_teachers', p.stat_teachers);
+        setVal('p-stat_jenjang', p.stat_jenjang);
+        setVal('p-stat_asrama', p.stat_asrama);
+        setVal('p-stat_kelulusan_desc', p.stat_kelulusan_desc);
+
+        setVal('p-sejarah_title', p.sejarah_title);
+        setVal('p-sejarah_text', p.sejarah_text);
+
+        setVal('p-programs_desc', p.programs_desc);
+        setVal('p-facilities_desc', p.facilities_desc);
+
+        var gv = p.gallery_video || {};
+        setVal('gv-badge', gv.badge);
+        setVal('gv-duration', gv.duration);
+        setVal('gv-title', gv.title);
+        setVal('gv-desc', gv.desc);
+        setVal('gv-video_url', gv.video_url || '');
+        setVal('gv-image', gv.image);
+        if (document.getElementById('preview-gv-image')) {
+          var previewGvSrc = gv.image || (extractYouTubeId(gv.video_url) ? 'https://img.youtube.com/vi/' + extractYouTubeId(gv.video_url) + '/hqdefault.jpg' : '');
+          document.getElementById('preview-gv-image').src = previewGvSrc;
+        }
+        if (extractYouTubeId(gv.video_url)) {
+          var gvBadge = document.getElementById('gv-yt-badge');
+          if (gvBadge) {
+            gvBadge.innerHTML = '<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-100 text-red-800 font-extrabold text-[11px] border border-red-200"><i class="fa-brands fa-youtube text-red-600 text-sm"></i><span>Tersinkron dengan YouTube (ID: <code>' + extractYouTubeId(gv.video_url) + '</code>) • Thumbnail otomatis terpasang!</span></span>';
+            gvBadge.classList.remove('hidden');
+          }
+        }
+
+        setVal('p-contact_phone', p.contact_phone);
+        setVal('p-contact_email', p.contact_email);
+        setVal('p-contact_address', p.contact_address);
+
+        renderHeroSlidesEditor(p.hero_slides || []);
+        renderPillarsEditor(p.pillars || []);
+        renderAdvantagesEditor(p.advantages || []);
+        renderProgramsEditor(p.programs || []);
+        renderFacilitiesEditor(p.facilities || []);
+        renderGalleryEditor(p.gallery_items || []);
+        renderFaqsEditor(p.faqs || []);
+
+        var d = json.ppdb || (json.data && json.data.ppdb) || {};
+        setVal('ppdb-academic_year', d.academic_year);
+        setVal('ppdb-status_badge', d.status_badge);
+        setVal('ppdb-total_quota', d.total_quota);
+        setVal('ppdb-quota_description', d.quota_description);
+        setVal('ppdb-wave_1', d.wave_1);
+        setVal('ppdb-wave_2', d.wave_2);
+        setVal('ppdb-test_schedule', d.test_schedule);
+        setVal('ppdb-scholarship_note', d.scholarship_note);
+
+        setVal('ppdb-smp_image', d.smp_image);
+        if (document.getElementById('preview-ppdb-smp_image')) {
+          document.getElementById('preview-ppdb-smp_image').src = d.smp_image || '';
+        }
+        setVal('ppdb-smp_badge', d.smp_badge);
+        setVal('ppdb-smp_title', d.smp_title);
+        setVal('ppdb-smp_desc', d.smp_desc);
+        setVal('ppdb-smp_duration', d.smp_duration);
+        setVal('ppdb-smp_quota', d.smp_quota);
+        setVal('ppdb-smp_boarding', d.smp_boarding);
+
+        setVal('ppdb-sma_image', d.sma_image);
+        if (document.getElementById('preview-ppdb-sma_image')) {
+          document.getElementById('preview-ppdb-sma_image').src = d.sma_image || '';
+        }
+        setVal('ppdb-sma_badge', d.sma_badge);
+        setVal('ppdb-sma_title', d.sma_title);
+        setVal('ppdb-sma_desc', d.sma_desc);
+        setVal('ppdb-sma_duration', d.sma_duration);
+        setVal('ppdb-sma_quota', d.sma_quota);
+        setVal('ppdb-sma_program', d.sma_program);
+
+        setVal('ppdb-whatsapp_contact', d.whatsapp_contact || '0812-3456-7890');
+        setVal('ppdb-admin_contact_name', d.admin_contact_name || 'Ustadz H. Ahmad Fauzi, S.Pd.I');
+
+        currentNews = json.news || (json.data && json.data.news) || [];
+        renderNewsList();
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    async function saveCmsPpdbSection(silent) {
+      var ppdbPayload = {
+        academic_year: getVal('ppdb-academic_year'),
+        status_badge: getVal('ppdb-status_badge'),
+        total_quota: getVal('ppdb-total_quota'),
+        quota_description: getVal('ppdb-quota_description'),
+        wave_1: getVal('ppdb-wave_1'),
+        wave_2: getVal('ppdb-wave_2'),
+        test_schedule: getVal('ppdb-test_schedule'),
+        scholarship_note: getVal('ppdb-scholarship_note'),
+        smp_image: getVal('ppdb-smp_image'),
+        smp_badge: getVal('ppdb-smp_badge'),
+        smp_title: getVal('ppdb-smp_title'),
+        smp_desc: getVal('ppdb-smp_desc'),
+        smp_duration: getVal('ppdb-smp_duration'),
+        smp_quota: getVal('ppdb-smp_quota'),
+        smp_boarding: getVal('ppdb-smp_boarding'),
+        sma_image: getVal('ppdb-sma_image'),
+        sma_badge: getVal('ppdb-sma_badge'),
+        sma_title: getVal('ppdb-sma_title'),
+        sma_desc: getVal('ppdb-sma_desc'),
+        sma_duration: getVal('ppdb-sma_duration'),
+        sma_quota: getVal('ppdb-sma_quota'),
+        sma_program: getVal('ppdb-sma_program'),
+        whatsapp_contact: getVal('ppdb-whatsapp_contact'),
+        admin_contact_name: getVal('ppdb-admin_contact_name')
+      };
+
+      var res = await fetch('/api/v1/cms/ppdb', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify(ppdbPayload)
+      });
+      var json = await res.json();
+      if (!silent && json.success) {
+        showToast('Card Kuota Penerimaan & 2 Card Jenjang (SMP IT / SMA IT) berhasil disimpan!');
+      }
+      return json;
+    }
+
+    async function saveAllCmsProfile() {
+      var payload = {
+        pesantren_name: getVal('p-pesantren_name'),
+        hero_badge: getVal('p-pesantren_name'),
+        founded_year: getVal('p-founded_year'),
+        hero_title: getVal('p-hero_title'),
+        hero_subtitle: getVal('p-hero_subtitle'),
+        profile_description: getVal('p-profile_description'),
+        profile_image: getVal('p-profile_image'),
+        mudir_name: getVal('p-mudir_name'),
+        mudir_role: getVal('p-mudir_role'),
+        mudir_photo: getVal('p-mudir_photo'),
+        mudir_quote: getVal('p-mudir_quote'),
+        mudir_body_1: getVal('p-mudir_body_1'),
+        mudir_body_2: getVal('p-mudir_body_2'),
+        vision: getVal('p-vision'),
+        motto: getVal('p-motto'),
+        missions: [
+          getVal('p-misi-0'),
+          getVal('p-misi-1'),
+          getVal('p-misi-2'),
+          getVal('p-misi-3')
+        ],
+        stat_graduation: getVal('p-stat_graduation'),
+        stat_students: getVal('p-stat_students'),
+        stat_teachers: getVal('p-stat_teachers'),
+        stat_jenjang: getVal('p-stat_jenjang'),
+        stat_asrama: getVal('p-stat_asrama'),
+        stat_kelulusan_desc: getVal('p-stat_kelulusan_desc'),
+        sejarah_title: getVal('p-sejarah_title'),
+        sejarah_text: getVal('p-sejarah_text'),
+        programs_desc: getVal('p-programs_desc'),
+        facilities_desc: getVal('p-facilities_desc'),
+        gallery_video: {
+          badge: getVal('gv-badge'),
+          duration: getVal('gv-duration'),
+          title: getVal('gv-title'),
+          desc: getVal('gv-desc'),
+          image: getVal('gv-image'),
+          video_url: getVal('gv-video_url')
+        },
+        contact_phone: getVal('p-contact_phone'),
+        contact_email: getVal('p-contact_email'),
+        contact_address: getVal('p-contact_address'),
+        hero_slides: currentHeroSlides.map(function (_, idx) {
+          return {
+            bg_image: getVal('slide-bg-' + idx),
+            card_image: getVal('slide-card-' + idx),
+            card_badge: getVal('slide-badge-' + idx),
+            card_caption: getVal('slide-caption-' + idx)
+          };
+        }),
+        pillars: currentPillars.map(function (_, idx) {
+          return {
+            icon: getVal('pillar-icon-' + idx),
+            label: getVal('pillar-label-' + idx)
+          };
+        }),
+        advantages: currentAdvantages.map(function (_, idx) {
+          return {
+            icon: getVal('adv-icon-' + idx),
+            title: getVal('adv-title-' + idx),
+            desc: getVal('adv-desc-' + idx)
+          };
+        }),
+        programs: currentPrograms.map(function (_, idx) {
+          return {
+            icon: getVal('prog-icon-' + idx),
+            code: getVal('prog-code-' + idx),
+            title: getVal('prog-title-' + idx),
+            desc: getVal('prog-desc-' + idx),
+            badge: getVal('prog-badge-' + idx)
+          };
+        }),
+        facilities: currentFacilities.map(function (_, idx) {
+          return {
+            badge: getVal('fac-badge-' + idx),
+            title: getVal('fac-title-' + idx),
+            desc: getVal('fac-desc-' + idx),
+            image: getVal('fac-img-' + idx)
+          };
+        }),
+        gallery_items: currentGalleryItems.map(function (_, idx) {
+          return {
+            category: getVal('gal-cat-' + idx),
+            badge: getVal('gal-badge-' + idx),
+            title: getVal('gal-title-' + idx),
+            desc: getVal('gal-desc-' + idx),
+            image: getVal('gal-img-' + idx)
+          };
+        }),
+        faqs: currentFaqs.map(function (_, idx) {
+          return {
+            question: getVal('faq-q-' + idx),
+            answer: getVal('faq-a-' + idx)
+          };
+        })
+      };
+
+      var res = await fetch('/api/v1/cms/profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      var json = await res.json();
+      await saveCmsPpdbSection(true);
+      if (json.success) {
+        showToast(json.message || 'Seluruh perubahan konten Landing Page berhasil disimpan!');
+      }
+    }
+
+    function renderNewsList() {
+      var badge = document.getElementById('news-count-badge');
+      if (badge) badge.textContent = currentNews.length;
+      var container = document.getElementById('news-list-container');
+      if (!container) return;
+
+      if (currentNews.length === 0) {
+        container.innerHTML = '<div class="p-6 text-center text-xs text-zinc-400 border border-dashed border-zinc-200 rounded-2xl">Belum ada berita. Silakan tambahkan melalui formulir di samping.</div>';
+        return;
+      }
+
+      container.innerHTML = currentNews.map(function (item) {
+        return '<div class="p-4 rounded-2xl border border-zinc-200/80 hover:border-forest-800/40 bg-zinc-50/60 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition">' +
+          '<div class="flex items-start gap-3.5">' +
+            '<img src="' + (item.image_url || 'https://images.unsplash.com/photo-1584551246679-0daf3d275d0f?auto=format&fit=crop&w=300&q=80') + '" class="w-16 h-16 rounded-xl object-cover shrink-0 bg-zinc-200" alt="" />' +
+            '<div class="space-y-1">' +
+              '<div class="flex items-center gap-2 text-[11px]">' +
+                '<span class="bg-limeaccent-400/30 text-forest-900 font-extrabold px-2 py-0.5 rounded-md">' + (item.category || 'Berita') + '</span>' +
+                '<span class="text-zinc-400 font-semibold">' + (item.published_date || '') + '</span>' +
+              '</div>' +
+              '<h4 class="text-xs sm:text-sm font-extrabold text-forest-950 leading-snug">' + (item.title || '') + '</h4>' +
+              '<p class="text-xs text-zinc-500 line-clamp-2">' + (item.excerpt || '') + '</p>' +
+            '</div>' +
+          '</div>' +
+          '<div class="flex items-center gap-1.5 shrink-0 self-end sm:self-center">' +
+            '<button onclick="editNews(' + item.id + ')" class="px-3 py-1.5 rounded-xl bg-white border border-zinc-200 hover:bg-zinc-100 text-xs font-bold text-forest-900 cursor-pointer flex items-center gap-1">' +
+              '<span class="material-symbols-rounded text-[15px]">edit</span> Edit' +
+            '</button>' +
+            '<button onclick="deleteNews(' + item.id + ')" class="px-3 py-1.5 rounded-xl bg-red-50 border border-red-200 hover:bg-red-100 text-xs font-bold text-red-700 cursor-pointer flex items-center gap-1">' +
+              '<span class="material-symbols-rounded text-[15px]">delete</span> Hapus' +
+            '</button>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+    }
+
+    function editNews(id) {
+      var item = currentNews.find(function (n) { return Number(n.id) === Number(id); });
+      if (!item) return;
+      document.getElementById('news-id').value = item.id;
+      document.getElementById('news-title').value = item.title || '';
+      document.getElementById('news-category').value = item.category || '';
+      document.getElementById('news-date').value = item.published_date || '';
+      document.getElementById('news-image').value = item.image_url || '';
+      document.getElementById('news-excerpt').value = item.excerpt || '';
+      document.getElementById('news-form-title').textContent = 'Edit Berita #' + item.id;
+      document.getElementById('news-submit-label').textContent = 'Simpan Perubahan Berita';
+      document.getElementById('btn-cancel-edit').classList.remove('hidden');
+    }
+
+    function resetNewsForm() {
+      document.getElementById('form-news').reset();
+      document.getElementById('news-id').value = '';
+      document.getElementById('news-form-title').textContent = 'Tambah Berita / Agenda Baru';
+      document.getElementById('news-submit-label').textContent = 'Terbitkan Berita';
+      document.getElementById('btn-cancel-edit').classList.add('hidden');
+    }
+
+    async function deleteNews(id) {
+      if (!confirm('Hapus berita ini dari halaman depan?')) return;
+      var res = await fetch('/api/v1/cms/news/' + id, { method: 'DELETE', headers: { 'Accept': 'application/json' } });
+      var json = await res.json();
+      if (json.success) {
+        showToast(json.message);
+        fetchCmsData();
+      }
+    }
+
+    document.getElementById('form-news').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      var id = document.getElementById('news-id').value;
+      var payload = {
+        title: document.getElementById('news-title').value,
+        category: document.getElementById('news-category').value,
+        published_date: document.getElementById('news-date').value,
+        image_url: document.getElementById('news-image').value,
+        excerpt: document.getElementById('news-excerpt').value,
+        is_published: true
+      };
+
+      var url = id ? ('/api/v1/cms/news/' + id) : '/api/v1/cms/news';
+      var res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      var json = await res.json();
+      if (json.success) {
+        showToast(json.message);
+        resetNewsForm();
+        fetchCmsData();
+      }
+    });
+
+    // Check URL query parameter ?tab=... on load
+    (function () {
+      var params = new URLSearchParams(window.location.search);
+      var initialTab = params.get('tab');
+      if (initialTab && ALL_TABS.indexOf(initialTab) !== -1) {
+        switchTab(initialTab);
+      }
+      fetchCmsData();
+    })();
+  </script>
+</body>
+</html>
