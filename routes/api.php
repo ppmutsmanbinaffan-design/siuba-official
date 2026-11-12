@@ -39,8 +39,9 @@ Route::prefix('v1')->group(function () {
         });
     });
 
-    // Public / Protected User List for System Shell
-    Route::get('/users', [AuthApiController::class, 'listUsers']);
+    // User List for System Shell (requires login + users.view; previously public and leaked emails/roles)
+    Route::get('/users', [AuthApiController::class, 'listUsers'])
+        ->middleware(['auth:sanctum', 'permission:users.view']);
 
     // =========================================================================
     // PROTECTED OPERATIONAL API GROUP (Requires valid Sanctum Bearer Token)
@@ -160,8 +161,8 @@ Route::prefix('v1')->group(function () {
         });
     });
 
-    // System Maintenance & Database Reset (Guarded by exact phrase verification)
-    Route::prefix('maintenance')->group(function () {
+    // System Maintenance & Database Reset (Super Admin only + exact phrase verification)
+    Route::prefix('maintenance')->middleware(['auth:sanctum', 'role:super-admin'])->group(function () {
         Route::post('/reset', [MaintenanceApiController::class, 'reset']);
     });
 
