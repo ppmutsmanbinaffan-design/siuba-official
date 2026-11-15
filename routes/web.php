@@ -69,6 +69,14 @@ $serveRfidRegister = function () {
 };
 
 Route::get('/registrasi-rfid', $serveRfidRegister);
+
+// Alat migrasi data localStorage -> server (harus dibuka di browser/komputer yang dipakai operator)
+Route::get('/migrasi-data', function () {
+    return response()->file(public_path('migrasi-data.html'), [
+        'Content-Type' => 'text/html; charset=UTF-8',
+        'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
+    ]);
+});
 Route::get('/rfid-registration', $serveRfidRegister);
 
 $servePsbPublic = function () {

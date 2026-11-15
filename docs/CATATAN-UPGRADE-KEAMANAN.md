@@ -148,3 +148,37 @@ npm run dev                  # terminal 2 (Vite, port 3000, API diteruskan ke La
 Banyak tampilan lain di `App.tsx` (dashboard, laporan, KBM, asrama, staf, perangkat, dll.) masih membaca/menulis
 state lokal. Endpoint berikut belum ada di Laravel: `/staff`, `/attendance/devices`, `/attendance/devices/logs`,
 pembuatan sesi dari React, serta seluruh modul KBM/asrama/ekskul di sisi React.
+
+---
+
+# Update 4: Alat migrasi data browser → server (`/migrasi-data`)
+
+Sebelum update 3, banyak data yang diisi lewat aplikasi React hanya tersimpan di **localStorage browser**
+komputer operator. Halaman `/migrasi-data` memindahkannya ke MySQL.
+
+## Cara pakai (lakukan di SETIAP komputer/HP yang pernah dipakai operator)
+
+1. Buka `http://IP-SERVER:8000/migrasi-data` **di browser yang biasa dipakai operator** (localStorage terikat ke browser & alamat).
+   Login dulu sebagai **Super Admin** (butuh izin `system.maintenance`).
+   - Kalau operator tidak punya akun Super Admin: di komputer operator cukup klik **Unduh cadangan (.json)**,
+     lalu di komputer admin pilih **Pakai file cadangan dari komputer lain…**.
+2. **Unduh cadangan (.json)** dan simpan baik-baik.
+3. **Jalankan simulasi** — server memeriksa tanpa menyimpan apa pun. Baca catatan peringatan (misal RFID/QR bentrok).
+4. Centang konfirmasi → **Impor sekarang**.
+
+## Aturan impor
+
+- Santri dicocokkan lewat **NIS**, sesi lewat **kode sesi**, absensi lewat **(sesi, santri)** → aman diulang dari
+  banyak komputer, tidak ada data ganda. Jika absensi di server berbeda dengan di browser, **data server dipertahankan**
+  dan dilaporkan sebagai peringatan.
+- **Data contoh bawaan aplikasi** (NIS `UBA2600xx`, sesi `ATT-20260823-...`) dilewati kecuali dicentang.
+- Kelas/asrama/kamar/kegiatan hanya dibuat jika dipakai data yang diimpor (dicocokkan lewat nama/kode dulu).
+- QR token lama dipertahankan (kartu tidak perlu dicetak ulang), kecuali bentrok dengan santri lain.
+- Kartu RFID yang sudah dimiliki santri lain di server **tidak dipindahkan**.
+- Sesi lama yang di browser masih "open" disimpan sebagai "closed".
+- Data dikirim per batch 3.000 catatan. Jika server menolak karena ukuran, naikkan `post_max_size` & `upload_max_filesize`
+  di `php.ini` (mis. `64M`) lalu ulangi — batch yang sudah masuk akan dilewati.
+- Setiap impor nyata dicatat di audit log (`local_data.imported`).
+
+Belum diimpor (belum ada tabelnya di server): data staf/absensi SDM, izin santri, jadwal KBM/asrama/ekskul.
+Semua tetap ikut di file cadangan .json.

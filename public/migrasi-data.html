@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <script src="/js/siuba-admin-auth.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Migrasi Data Browser ke Server — SIUBA</title>
+  <style>
+    :root { --g9:#12382A; --g7:#1F5C45; --g1:#e8f3ee; --line:#dfe5e2; --ink:#1c2321; --mut:#5d6a65; --warn:#a15c00; --warnbg:#fff6e5; --bad:#b42318; --badbg:#fdecea; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background:#f4f6f5; color:var(--ink); line-height:1.5; }
+    header { background:var(--g9); color:#fff; padding:20px 24px; }
+    header h1 { margin:0; font-size:20px; }
+    header p { margin:4px 0 0; color:#cfe3da; font-size:14px; }
+    main { max-width:980px; margin:0 auto; padding:20px 16px 60px; display:grid; gap:16px; }
+    .card { background:#fff; border:1px solid var(--line); border-radius:14px; padding:18px 20px; }
+    .card h2 { margin:0 0 4px; font-size:16px; }
+    .step { display:inline-block; background:var(--g7); color:#fff; border-radius:999px; width:24px; height:24px; text-align:center; font-size:13px; line-height:24px; margin-right:8px; }
+    .muted { color:var(--mut); font-size:14px; margin:4px 0 12px; }
+    table { width:100%; border-collapse:collapse; font-size:14px; }
+    th, td { text-align:left; padding:8px 10px; border-bottom:1px solid var(--line); }
+    th { background:#f7f9f8; font-weight:600; }
+    td.num, th.num { text-align:right; font-variant-numeric: tabular-nums; }
+    button, .btn { font:inherit; border:1px solid var(--g7); background:#fff; color:var(--g7); padding:9px 14px; border-radius:10px; cursor:pointer; font-weight:600; }
+    button.primary { background:var(--g7); color:#fff; }
+    button:disabled { opacity:.45; cursor:not-allowed; }
+    .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    label.opt { display:flex; gap:8px; align-items:flex-start; font-size:14px; margin:6px 0; }
+    .alert { border-radius:10px; padding:10px 14px; font-size:14px; margin-top:12px; }
+    .alert.warn { background:var(--warnbg); color:var(--warn); }
+    .alert.bad { background:var(--badbg); color:var(--bad); }
+    .alert.ok { background:var(--g1); color:var(--g9); }
+    ul.warns { max-height:220px; overflow:auto; font-size:13px; padding-left:18px; margin:8px 0 0; }
+    .badge { font-size:12px; padding:2px 8px; border-radius:999px; background:var(--g1); color:var(--g9); }
+    progress { width:100%; height:10px; accent-color: var(--g7); }
+    .hidden { display:none; }
+  </style>
+</head>
+<body>
+<header>
+  <h1>Migrasi Data Browser → Server</h1>
+  <p>Pindahkan data santri & absensi yang selama ini hanya tersimpan di browser komputer ini ke database server (MySQL).</p>
+</header>
+<main>
+  <section class="card">
+    <h2><span class="step">1</span>Data yang ditemukan</h2>
+    <p class="muted" id="source-label">Sumber: browser ini (<span id="origin"></span>).</p>
+    <table>
+      <thead><tr><th>Jenis data</th><th class="num">Jumlah</th><th class="num">Data contoh (demo)</th></tr></thead>
+      <tbody id="scan-body"></tbody>
+    </table>
+    <div id="scan-alert"></div>
+    <div class="row" style="margin-top:12px">
+      <label class="btn" for="file-input">Pakai file cadangan dari komputer lain…</label>
+      <input type="file" id="file-input" accept="application/json,.json" class="hidden">
+      <button type="button" id="btn-rescan">Pindai ulang browser ini</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2><span class="step">2</span>Unduh cadangan dulu</h2>
+    <p class="muted">Simpan salinan semua data SIUBA di browser ini sebagai file .json. Simpan file ini baik-baik — bisa dipakai lagi kalau ada masalah.</p>
+    <button type="button" class="primary" id="btn-backup">Unduh cadangan (.json)</button>
+    <span id="backup-done" class="badge hidden">Cadangan sudah diunduh</span>
+  </section>
+
+  <section class="card">
+    <h2><span class="step">3</span>Simulasi impor</h2>
+    <p class="muted">Server memeriksa data tanpa menyimpan apa pun. Santri dicocokkan lewat NIS, sesi lewat kode sesi — data yang sudah ada di server tidak akan diduplikasi.</p>
+    <label class="opt"><input type="radio" name="mode" value="skip" checked> <span><b>Lewati santri yang sudah ada di server</b> (disarankan) — data server tidak diubah.</span></label>
+    <label class="opt"><input type="radio" name="mode" value="update"> <span><b>Lengkapi data santri di server</b> dengan isian dari browser (kolom kosong dari browser tidak menimpa data server).</span></label>
+    <label class="opt"><input type="checkbox" id="include-demo"> <span>Ikutkan data contoh bawaan aplikasi (biasanya <b>tidak</b> perlu).</span></label>
+    <div class="row" style="margin-top:10px"><button type="button" class="primary" id="btn-dry">Jalankan simulasi</button></div>
+    <div id="dry-progress" class="hidden" style="margin-top:12px"><progress id="dry-bar" value="0" max="1"></progress></div>
+    <div id="dry-result"></div>
+  </section>
+
+  <section class="card">
+    <h2><span class="step">4</span>Impor ke server</h2>
+    <p class="muted">Jalankan setelah simulasi terlihat benar. Aman diulang: menjalankan impor dua kali tidak membuat data ganda.</p>
+    <label class="opt"><input type="checkbox" id="confirm-backup"> <span>Saya sudah mengunduh cadangan dan memeriksa hasil simulasi.</span></label>
+    <div class="row" style="margin-top:10px"><button type="button" class="primary" id="btn-import" disabled>Impor sekarang</button></div>
+    <div id="imp-progress" class="hidden" style="margin-top:12px"><progress id="imp-bar" value="0" max="1"></progress></div>
+    <div id="imp-result"></div>
+  </section>
+</main>
+
+<script>
+(function () {
+  'use strict';
+  var DEMO = {"student_numbers": ["UBA260001", "UBA260002", "UBA260003", "UBA260004", "UBA260005", "UBA260006", "UBA260007", "UBA260008", "UBA260009", "UBA260010", "UBA260011", "UBA260012", "UBA260013", "UBA260014", "UBA260015", "UBA260099"], "session_codes": ["ATT-20260823-SUBUH-001", "ATT-20260823-FIQIH-001", "ATT-20260822-DZUHUR-001"]};
+  var KEYS = {
+    students: 'siuba_master_students',
+    classrooms: 'siuba_master_classrooms',
+    dormitories: 'siuba_master_dormitories',
+    dormitory_rooms: 'siuba_master_dormitory_rooms',
+    activities: 'siuba_master_activities',
+    sessions: 'siuba_attendance_sessions_cache',
+    participants: 'siuba_session_participants_cache',
+    records: 'siuba_attendance_records_cache'
+  };
+  var LABELS = {
+    students: 'Santri', classrooms: 'Kelas', dormitories: 'Asrama', dormitory_rooms: 'Kamar asrama',
+    activities: 'Kegiatan', sessions: 'Sesi absensi', participants: 'Peserta sesi', records: 'Catatan absensi'
+  };
+  var CHUNK = 3000;
+  var esc = window.siubaEsc || function (v) { return String(v == null ? '' : v); };
+  var data = {};
+  var sourceLabel = 'browser ' + location.host;
+  var simulated = false;
+
+  document.getElementById('origin').textContent = location.origin;
+
+  function readArray(key, store) {
+    try {
+      var raw = (store || localStorage).getItem(key);
+      var parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (e) { return []; }
+  }
+
+  function scanBrowser() {
+    data = {};
+    Object.keys(KEYS).forEach(function (k) { data[k] = readArray(KEYS[k]); });
+    sourceLabel = 'browser ' + location.host;
+    document.getElementById('source-label').innerHTML = 'Sumber: browser ini (<span>' + esc(location.origin) + '</span>).';
+    render();
+  }
+
+  function demoCount(k) {
+    if (k === 'students') return data.students.filter(function (s) { return DEMO.student_numbers.indexOf(String(s.student_number)) !== -1; }).length;
+    if (k === 'sessions') return data.sessions.filter(function (s) { return DEMO.session_codes.indexOf(String(s.session_code)) !== -1; }).length;
+    if (k === 'records' || k === 'participants') {
+      var demoSessionIds = data.sessions.filter(function (s) { return DEMO.session_codes.indexOf(String(s.session_code)) !== -1; }).map(function (s) { return s.id; });
+      return data[k].filter(function (r) { return demoSessionIds.indexOf(r.attendance_session_id) !== -1; }).length;
+    }
+    return null;
+  }
+
+  function render() {
+    var body = document.getElementById('scan-body');
+    var realTotal = 0;
+    body.innerHTML = Object.keys(KEYS).map(function (k) {
+      var n = data[k].length, d = demoCount(k);
+      if (k === 'students' || k === 'records') realTotal += n - (d || 0);
+      return '<tr><td>' + LABELS[k] + '</td><td class="num">' + n + '</td><td class="num">' + (d === null ? '–' : d) + '</td></tr>';
+    }).join('');
+    var alert = document.getElementById('scan-alert');
+    if (realTotal === 0) {
+      alert.innerHTML = '<div class="alert ok">Tidak ada data santri/absensi asli di sumber ini (hanya data contoh atau kosong). Tidak perlu migrasi dari komputer ini.</div>';
+    } else {
+      alert.innerHTML = '<div class="alert warn">Ditemukan data yang mungkin <b>belum ada di server</b>. Ikuti langkah 2–4 di bawah.</div>';
+    }
+    simulated = false;
+    updateImportButton();
+  }
+
+  // ---------- Cadangan ----------
+  document.getElementById('btn-backup').addEventListener('click', function () {
+    var dump = { exported_at: new Date().toISOString(), origin: location.origin, user_agent: navigator.userAgent, keys: {} };
+    for (var i = 0; i < localStorage.length; i++) {
+      var key = localStorage.key(i);
+      if (!key || key.indexOf('siuba_') !== 0) continue;
+      if (key === 'siuba_auth_token' || key === 'siuba_auth_user') continue; // jangan simpan sesi login
+      dump.keys[key] = localStorage.getItem(key);
+    }
+    var blob = new Blob([JSON.stringify(dump, null, 2)], { type: 'application/json' });
+    var a = document.createElement('a');
+    var stamp = new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'cadangan-siuba-' + location.hostname + '-' + stamp + '.json';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
+    document.getElementById('backup-done').classList.remove('hidden');
+  });
+
+  // ---------- File cadangan dari komputer lain ----------
+  document.getElementById('file-input').addEventListener('change', function (e) {
+    var file = e.target.files && e.target.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function () {
+      try {
+        var dump = JSON.parse(reader.result);
+        var store = { getItem: function (k) { return dump.keys && dump.keys[k] != null ? dump.keys[k] : null; } };
+        data = {};
+        Object.keys(KEYS).forEach(function (k) { data[k] = readArray(KEYS[k], store); });
+        sourceLabel = 'file ' + file.name + (dump.origin ? ' (dari ' + dump.origin + ')' : '');
+        document.getElementById('source-label').innerHTML = 'Sumber: <b>' + esc(sourceLabel) + '</b>';
+        render();
+      } catch (err) {
+        document.getElementById('scan-alert').innerHTML = '<div class="alert bad">File tidak bisa dibaca. Pastikan memilih file cadangan SIUBA (.json).</div>';
+      }
+    };
+    reader.readAsText(file);
+  });
+  document.getElementById('btn-rescan').addEventListener('click', scanBrowser);
+
+  // ---------- Kirim ke server ----------
+  function slim(row, fields) {
+    var out = {};
+    fields.forEach(function (f) { if (row[f] !== undefined && row[f] !== null && row[f] !== '') out[f] = row[f]; });
+    return out;
+  }
+
+  function buildBase() {
+    return {
+      mode: document.querySelector('input[name=mode]:checked').value,
+      include_demo: document.getElementById('include-demo').checked,
+      source_label: sourceLabel,
+      classrooms: data.classrooms.map(function (r) { return slim(r, ['id', 'code', 'name', 'grade_level', 'academic_year', 'capacity', 'is_active']); }),
+      dormitories: data.dormitories.map(function (r) { return slim(r, ['id', 'name', 'gender', 'is_active']); }),
+      dormitory_rooms: data.dormitory_rooms.map(function (r) { return slim(r, ['id', 'dormitory_id', 'dormitory_name', 'code', 'name', 'capacity', 'is_active']); }),
+      activities: data.activities.map(function (r) { return slim(r, ['id', 'code', 'name', 'category_name', 'location', 'allow_manual', 'allow_qr', 'allow_rfid']); }),
+      students: data.students.map(function (r) {
+        var s = slim(r, ['id', 'student_number', 'nisn', 'name', 'nickname', 'gender', 'birth_place', 'birth_date', 'classroom_id', 'classroom_name',
+          'dormitory_room_id', 'dormitory_room_name', 'generation_year', 'entry_year', 'qr_token', 'rfid_uid', 'guardian_name', 'guardian_phone',
+          'address', 'status', 'is_active']);
+        if (r.is_active === false) s.is_active = false;
+        return s;
+      }),
+      sessions: data.sessions.map(function (r) { return slim(r, ['id', 'activity_id', 'activity_code', 'activity_name', 'category_name', 'session_code', 'session_date',
+        'start_at', 'present_until', 'late_until', 'end_at', 'status', 'location', 'opened_at', 'closed_at', 'notes']); })
+    };
+  }
+
+  function chunks(arr) {
+    var out = [];
+    for (var i = 0; i < arr.length; i += CHUNK) out.push(arr.slice(i, i + CHUNK));
+    return out.length ? out : [[]];
+  }
+
+  function addSummary(total, part, isFirst) {
+    Object.keys(part).forEach(function (entity) {
+      total[entity] = total[entity] || {};
+      var perChunk = entity === 'participants' || entity === 'records';
+      if (!perChunk && !isFirst) return; // master & santri & sesi dihitung dari batch pertama saja
+      Object.keys(part[entity]).forEach(function (k) { total[entity][k] = (total[entity][k] || 0) + part[entity][k]; });
+    });
+  }
+
+  async function send(dryRun, barId, progressId) {
+    var base = buildBase();
+    var recs = data.records.map(function (r) { return slim(r, ['id', 'attendance_session_id', 'student_id', 'student_number', 'student_name', 'status', 'method', 'check_in_at', 'late_minutes', 'recorded_by', 'notes']); });
+    var parts = data.participants.map(function (r) { return slim(r, ['attendance_session_id', 'student_id', 'student_number', 'participant_source', 'eligibility_status']); });
+    var recChunks = chunks(recs), partChunks = chunks(parts);
+    var n = Math.max(recChunks.length, partChunks.length);
+    var bar = document.getElementById(barId);
+    document.getElementById(progressId).classList.remove('hidden');
+    bar.max = n; bar.value = 0;
+
+    var summary = {}, warnings = [], warningCount = 0;
+    for (var i = 0; i < n; i++) {
+      var body = Object.assign({}, base, { dry_run: dryRun, records: recChunks[i] || [], participants: partChunks[i] || [] });
+      var res = await fetch('/api/v1/migration/local-data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      var json = null;
+      try { json = await res.json(); } catch (e) { /* abaikan */ }
+      if (!res.ok || !json || !json.success) {
+        var msg = (json && json.error && json.error.message) || (json && json.message) || ('Server menolak permintaan (HTTP ' + res.status + ').');
+        if (res.status === 403) msg = 'Akun Anda tidak punya izin migrasi data (perlu Super Admin / izin system.maintenance).';
+        if (res.status === 413) msg = 'Data terlalu besar untuk server. Naikkan post_max_size di php.ini (mis. 64M) lalu coba lagi.';
+        throw new Error(msg + (i > 0 ? ' (batch ' + (i + 1) + ' dari ' + n + ')' : ''));
+      }
+      addSummary(summary, json.data.summary, i === 0);
+      warnings = warnings.concat(json.data.warnings || []);
+      warningCount += json.data.warning_count || 0;
+      bar.value = i + 1;
+    }
+    return { summary: summary, warnings: warnings, warningCount: warningCount, batches: n };
+  }
+
+  var KEY_LABELS = { created: 'baru', updated: 'diperbarui', existing: 'sudah ada', matched: 'cocok dgn server', demo_skipped: 'demo dilewati', unmatched: 'tak terhubung', failed: 'gagal' };
+
+  function renderResult(targetId, result, dryRun) {
+    var rows = Object.keys(LABELS).filter(function (k) { return result.summary[k]; }).map(function (k) {
+      var parts = Object.keys(result.summary[k]).filter(function (x) { return result.summary[k][x] > 0; })
+        .map(function (x) { return result.summary[k][x] + ' ' + KEY_LABELS[x]; });
+      return '<tr><td>' + LABELS[k] + '</td><td>' + (parts.length ? parts.join(' · ') : '–') + '</td></tr>';
+    }).join('');
+    var head = dryRun
+      ? '<div class="alert ok">Simulasi selesai — <b>belum ada data yang disimpan</b>. Periksa ringkasan di bawah.</div>'
+      : '<div class="alert ok"><b>Impor selesai.</b> Data sudah tersimpan di server. Data di browser ini tidak dihapus.</div>';
+    var warn = result.warningCount
+      ? '<div class="alert warn"><b>' + result.warningCount + ' catatan perlu diperhatikan:</b><ul class="warns">' +
+        result.warnings.map(function (w) { return '<li>' + esc(w) + '</li>'; }).join('') + '</ul></div>'
+      : '';
+    document.getElementById(targetId).innerHTML = head +
+      '<table style="margin-top:10px"><thead><tr><th>Jenis data</th><th>Hasil</th></tr></thead><tbody>' + rows + '</tbody></table>' + warn;
+  }
+
+  function updateImportButton() {
+    document.getElementById('btn-import').disabled = !(simulated && document.getElementById('confirm-backup').checked);
+  }
+  document.getElementById('confirm-backup').addEventListener('change', updateImportButton);
+  document.querySelectorAll('input[name=mode], #include-demo').forEach(function (el) {
+    el.addEventListener('change', function () { simulated = false; updateImportButton(); });
+  });
+
+  document.getElementById('btn-dry').addEventListener('click', async function () {
+    var btn = this; btn.disabled = true;
+    document.getElementById('dry-result').innerHTML = '';
+    try {
+      var r = await send(true, 'dry-bar', 'dry-progress');
+      renderResult('dry-result', r, true);
+      simulated = true;
+    } catch (e) {
+      document.getElementById('dry-result').innerHTML = '<div class="alert bad">' + esc(e.message) + '</div>';
+      simulated = false;
+    }
+    btn.disabled = false; updateImportButton();
+  });
+
+  document.getElementById('btn-import').addEventListener('click', async function () {
+    var btn = this; btn.disabled = true;
+    document.getElementById('imp-result').innerHTML = '';
+    try {
+      var r = await send(false, 'imp-bar', 'imp-progress');
+      renderResult('imp-result', r, false);
+      try { localStorage.setItem('siuba_local_migrated_at', new Date().toISOString()); } catch (e) { /* abaikan */ }
+    } catch (e) {
+      document.getElementById('imp-result').innerHTML = '<div class="alert bad">' + esc(e.message) +
+        ' Batch yang sudah berhasil tetap tersimpan; jalankan impor lagi — data yang sudah ada akan dilewati.</div>';
+      btn.disabled = false;
+    }
+  });
+
+  scanBrowser();
+})();
+</script>
+</body>
+</html>

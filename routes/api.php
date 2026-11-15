@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\DeviceManagementApiController;
 use App\Http\Controllers\Api\DomainManagementApiController;
 use App\Http\Controllers\Api\IotDeviceApiController;
 use App\Http\Controllers\Api\LandingCmsApiController;
+use App\Http\Controllers\Api\LocalDataMigrationApiController;
 use App\Http\Controllers\Api\MaintenanceApiController;
 use App\Http\Controllers\Api\OfflineSyncApiController;
 use Illuminate\Support\Facades\Route;
@@ -196,6 +197,10 @@ Route::prefix('v1')->group(function () {
                 ->middleware('permission:events.manage|attendance.sessions.create');
         });
     });
+
+    // Migrasi data lama dari localStorage browser ke MySQL (halaman /migrasi-data)
+    Route::post('/migration/local-data', LocalDataMigrationApiController::class)
+        ->middleware(['auth:sanctum', 'permission:system.maintenance']);
 
     // System Maintenance & Database Reset (Super Admin only + exact phrase verification)
     Route::prefix('maintenance')->middleware(['auth:sanctum', 'role:super-admin'])->group(function () {
