@@ -57,8 +57,10 @@ Route::prefix('v1')->group(function () {
             ->middleware('permission:users.create');
         Route::delete('/users/{id}', [AuthApiController::class, 'deleteUser'])
             ->middleware('permission:users.delete');
-        Route::match(['post', 'put'], '/users/{id}/roles', [AuthApiController::class, 'assignRoles']);
-        Route::get('/roles', [AuthApiController::class, 'listRoles']);
+        Route::match(['post', 'put'], '/users/{id}/roles', [AuthApiController::class, 'assignRoles'])
+            ->middleware('role:super-admin');
+        Route::get('/roles', [AuthApiController::class, 'listRoles'])
+            ->middleware('permission:users.view');
 
         // Full-Stack Bulk Import Engine (Santri, Guru, SDM, Pelatih)
         Route::prefix('import')->group(function () {
@@ -166,35 +168,62 @@ Route::prefix('v1')->group(function () {
         Route::post('/reset', [MaintenanceApiController::class, 'reset']);
     });
 
-    // Landing Page CMS & PSB / PPDB Management Endpoints
+    // =========================================================================
+    // LANDING PAGE CMS & PSB / PPDB
+    // =========================================================================
     Route::prefix('cms')->group(function () {
+        // --- Publik (tanpa login) ---
         Route::get('/landing', [LandingCmsApiController::class, 'getPublicData']);
-        Route::post('/profile', [LandingCmsApiController::class, 'updateProfile']);
-        Route::post('/psb', [LandingCmsApiController::class, 'updatePpdb']);
-        Route::post('/ppdb', [LandingCmsApiController::class, 'updatePpdb']);
-        Route::post('/news', [LandingCmsApiController::class, 'storeNews']);
-        Route::put('/news/{id}', [LandingCmsApiController::class, 'updateNews']);
-        Route::delete('/news/{id}', [LandingCmsApiController::class, 'deleteNews']);
-        Route::post('/psb/register', [LandingCmsApiController::class, 'submitPpdbRegistration']);
-        Route::post('/ppdb/register', [LandingCmsApiController::class, 'submitPpdbRegistration']);
-        Route::get('/psb/check', [LandingCmsApiController::class, 'checkPpdbStatus']);
-        Route::get('/ppdb/check', [LandingCmsApiController::class, 'checkPpdbStatus']);
-        Route::match(['put', 'patch'], '/psb/registrations/{id}', [LandingCmsApiController::class, 'updatePpdbRegistrationStatus']);
-        Route::match(['put', 'patch'], '/ppdb/registrations/{id}', [LandingCmsApiController::class, 'updatePpdbRegistrationStatus']);
-        Route::match(['put', 'patch'], '/psb/registrations/{id}/status', [LandingCmsApiController::class, 'updatePpdbRegistrationStatus']);
-        Route::match(['put', 'patch'], '/ppdb/registrations/{id}/status', [LandingCmsApiController::class, 'updatePpdbRegistrationStatus']);
-        Route::delete('/psb/registrations/{id}', [LandingCmsApiController::class, 'deletePpdbRegistration']);
-        Route::delete('/ppdb/registrations/{id}', [LandingCmsApiController::class, 'deletePpdbRegistration']);
+        Route::post('/psb/register', [LandingCmsApiController::class, 'submitPpdbRegistration'])->middleware('throttle:5,1');
+        Route::post('/ppdb/register', [LandingCmsApiController::class, 'submitPpdbRegistration'])->middleware('throttle:5,1');
+        Route::get('/psb/check', [LandingCmsApiController::class, 'checkPpdbStatus'])->middleware('throttle:10,1');
+        Route::get('/ppdb/check', [LandingCmsApiController::class, 'checkPpdbStatus'])->middleware('throttle:10,1');
+
+        // --- Admin CMS (wajib login + izin kelola CMS) ---
+        Route::middleware(['auth:sanctum', 'permission:cms.manage|settings.manage'])->group(function () {
+            Route::post('/profile', [LandingCmsApiController::class, 'updateProfile']);
+            Route::post('/news', [LandingCmsApiController::class, 'storeNews']);
+            Route::put('/news/{id}', [LandingCmsApiController::class, 'updateNews']);
+            Route::delete('/news/{id}', [LandingCmsApiController::class, 'deleteNews']);
+        });
+
+        // --- Admin PSB (wajib login + izin PSB) ---
+        Route::middleware(['auth:sanctum', 'permission:psb.manage|ppdb.manage|cms.manage'])->group(function () {
+            Route::post('/psb', [LandingCmsApiController::class, 'updatePpdb']);
+            Route::post('/ppdb', [LandingCmsApiController::class, 'updatePpdb']);
+        });
+        Route::middleware(['auth:sanctum', 'permission:psb.view|ppdb.view|psb.manage|ppdb.manage'])->group(function () {
+            Route::get('/psb/registrations', [LandingCmsApiController::class, 'listPpdbRegistrations']);
+            Route::get('/ppdb/registrations', [LandingCmsApiController::class, 'listPpdbRegistrations']);
+        });
+        Route::middleware(['auth:sanctum', 'permission:psb.manage|ppdb.manage|psb.verify|ppdb.verify'])->group(function () {
+            foreach (['psb', 'ppdb'] as $p) {
+                Route::match(['put', 'patch'], "/{$p}/registrations/{id}", [LandingCmsApiController::class, 'updatePpdbRegistrationStatus']);
+                Route::match(['put', 'patch'], "/{$p}/registrations/{id}/status", [LandingCmsApiController::class, 'updatePpdbRegistrationStatus']);
+            }
+        });
+        Route::middleware(['auth:sanctum', 'permission:psb.manage|ppdb.manage'])->group(function () {
+            Route::delete('/psb/registrations/{id}', [LandingCmsApiController::class, 'deletePpdbRegistration']);
+            Route::delete('/ppdb/registrations/{id}', [LandingCmsApiController::class, 'deletePpdbRegistration']);
+        });
     });
 
-    // IoT Hardware Bridge (ESP32 RFID Reader, Nexabsen V.4 & Smart Card Terminal)
-    Route::match(['get', 'post'], '/tap.php', [IotDeviceApiController::class, 'handleRfidTap']);
-    Route::prefix('iot')->group(function () {
-        Route::match(['get', 'post'], '/rfid-tap', [IotDeviceApiController::class, 'handleRfidTap']);
+    // =========================================================================
+    // IoT HARDWARE BRIDGE (ESP32 / Nexabsen V.4) - wajib header X-GLOBAL-KEY
+    // =========================================================================
+    Route::middleware(['iot.key', 'throttle:iot'])->group(function () {
         Route::match(['get', 'post'], '/tap.php', [IotDeviceApiController::class, 'handleRfidTap']);
-        Route::match(['get', 'post'], '/nexabsen', [IotDeviceApiController::class, 'handleRfidTap']);
-        Route::match(['get', 'post'], '/ping', [IotDeviceApiController::class, 'ping']);
-        Route::get('/active-sessions', [IotDeviceApiController::class, 'getActiveSessions']);
+        Route::prefix('iot')->group(function () {
+            Route::match(['get', 'post'], '/rfid-tap', [IotDeviceApiController::class, 'handleRfidTap']);
+            Route::match(['get', 'post'], '/tap.php', [IotDeviceApiController::class, 'handleRfidTap']);
+            Route::match(['get', 'post'], '/nexabsen', [IotDeviceApiController::class, 'handleRfidTap']);
+            Route::match(['get', 'post'], '/ping', [IotDeviceApiController::class, 'ping']);
+            Route::get('/active-sessions', [IotDeviceApiController::class, 'getActiveSessions']);
+        });
+    });
+
+    // Registrasi kartu RFID (dipakai halaman /registrasi-rfid) - wajib login admin
+    Route::prefix('iot')->middleware(['auth:sanctum', 'permission:devices.manage|students.cards'])->group(function () {
         Route::get('/last-scan', [IotDeviceApiController::class, 'getLastScan']);
         Route::get('/students', [IotDeviceApiController::class, 'getStudentsWithRfid']);
         Route::post('/register-rfid', [IotDeviceApiController::class, 'registerRfid']);

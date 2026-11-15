@@ -26,6 +26,31 @@ class MaintenanceApiController extends Controller
             ], 422);
         }
 
+        $allowedModes = ['MODE_A_OPERATIONAL', 'MODE_B_MASTERS_EXCEPT_CORE', 'MODE_C_FACTORY_RESET'];
+        if (!in_array($mode, $allowedModes, true)) {
+            return response()->json(['success' => false, 'message' => 'Mode reset tidak dikenal.'], 422);
+        }
+
+        // Backup otomatis sebelum reset apa pun
+        $backupId = null;
+        try {
+            $backup = \App\Services\System\BackupService::createBackup('database', 'Auto-backup sebelum reset ' . $mode, $request->user()?->id);
+            $backupId = $backup->id ?? null;
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Auto-backup sebelum reset gagal', ['error' => $e->getMessage()]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Reset dibatalkan karena backup otomatis gagal dibuat. Periksa log server.'
+            ], 500);
+        }
+
+        \Illuminate\Support\Facades\Log::warning('DATABASE RESET dijalankan', [
+            'mode' => $mode,
+            'user_id' => $request->user()?->id,
+            'ip' => $request->ip(),
+            'backup_id' => $backupId,
+        ]);
+
         try {
             DB::statement('SET FOREIGN_KEY_CHECKS=0;');
 
@@ -81,13 +106,15 @@ class MaintenanceApiController extends Controller
                 'success' => true,
                 'mode' => $mode,
                 'tables_cleared' => $tablesCleared,
+                'backup_id' => $backupId,
                 'message' => 'Database MySQL SIUBA berhasil dibersihkan (' . $mode . ').'
             ]);
         } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Reset database gagal', ['mode' => $mode, 'error' => $e->getMessage()]);
             DB::statement('SET FOREIGN_KEY_CHECKS=1;');
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal mereset database MySQL: ' . $e->getMessage()
+                'message' => 'Gagal mereset database. Detail kesalahan tersimpan di log server.'
             ], 500);
         }
     }

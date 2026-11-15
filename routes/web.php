@@ -21,8 +21,10 @@ $serveLanding = function () {
 };
 
 // Endpoint Fallbacks untuk Hardware IoT & Nexabsen V.4
-Route::match(['get', 'post'], '/tap.php', [\App\Http\Controllers\Api\IotDeviceApiController::class, 'handleRfidTap']);
-Route::match(['get', 'post'], '/api/tap.php', [\App\Http\Controllers\Api\IotDeviceApiController::class, 'handleRfidTap']);
+Route::middleware(['iot.key', 'throttle:iot'])->group(function () {
+    Route::match(['get', 'post'], '/tap.php', [\App\Http\Controllers\Api\IotDeviceApiController::class, 'handleRfidTap']);
+    Route::match(['get', 'post'], '/api/tap.php', [\App\Http\Controllers\Api\IotDeviceApiController::class, 'handleRfidTap']);
+});
 
 Route::get('/', $serveLanding);
 Route::get('/beranda', $serveLanding);

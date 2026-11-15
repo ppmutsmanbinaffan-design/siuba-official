@@ -10,7 +10,19 @@ class AdminUserSeeder extends Seeder
 {
     public function run(): void
     {
-        $defaultPassword = Hash::make('password');
+        // Password awal TIDAK lagi 'password'.
+        // Isi ADMIN_DEFAULT_PASSWORD di .env, atau biarkan kosong agar dibuat acak
+        // dan disimpan di storage/app/initial-admin-password.txt (hapus file itu setelah dibaca!).
+        $plainPassword = (string) env('ADMIN_DEFAULT_PASSWORD', '');
+        if (strlen($plainPassword) < 8) {
+            $plainPassword = \Illuminate\Support\Str::password(14, symbols: false);
+            @file_put_contents(
+                storage_path('app/initial-admin-password.txt'),
+                "Password awal semua akun bawaan SIUBA (dibuat " . now()->toDateTimeString() . "):\n{$plainPassword}\n\nSegera login, ganti password, lalu HAPUS file ini.\n"
+            );
+            $this->command?->warn('Password awal akun bawaan: ' . $plainPassword . ' (juga disimpan di storage/app/initial-admin-password.txt)');
+        }
+        $defaultPassword = Hash::make($plainPassword);
 
         // 1. Super Admin Account
         $superAdmin = User::updateOrCreate(

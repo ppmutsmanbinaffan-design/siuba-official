@@ -32,10 +32,10 @@ class AttendanceApiController extends Controller
     {
         $validated = $request->validate([
             'student_id' => 'required|exists:students,id',
-            'method' => 'required|string',
-            'status' => 'nullable|string',
+            'method' => ['required', \Illuminate\Validation\Rule::enum(AttendanceMethod::class)],
+            'status' => ['nullable', \Illuminate\Validation\Rule::enum(AttendanceStatus::class)],
             'device_id' => 'nullable|exists:attendance_devices,id',
-            'notes' => 'nullable|string',
+            'notes' => 'nullable|string|max:1000',
         ]);
 
         $student = Student::findOrFail($validated['student_id']);

@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="id">
 <head>
+  <script src="/js/siuba-admin-auth.js"></script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Pusat Manajemen PSB Santri Baru — SIUBA Backend</title>
@@ -692,13 +693,25 @@
       renderRegistrations();
     }
 
+    // Escape semua field pendaftar sebelum dimasukkan ke innerHTML (data berasal dari form publik)
+    function escRecord(r) {
+      var out = {};
+      Object.keys(r || {}).forEach(function (k) {
+        out[k] = (r[k] === null || r[k] === undefined) ? r[k] : window.siubaEsc(r[k]);
+      });
+      out.id = parseInt(r.id, 10) || 0;
+      return out;
+    }
+
     async function loadPpdbData() {
       try {
         var res = await fetch('/api/v1/cms/landing');
         var data = await res.json();
+        var regRes = await fetch('/api/v1/cms/ppdb/registrations');
+        var regData = regRes.ok ? await regRes.json() : { registrations: [] };
         if (data && data.success) {
           ppdbSettings = data.ppdb || {};
-          allRegistrations = data.registrations || [];
+          allRegistrations = regData.registrations || [];
           populatePpdbForm(ppdbSettings);
           updateKpis(ppdbSettings, allRegistrations);
           renderRegistrations();
@@ -1242,6 +1255,7 @@
         var waClean = String(r.whatsapp || '').replace(/[^0-9]/g, '');
         if (waClean.indexOf('0') === 0) waClean = '62' + waClean.substring(1);
         var waMsg = encodeURIComponent('Assalamu\'alaikum Bapak/Ibu ' + (r.parent_name || '') + ', kami dari Panitia PSB Ponpes Utsman Bin Affan mengonfirmasi pendaftaran ananda ' + r.student_name + ' (No. Reg: ' + (r.reg_number || '-') + ', Jenjang: ' + r.level + '). Status saat ini: ' + (r.status || 'Baru') + '.');
+        r = escRecord(r);
 
         var tr = document.createElement('tr');
         tr.className = 'hover:bg-zinc-50/90 transition';
@@ -1299,6 +1313,7 @@
         return;
       }
       list.forEach(function (r) {
+        r = escRecord(r);
         var tr = document.createElement('tr');
         tr.innerHTML =
           '<td class="py-3 px-3 font-extrabold text-forest-800">' + (r.reg_number || ('PSB-' + r.id)) + '</td>' +

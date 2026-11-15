@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
+  <script src="/js/siuba-admin-auth.js"></script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Pusat Registrasi Kartu RFID — SIUBA</title>
@@ -355,21 +356,21 @@
         tr.className = 'hover:bg-slate-700/30 transition';
 
         tr.innerHTML = `
-          <td class="px-4 py-3 font-bold text-white">${s.name}</td>
-          <td class="px-4 py-3 font-mono text-slate-300">${s.student_number || '-'}</td>
-          <td class="px-4 py-3 text-slate-300">${s.classroom} <span class="text-slate-500">/ ${s.dormitory}</span></td>
+          <td class="px-4 py-3 font-bold text-white">${siubaEsc(s.name)}</td>
+          <td class="px-4 py-3 font-mono text-slate-300">${siubaEsc(s.student_number || '-')}</td>
+          <td class="px-4 py-3 text-slate-300">${siubaEsc(s.classroom)} <span class="text-slate-500">/ ${siubaEsc(s.dormitory)}</span></td>
           <td class="px-4 py-3">
             ${s.has_rfid 
               ? '<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">● Terpasang</span>' 
               : '<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-700 text-slate-400">○ Belum Ada</span>'}
           </td>
           <td class="px-4 py-3 font-mono font-bold ${s.has_rfid ? 'text-emerald-400' : 'text-slate-500'}">
-            ${s.rfid_uid || '-'}
+            ${siubaEsc(s.rfid_uid || '-')}
           </td>
           <td class="px-4 py-3 text-right">
             ${s.has_rfid 
-              ? `<button onclick="unregisterCard(${s.id}, '${s.name}')" class="px-2.5 py-1 rounded-lg bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-500/30 text-[11px] font-bold transition">Lepas</button>`
-              : `<button onclick="selectForPairing(${s.id})" class="px-2.5 py-1 rounded-lg bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white border border-emerald-500/30 text-[11px] font-bold transition">Pilih</button>`}
+              ? `<button onclick="unregisterCard(${parseInt(s.id, 10)}, ${siubaEsc(JSON.stringify(String(s.name || '')))})" class="px-2.5 py-1 rounded-lg bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-500/30 text-[11px] font-bold transition">Lepas</button>`
+              : `<button onclick="selectForPairing(${parseInt(s.id, 10)})" class="px-2.5 py-1 rounded-lg bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white border border-emerald-500/30 text-[11px] font-bold transition">Pilih</button>`}
           </td>
         `;
         tbody.appendChild(tr);

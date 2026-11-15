@@ -7,6 +7,8 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Password;
 use Spatie\Permission\Models\Role;
 
 class AuthApiController extends Controller
@@ -159,12 +161,11 @@ class AuthApiController extends Controller
         $password = trim((string) $request->input('password', ''));
         $username = trim((string) $request->input('username', ''));
 
-        if (empty($password)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Password wajib diisi.'
-            ], 422);
-        }
+        $request->validate([
+            'password' => ['required', 'string', Password::min(8)],
+        ], [
+            'password.min' => 'Password minimal 8 karakter.',
+        ]);
 
         // Find user by ID or by username
         $user = is_numeric($id) ? User::find((int) $id) : null;
@@ -179,8 +180,17 @@ class AuthApiController extends Controller
             ], 404);
         }
 
+        if ($denied = $this->denyIfProtectedTarget($request->user(), $user)) {
+            return $denied;
+        }
+
         $user->password = $password; // 'hashed' cast in User model auto-hashes
         $user->save();
+
+        // Paksa logout semua sesi lama milik user tsb (kecuali bila user mengganti password-nya sendiri)
+        if ($request->user()?->id !== $user->id) {
+            $user->tokens()->delete();
+        }
 
         return response()->json([
             'success' => true,
@@ -204,12 +214,23 @@ class AuthApiController extends Controller
 
         $roles = $user->getRoleNames()->map(fn($r) => strtolower($r))->toArray();
 
-        return in_array('super-admin', $roles, true) ||
-               in_array('super_admin', $roles, true) ||
-               $user->hasRole('super-admin') ||
-               $user->hasRole('super_admin') ||
-               $user->id === 1 ||
-               $user->username === 'superadmin';
+        // Hanya berdasarkan ROLE. (Dulu juga id === 1 / username 'superadmin' -> rawan disalahgunakan.)
+        return in_array('super-admin', $roles, true) || in_array('super_admin', $roles, true);
+    }
+
+    /**
+     * Admin biasa tidak boleh mengubah / menghapus akun Super Admin.
+     */
+    private function denyIfProtectedTarget(?User $actor, User $target): ?JsonResponse
+    {
+        if (self::isSuperAdmin($target) && !self::isSuperAdmin($actor)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Hanya Super Admin yang dapat mengubah akun Super Admin.'
+            ], 403);
+        }
+
+        return null;
     }
 
     /**
@@ -268,6 +289,30 @@ class AuthApiController extends Controller
             ], 404);
         }
 
+        if ($denied = $this->denyIfProtectedTarget($request->user(), $user)) {
+            return $denied;
+        }
+
+        $request->validate([
+            'name' => 'sometimes|string|max:150',
+            'email' => ['sometimes', 'nullable', 'email', 'max:191', Rule::unique('users', 'email')->ignore($user->id)],
+            'is_active' => 'sometimes|boolean',
+            'password' => ['nullable', 'string', Password::min(8)],
+        ]);
+
+        // Cek hak ubah role SEBELUM menyimpan apa pun (dulu data tersimpan dulu baru ditolak)
+        $requestedRoles = $this->extractRolesFromRequest($request);
+        if ($requestedRoles !== null && !self::isSuperAdmin($request->user())) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Hanya Super Admin yang memiliki hak akses untuk mengatur dan mengubah role pengguna.'
+            ], 403);
+        }
+
+        if ($request->has('is_active') && !$request->boolean('is_active') && $request->user()?->id === $user->id) {
+            return response()->json(['success' => false, 'message' => 'Anda tidak dapat menonaktifkan akun Anda sendiri.'], 422);
+        }
+
         if ($request->has('name')) {
             $user->name = (string) $request->input('name');
         }
@@ -283,17 +328,11 @@ class AuthApiController extends Controller
 
         $user->save();
 
-        // Check if role modification was requested
-        $requestedRoles = $this->extractRolesFromRequest($request);
-        if ($requestedRoles !== null) {
-            $authUser = $request->user();
-            if (!$this->isSuperAdmin($authUser)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Hanya Super Admin yang memiliki hak akses untuk mengatur dan mengubah role pengguna.'
-                ], 403);
-            }
+        if (!$user->is_active) {
+            $user->tokens()->delete();
+        }
 
+        if ($requestedRoles !== null) {
             // Sync multiple roles (ensure only valid system roles are synced)
             if (!empty($requestedRoles)) {
                 $validRoles = Role::whereIn('name', $requestedRoles)->pluck('name')->unique()->toArray();
@@ -331,15 +370,22 @@ class AuthApiController extends Controller
     {
         $username = trim((string) $request->input('username', ''));
         $name = trim((string) $request->input('name', ''));
-        $password = trim((string) $request->input('password', 'password'));
-        $email = trim((string) $request->input('email', "{$username}@utsman.sch.id"));
+        $password = trim((string) $request->input('password', ''));
+        $email = trim((string) ($request->input('email') ?: "{$username}@utsman.sch.id"));
 
-        if (empty($username) || empty($name)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Nama dan username wajib diisi.'
-            ], 422);
-        }
+        $request->merge(['username' => $username, 'name' => $name, 'email' => $email]);
+        $request->validate([
+            'name' => 'required|string|max:150',
+            // username harus BARU: endpoint ini tidak lagi bisa menimpa akun yang sudah ada
+            'username' => 'required|string|max:60|alpha_dash|unique:users,username',
+            'email' => 'required|email|max:191|unique:users,email',
+            'password' => ['required', 'string', Password::min(8)],
+        ], [
+            'username.unique' => 'Username sudah digunakan.',
+            'email.unique' => 'Email sudah digunakan.',
+            'password.required' => 'Password wajib diisi (minimal 8 karakter).',
+            'password.min' => 'Password minimal 8 karakter.',
+        ]);
 
         $requestedRoles = $this->extractRolesFromRequest($request);
 
@@ -357,15 +403,13 @@ class AuthApiController extends Controller
             $requestedRoles = ['guru'];
         }
 
-        $user = User::updateOrCreate(
-            ['username' => $username],
-            [
-                'name' => $name,
-                'email' => $email,
-                'password' => $password, // 'hashed' cast in User model auto-hashes
-                'is_active' => (bool) $request->input('is_active', true),
-            ]
-        );
+        $user = User::create([
+            'username' => $username,
+            'name' => $name,
+            'email' => $email,
+            'password' => $password, // 'hashed' cast in User model auto-hashes
+            'is_active' => (bool) $request->input('is_active', true),
+        ]);
 
         $validRoles = Role::whereIn('name', $requestedRoles)->pluck('name')->unique()->toArray();
         if (!empty($validRoles)) {
@@ -487,10 +531,20 @@ class AuthApiController extends Controller
             return response()->json(['success' => false, 'message' => 'Pengguna tidak ditemukan.'], 404);
         }
 
-        if ($targetUser->id === 1 || $targetUser->username === 'superadmin') {
-            return response()->json(['success' => false, 'message' => 'Akun Super Admin Master tidak dapat dihapus.'], 403);
+        if ($request->user()?->id === $targetUser->id) {
+            return response()->json(['success' => false, 'message' => 'Anda tidak dapat menghapus akun Anda sendiri.'], 422);
         }
 
+        if (self::isSuperAdmin($targetUser)) {
+            if (!self::isSuperAdmin($request->user())) {
+                return response()->json(['success' => false, 'message' => 'Akun Super Admin hanya dapat dihapus oleh Super Admin.'], 403);
+            }
+            if (User::role('super-admin')->count() <= 1) {
+                return response()->json(['success' => false, 'message' => 'Super Admin terakhir tidak dapat dihapus.'], 422);
+            }
+        }
+
+        $targetUser->tokens()->delete();
         $targetUser->delete();
         return response()->json(['success' => true, 'message' => "Pengguna @{$targetUser->username} berhasil dihapus."]);
     }

@@ -12,6 +12,12 @@ class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable, HasRoles;
 
+    /**
+     * Role & permission Spatie selalu memakai guard 'web', walaupun request login lewat Sanctum.
+     * Tanpa ini, pengecekan izin pada request API (guard 'sanctum') gagal untuk semua role selain super-admin.
+     */
+    protected string $guard_name = 'web';
+
     protected $fillable = [
         'name',
         'email',

@@ -45,21 +45,14 @@ class IotDeviceApiController extends Controller
             ], 400);
         }
 
-        // 2. Validasi Keamanan Global API Key (Opsional / Fleksibel)
-        $apiKey = $request->header('X-GLOBAL-KEY') ?? $request->header('x-global-key');
-        $configuredKey = env('NEXABSEN_GLOBAL_KEY');
-        if (!empty($configuredKey) && $apiKey !== $configuredKey) {
-            return response()->json([
-                'success' => false,
-                'message' => 'API Key Salah!',
-            ], 401);
-        }
+        // 2. Validasi API Key dilakukan oleh middleware 'iot.key' (wajib, fail-closed)
 
         $normalizedUid = Student::normalizeRfidUid((string) $rawUid);
 
         // 3. Dukungan Reset Konfigurasi via Kartu Master Admin (Nexabsen V4.1)
-        $masterAdminUid = strtoupper((string) env('NEXABSEN_MASTER_ADMIN_UID', '99887766'));
-        if ($normalizedUid === '99887766' || $normalizedUid === $masterAdminUid) {
+        // Hanya aktif jika NEXABSEN_MASTER_ADMIN_UID diisi di .env (tidak ada UID bawaan)
+        $masterAdminUid = Student::normalizeRfidUid((string) config('services.nexabsen.master_admin_uid', ''));
+        if ($masterAdminUid && hash_equals($masterAdminUid, (string) $normalizedUid)) {
             return response()->json([
                 'message' => 'Akses Admin',
                 'action' => 'RESET_CONFIG',
@@ -78,8 +71,9 @@ class IotDeviceApiController extends Controller
             ?? ($jsonData['device_code'] ?? null) 
             ?? 'NEXABSEN-01'
         );
-        $deviceName = (string) ($request->input('device_name') ?? ($jsonData['device_name'] ?? 'Nexabsen RFID Terminal'));
-        $deviceLocation = (string) ($request->input('location') ?? ($jsonData['location'] ?? 'Gerbang / Pintu Masuk'));
+        $deviceCode = mb_substr($deviceCode, 0, 64);
+        $deviceName = mb_substr((string) ($request->input('device_name') ?? ($jsonData['device_name'] ?? 'Nexabsen RFID Terminal')), 0, 120);
+        $deviceLocation = mb_substr((string) ($request->input('location') ?? ($jsonData['location'] ?? 'Gerbang / Pintu Masuk')), 0, 120);
 
         $device = AttendanceDevice::firstOrCreate(
             ['device_code' => $deviceCode],
@@ -98,6 +92,15 @@ class IotDeviceApiController extends Controller
 
         // 5. Cari Identitas Santri Berdasarkan UID Kartu
         $student = Student::with(['classroom', 'dormitoryRoom'])->where('rfid_uid', $normalizedUid)->first();
+
+        if ($student && !$student->is_active) {
+            return response()->json([
+                'success' => false,
+                'code' => 'STUDENT_INACTIVE',
+                'message' => 'Santri Nonaktif!',
+                'data' => ['name' => $student->name, 'uid' => $normalizedUid],
+            ], 403);
+        }
 
         if (!$student) {
             // Simpan ke cache agar langsung terdeteksi di portal pendaftaran kartu /registrasi-rfid
@@ -122,13 +125,30 @@ class IotDeviceApiController extends Controller
         }
 
         // 6. Tentukan Jam Tap Nyata (Mendukung Timestamp Recovery antrean offline ESP32)
+        // Waktu dari perangkat hanya diterima jika wajar (antrean offline), selain itu pakai jam server.
         $tappedAtParam = $request->input('tapped_at') ?? ($jsonData['tapped_at'] ?? null);
-        $checkInTime = $tappedAtParam ? Carbon::parse($tappedAtParam) : now();
+        $checkInTime = now();
+        if ($tappedAtParam) {
+            try {
+                $candidate = Carbon::parse((string) $tappedAtParam);
+                $maxBack = (int) config('services.nexabsen.max_offline_backdate_minutes', 720);
+                if ($candidate->between(now()->subMinutes($maxBack), now()->addMinutes(2))) {
+                    $checkInTime = $candidate;
+                }
+            } catch (\Throwable $e) {
+                // format waktu tidak valid -> abaikan, gunakan jam server
+            }
+        }
 
         // 7. Resolusi Sesi Presensi Aktif (Smart Resolution)
         $session = null;
+        $usableStatuses = [SessionStatus::OPEN->value, SessionStatus::DRAFT->value];
+
         if ($request->filled('session_id')) {
-            $session = AttendanceSession::find($request->input('session_id'));
+            $session = AttendanceSession::whereKey($request->input('session_id'))
+                ->where('status', SessionStatus::OPEN)
+                ->whereDate('session_date', today())
+                ->first();
         }
 
         // Cari sesi yang statusnya OPEN hari ini
@@ -142,19 +162,24 @@ class IotDeviceApiController extends Controller
         // Jika tidak ada yang OPEN eksplisit, cari jadwal kegiatan yang berjalan pada jam ini
         if (!$session) {
             $session = AttendanceSession::whereDate('session_date', today())
+                ->whereIn('status', $usableStatuses)
                 ->where('start_at', '<=', now())
                 ->where('end_at', '>=', now())
                 ->first();
         }
 
-        // Fallback: Cari sesi terbaru hari ini
-        if (!$session) {
-            $session = AttendanceSession::whereDate('session_date', today())
-                ->latest('id')
-                ->first();
+        // Jangan pernah mencatat ke sesi yang sudah DITUTUP/DIBATALKAN
+        $hasAnySessionToday = AttendanceSession::whereDate('session_date', today())->exists();
+        if (!$session && $hasAnySessionToday) {
+            return response()->json([
+                'success' => false,
+                'code' => 'NO_ACTIVE_SESSION',
+                'message' => 'Tdk Ada Sesi!',
+                'data' => ['name' => $student->name, 'uid' => $normalizedUid],
+            ], 409);
         }
 
-        // Fallback Cerdas: Jika sama sekali belum ada sesi hari ini, buat sesi dinamis harian
+        // Fallback: belum ada sesi sama sekali hari ini -> buat sesi dinamis harian
         if (!$session) {
             $defaultActivity = Activity::first();
             if (!$defaultActivity) {
@@ -225,16 +250,26 @@ class IotDeviceApiController extends Controller
         }
 
         // 10. Rekam Data Presensi ke Database
-        AttendanceRecord::create([
-            'attendance_session_id' => $session->id,
-            'student_id' => $student->id,
-            'status' => $status,
-            'method' => 'rfid',
-            'check_in_at' => $checkInTime,
-            'late_minutes' => $lateMinutes,
-            'attendance_device_id' => $device->id,
-            'notes' => 'Tap via Hardware [' . $deviceCode . ']',
-        ]);
+        try {
+            AttendanceRecord::create([
+                'attendance_session_id' => $session->id,
+                'student_id' => $student->id,
+                'status' => $status,
+                'method' => 'rfid',
+                'check_in_at' => $checkInTime,
+                'late_minutes' => $lateMinutes,
+                'attendance_device_id' => $device->id,
+                'notes' => 'Tap via Hardware [' . $deviceCode . ']',
+            ]);
+        } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
+            // Tap ganda yang datang hampir bersamaan
+            return response()->json([
+                'success' => true,
+                'code' => 'ALREADY_RECORDED',
+                'message' => 'Sudah Absen',
+                'data' => ['name' => $student->name, 'uid' => $normalizedUid],
+            ], 200);
+        }
 
         $pesanLcd = ($status === 'late') ? 'Absen (TELAT)' : 'Absen Sukses';
 
@@ -338,7 +373,7 @@ class IotDeviceApiController extends Controller
     {
         $request->validate([
             'student_id' => 'required|exists:students,id',
-            'rfid_uid' => 'required|string',
+            'rfid_uid' => 'required|string|max:64',
         ]);
 
         $normalizedUid = Student::normalizeRfidUid((string) $request->input('rfid_uid'));

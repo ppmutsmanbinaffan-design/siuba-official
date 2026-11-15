@@ -477,10 +477,41 @@ class LandingCmsApiController extends Controller
         }
     }
 
+    /**
+     * Field pendaftar yang AMAN ditampilkan ke publik saat cek status (tanpa alamat, NISN, WA, nama wali).
+     */
+    private const PUBLIC_REGISTRATION_FIELDS = [
+        'id', 'reg_number', 'student_name', 'gender', 'level', 'track', 'juz_memorized',
+        'status', 'test_score_quran', 'test_score_academic', 'notes', 'created_at',
+    ];
+
+    /** Status yang boleh diset oleh panitia. */
+    private const REGISTRATION_STATUSES = ['Baru', 'Diverifikasi', 'Tes Seleksi', 'Diterima', 'Cadangan', 'Ditolak', 'Tidak Lulus', 'Daftar Ulang', 'Batal'];
+
+    /**
+     * Bersihkan input CMS secara rekursif: buang tag HTML & URL berbahaya (javascript:, data:text/html, vbscript:)
+     * agar tidak bisa disisipkan script (XSS) ke halaman publik.
+     */
+    public static function sanitizeDeep(mixed $value): mixed
+    {
+        if (is_array($value)) {
+            return array_map([self::class, 'sanitizeDeep'], $value);
+        }
+        if (!is_string($value)) {
+            return $value;
+        }
+        $clean = strip_tags($value);
+        // Hapus sisa < > dan ganti tanda kutip lurus dengan kutip tipografis agar tidak bisa "keluar" dari atribut HTML
+        $clean = str_replace(['<', '>', '"', "'", '`'], ['', '', '”', '’', '’'], $clean);
+        if (preg_match('/^\s*(javascript|vbscript|data:text\/html)\s*:?/i', $clean)) {
+            return '';
+        }
+        return $clean;
+    }
+
     public function getPublicData(): JsonResponse
     {
         self::seedDefaultNewsIfEmpty();
-        self::seedDefaultPpdbRegistrationsIfEmpty();
 
         $profileRow = DB::table('landing_settings')->where('key', 'profile')->first();
         $ppdbRow = DB::table('landing_settings')->where('key', 'ppdb')->first();
@@ -503,46 +534,62 @@ class LandingCmsApiController extends Controller
             ->orderByDesc('id')
             ->get();
 
-        $registrations = DB::table('ppdb_registrations')
-            ->orderByDesc('id')
-            ->get();
+        // CATATAN KEAMANAN: data pendaftar TIDAK lagi dikirim di endpoint publik.
+        // Halaman admin mengambilnya dari GET /api/v1/cms/ppdb/registrations (wajib login).
+        // Sanitasi juga saat keluar, untuk membersihkan data lama yang mungkin sudah tersusupi
+        return response()->json([
+            'success' => true,
+            'profile' => self::sanitizeDeep($profile),
+            'ppdb' => self::sanitizeDeep($ppdb),
+            'news' => self::sanitizeDeep(json_decode(json_encode($news), true)),
+        ]);
+    }
+
+    /**
+     * Daftar seluruh pendaftar PSB (khusus panitia / admin yang login).
+     */
+    public function listPpdbRegistrations(): JsonResponse
+    {
+        self::seedDefaultPpdbRegistrationsIfEmpty();
 
         return response()->json([
             'success' => true,
-            'profile' => $profile,
-            'ppdb' => $ppdb,
-            'news' => $news,
-            'registrations' => $registrations,
+            'registrations' => DB::table('ppdb_registrations')->orderByDesc('id')->get(),
         ]);
     }
 
     public function checkPpdbStatus(Request $request): JsonResponse
     {
-        self::seedDefaultPpdbRegistrationsIfEmpty();
         $q = trim((string) $request->query('q', ''));
-        if ($q === '') {
+        if ($q === '' || mb_strlen($q) > 64) {
             return response()->json(['success' => false, 'message' => 'Masukkan Nomor Registrasi, NISN, atau Nomor WhatsApp.'], 422);
         }
 
+        // Pencarian HARUS cocok persis (tidak lagi pakai LIKE / nama) agar data pendaftar lain tidak bisa ditebak.
         $cleanPhone = preg_replace('/[^0-9]/', '', $q);
+        $phoneVariants = [];
+        if (strlen($cleanPhone) >= 10) {
+            $local = str_starts_with($cleanPhone, '62') ? '0' . substr($cleanPhone, 2) : $cleanPhone;
+            $intl = str_starts_with($local, '0') ? '62' . substr($local, 1) : $local;
+            $phoneVariants = array_unique([$cleanPhone, $local, $intl]);
+        }
 
         $item = DB::table('ppdb_registrations')
-            ->where('reg_number', 'like', '%' . $q . '%')
-            ->orWhere('nisn', $q)
-            ->orWhere('whatsapp', 'like', '%' . $q . '%')
-            ->orWhere(function ($query) use ($cleanPhone) {
-                if (strlen($cleanPhone) >= 6) {
-                    $query->where('whatsapp', 'like', '%' . substr($cleanPhone, -8) . '%');
+            ->select(self::PUBLIC_REGISTRATION_FIELDS)
+            ->where(function ($query) use ($q, $phoneVariants) {
+                $query->where('reg_number', strtoupper($q))
+                    ->orWhere('nisn', $q);
+                if (!empty($phoneVariants)) {
+                    $query->orWhereIn(DB::raw("REPLACE(REPLACE(REPLACE(whatsapp, '-', ''), ' ', ''), '+', '')"), $phoneVariants);
                 }
             })
-            ->orWhere('student_name', 'like', '%' . $q . '%')
             ->orderByDesc('id')
             ->first();
 
         if (!$item) {
             return response()->json([
                 'success' => false,
-                'message' => 'Data pendaftar tidak ditemukan. Pastikan Nomor Registrasi / WhatsApp / Nama sudah benar.',
+                'message' => 'Data pendaftar tidak ditemukan. Pastikan Nomor Registrasi, NISN, atau Nomor WhatsApp sudah benar.',
             ], 404);
         }
 
@@ -556,7 +603,11 @@ class LandingCmsApiController extends Controller
     {
         $existingRow = DB::table('landing_settings')->where('key', 'profile')->first();
         $existing = $existingRow ? (json_decode($existingRow->value, true) ?? []) : self::defaultProfile();
-        $merged = array_merge($existing, $request->all());
+        $input = $request->except(['_token', 'token', 'password']);
+        if (strlen((string) json_encode($input)) > 500000) {
+            return response()->json(['success' => false, 'message' => 'Data terlalu besar.'], 422);
+        }
+        $merged = array_merge($existing, self::sanitizeDeep($input));
 
         DB::table('landing_settings')->updateOrInsert(
             ['key' => 'profile'],
@@ -574,17 +625,17 @@ class LandingCmsApiController extends Controller
     {
         $existingRow = DB::table('landing_settings')->where('key', 'ppdb')->first();
         $existing = $existingRow ? (json_decode($existingRow->value, true) ?? []) : self::defaultPpdb();
-        $data = $request->all();
+        $data = $request->except(['_token', 'token', 'password']);
+        if (strlen((string) json_encode($data)) > 500000) {
+            return response()->json(['success' => false, 'message' => 'Data terlalu besar.'], 422);
+        }
+        $data = self::sanitizeDeep($data);
         $merged = array_merge($existing, $data);
 
-        if ($request->has('wave_items')) {
-            $merged['wave_items'] = $request->input('wave_items');
-        }
-        if ($request->has('fee_items')) {
-            $merged['fee_items'] = $request->input('fee_items');
-        }
-        if ($request->has('scholarship_items')) {
-            $merged['scholarship_items'] = $request->input('scholarship_items');
+        foreach (['wave_items', 'fee_items', 'scholarship_items'] as $listKey) {
+            if (array_key_exists($listKey, $data)) {
+                $merged[$listKey] = $data[$listKey];
+            }
         }
 
         DB::table('landing_settings')->updateOrInsert(
@@ -601,6 +652,16 @@ class LandingCmsApiController extends Controller
 
     public function storeNews(Request $request): JsonResponse
     {
+        $request->validate([
+            'title' => 'required|string|max:200',
+            'category' => 'nullable|string|max:100',
+            'published_date' => 'nullable|string|max:50',
+            'excerpt' => 'nullable|string|max:5000',
+            'image_url' => ['nullable', 'string', 'max:1000', 'regex:/^(https?:\\/\\/|\\/)/i'],
+            'is_published' => 'nullable|boolean',
+        ]);
+        $request->merge(self::sanitizeDeep($request->only(['title', 'category', 'published_date', 'excerpt', 'image_url'])));
+
         $id = DB::table('landing_news')->insertGetId([
             'title' => (string) $request->input('title', 'Berita Baru Pesantren'),
             'category' => (string) $request->input('category', 'Kegiatan Pondok'),
@@ -621,6 +682,16 @@ class LandingCmsApiController extends Controller
 
     public function updateNews(Request $request, int $id): JsonResponse
     {
+        $request->validate([
+            'title' => 'required|string|max:200',
+            'category' => 'nullable|string|max:100',
+            'published_date' => 'nullable|string|max:50',
+            'excerpt' => 'nullable|string|max:5000',
+            'image_url' => ['nullable', 'string', 'max:1000', 'regex:/^(https?:\\/\\/|\\/)/i'],
+            'is_published' => 'nullable|boolean',
+        ]);
+        $request->merge(self::sanitizeDeep($request->only(['title', 'category', 'published_date', 'excerpt', 'image_url'])));
+
         DB::table('landing_news')->where('id', $id)->update([
             'title' => (string) $request->input('title'),
             'category' => (string) $request->input('category', 'Kegiatan Pondok'),
@@ -650,6 +721,30 @@ class LandingCmsApiController extends Controller
 
     public function submitPpdbRegistration(Request $request): JsonResponse
     {
+        $request->validate([
+            'student_name' => 'required_without:nama_lengkap|nullable|string|max:150',
+            'nama_lengkap' => 'required_without:student_name|nullable|string|max:150',
+            'whatsapp' => 'required_without:no_whatsapp|nullable|string|max:25',
+            'no_whatsapp' => 'required_without:whatsapp|nullable|string|max:25',
+            'nisn' => 'nullable|string|max:20',
+            'level' => 'nullable|string|max:50', 'jenjang' => 'nullable|string|max:50',
+            'track' => 'nullable|string|max:50', 'jalur' => 'nullable|string|max:50',
+            'parent_name' => 'nullable|string|max:150', 'nama_wali' => 'nullable|string|max:150',
+            'origin_school' => 'nullable|string|max:150', 'asal_sekolah' => 'nullable|string|max:150',
+            'gender' => 'nullable|string|max:20',
+            'birth_info' => 'nullable|string|max:150',
+            'wave' => 'nullable|string|max:100',
+            'juz_memorized' => 'nullable|string|max:30',
+            'address' => 'nullable|string|max:500',
+            'notes' => 'nullable|string|max:1000',
+        ]);
+
+        $request->merge(self::sanitizeDeep($request->except(['_token'])));
+
+        // Hanya panitia yang login yang boleh mengisi status & nilai tes saat input manual.
+        $staff = auth('sanctum')->user();
+        $isPanitia = $staff && $staff->canAny(['psb.manage', 'ppdb.manage']);
+
         $studentName = $request->input('student_name') ?? $request->input('nama_lengkap') ?? 'Calon Santri';
         $level = $request->input('level') ?? $request->input('jenjang') ?? 'SMP IT';
         $track = $request->input('track') ?? $request->input('jalur') ?? 'Reguler';
@@ -668,11 +763,11 @@ class LandingCmsApiController extends Controller
             $notes = trim(($notes !== '' ? $notes . ' | ' : '') . 'Gelombang: ' . $wave);
         }
 
-        $nextNum = DB::table('ppdb_registrations')->max('id') + 1;
-        $regNumber = sprintf('PSB-2026-%04d', $nextNum);
+        // Nomor registrasi dibuat dari ID hasil insert (aman dari tabrakan saat pendaftaran bersamaan).
+        $tempRegNumber = 'TMP-' . \Illuminate\Support\Str::uuid();
 
         $id = DB::table('ppdb_registrations')->insertGetId([
-            'reg_number' => $regNumber,
+            'reg_number' => $tempRegNumber,
             'student_name' => (string) $studentName,
             'nisn' => $nisn,
             'gender' => $gender,
@@ -684,13 +779,16 @@ class LandingCmsApiController extends Controller
             'whatsapp' => (string) $whatsapp,
             'origin_school' => (string) ($originSchool ?: '-'),
             'address' => $address,
-            'status' => (string) $request->input('status', 'Baru'),
-            'test_score_quran' => (string) $request->input('test_score_quran', '-'),
-            'test_score_academic' => (string) $request->input('test_score_academic', '-'),
+            'status' => $isPanitia && in_array($request->input('status'), self::REGISTRATION_STATUSES, true) ? (string) $request->input('status') : 'Baru',
+            'test_score_quran' => $isPanitia ? (string) $request->input('test_score_quran', '-') : '-',
+            'test_score_academic' => $isPanitia ? (string) $request->input('test_score_academic', '-') : '-',
             'notes' => $notes,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+
+        $regNumber = sprintf('PSB-%s-%04d', now()->format('Y'), $id);
+        DB::table('ppdb_registrations')->where('id', $id)->update(['reg_number' => $regNumber]);
 
         // Ambil Nomor WhatsApp & Nama Admin Panitia PSB dari Pengaturan CMS
         $ppdbSettingsRow = DB::table('landing_settings')->where('key', 'ppdb')->first();
@@ -732,8 +830,8 @@ class LandingCmsApiController extends Controller
 
         // Dukungan otomatis WA Gateway / Fonnte / Wablas (jika env disetel)
         $gatewayStatus = 'direct_wa_link_ready';
-        $gatewayUrl = env('WA_GATEWAY_URL');
-        $gatewayToken = env('WA_GATEWAY_TOKEN') ?: env('FONNTE_TOKEN');
+        $gatewayUrl = config('services.wa_gateway.url');
+        $gatewayToken = config('services.wa_gateway.token');
 
         if ($gatewayUrl && $gatewayToken && $cleanAdminPhone) {
             try {
@@ -753,7 +851,7 @@ class LandingCmsApiController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Pendaftaran PSB berhasil disimpan dengan Nomor Registrasi: ' . $regNumber,
-            'registration' => DB::table('ppdb_registrations')->find($id),
+            'registration' => DB::table('ppdb_registrations')->select(self::PUBLIC_REGISTRATION_FIELDS)->find($id),
             'admin_phone' => $adminWa,
             'admin_name' => $adminName,
             'admin_clean_phone' => $cleanAdminPhone,
@@ -765,6 +863,23 @@ class LandingCmsApiController extends Controller
 
     public function updatePpdbRegistrationStatus(Request $request, int $id): JsonResponse
     {
+        $request->validate([
+            'status' => 'nullable|string|max:50',
+            'test_score_quran' => 'nullable|string|max:20',
+            'test_score_academic' => 'nullable|string|max:20',
+            'notes' => 'nullable|string|max:1000',
+            'level' => 'nullable|string|max:50',
+            'track' => 'nullable|string|max:50',
+            'juz_memorized' => 'nullable|string|max:30',
+            'gender' => 'nullable|string|max:20',
+            'nisn' => 'nullable|string|max:20',
+            'birth_info' => 'nullable|string|max:150',
+            'address' => 'nullable|string|max:500',
+        ]);
+
+        abort_unless(DB::table('ppdb_registrations')->where('id', $id)->exists(), 404);
+        $request->merge(self::sanitizeDeep($request->except(['_token'])));
+
         $updateData = ['updated_at' => now()];
         foreach (['status', 'test_score_quran', 'test_score_academic', 'notes', 'level', 'track', 'juz_memorized', 'gender', 'nisn', 'birth_info', 'address'] as $field) {
             if ($request->has($field)) {
