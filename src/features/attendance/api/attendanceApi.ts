@@ -1,4 +1,4 @@
-import { apiClient, ApiClientError } from '../../../services/apiClient';
+import { apiClient, isOfflineError, resultFromApiError } from '../../../services/apiClient';
 import { 
   Activity,
   AttendanceCorrectionResult,
@@ -87,6 +87,7 @@ export const attendanceApi = {
         return res.data;
       }
     } catch (err: any) {
+      if (!isOfflineError(err)) throw err;
       // Fallback to local storage cache
       console.warn('API /attendance/sessions request fallback to cache:', err.message);
     }
@@ -122,6 +123,7 @@ export const attendanceApi = {
       const res = await apiClient.request<AttendanceSession>(`/attendance/sessions/${sessionId}`);
       if (res && res.data) return res.data;
     } catch (err: any) {
+      if (!isOfflineError(err)) throw err;
       console.warn(`API /attendance/sessions/${sessionId} failed:`, err.message);
     }
 
@@ -148,6 +150,7 @@ export const attendanceApi = {
         return res.data;
       }
     } catch (err: any) {
+      if (!isOfflineError(err)) throw err;
       console.warn(`API /attendance/sessions/${sessionId}/participants failed:`, err.message);
     }
 
@@ -180,6 +183,7 @@ export const attendanceApi = {
         return res.data;
       }
     } catch (err: any) {
+      if (!isOfflineError(err)) throw err;
       console.warn(`API /attendance/sessions/${sessionId}/records failed:`, err.message);
     }
 
@@ -194,7 +198,8 @@ export const attendanceApi = {
     try {
       const res = await apiClient.request<AttendanceTodayKpi>(`/attendance/kpi?date=${date}`);
       if (res && res.data) return res.data;
-    } catch {
+    } catch (err: any) {
+      if (!isOfflineError(err)) throw err;
       // fallback
     }
 
@@ -254,6 +259,7 @@ export const attendanceApi = {
         return res.data;
       }
     } catch (err: any) {
+      if (!isOfflineError(err)) throw err;
       console.warn(`API /attendance/sessions/${sessionId}/open failed:`, err.message);
     }
 
@@ -284,6 +290,7 @@ export const attendanceApi = {
       });
       if (res && res.data) return res.data;
     } catch (err: any) {
+      if (!isOfflineError(err)) throw err;
       console.warn(`API /attendance/sessions/${sessionId}/close failed:`, err.message);
     }
 
@@ -318,6 +325,7 @@ export const attendanceApi = {
       });
       if (res && res.data) return res.data;
     } catch (err: any) {
+      if (!isOfflineError(err)) throw err;
       console.warn(`API /attendance/sessions/${sessionId}/cancel failed:`, err.message);
     }
 
@@ -363,13 +371,7 @@ export const attendanceApi = {
       });
       if (res && res.data) return res.data;
     } catch (err: any) {
-      if (err instanceof ApiClientError && err.status === 422) {
-        return {
-          success: false,
-          code: 'ALREADY_RECORDED',
-          message: err.message || 'Santri sudah memiliki absensi pada sesi ini.',
-        };
-      }
+      if (!isOfflineError(err)) return resultFromApiError(err);
     }
 
     // Engine simulation fallback
@@ -449,7 +451,10 @@ export const attendanceApi = {
         }),
       });
       if (res && res.data) return res.data;
-    } catch {
+    } catch (err: any) {
+      if (!isOfflineError(err)) {
+        return { total: studentIds.length, success: 0, skipped: 0, failed: studentIds.length, messages: [resultFromApiError(err).message], newRecords: [] };
+      }
       // fallback
     }
 
@@ -525,13 +530,7 @@ export const attendanceApi = {
       });
       if (res && res.data) return res.data;
     } catch (err: any) {
-      if (err instanceof ApiClientError && err.status === 422) {
-        return {
-          success: false,
-          code: 'ALREADY_RECORDED',
-          message: err.message || 'Santri sudah memiliki absensi pada sesi ini.',
-        };
-      }
+      if (!isOfflineError(err)) return resultFromApiError(err);
     }
 
     const sessions = getLocalCache<AttendanceSession[]>(SESSIONS_STORAGE_KEY, INITIAL_ATTENDANCE_SESSIONS);
@@ -594,7 +593,8 @@ export const attendanceApi = {
         }),
       });
       if (res && res.data) return res.data;
-    } catch {
+    } catch (err: any) {
+      if (!isOfflineError(err)) return resultFromApiError(err);
       // fallback
     }
 
@@ -703,7 +703,8 @@ export const attendanceApi = {
       if (res && res.data && Array.isArray(res.data)) {
         return res.data;
       }
-    } catch {
+    } catch (err: any) {
+      if (!isOfflineError(err)) throw err;
       // fallback
     }
 

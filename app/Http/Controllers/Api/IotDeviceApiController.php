@@ -262,7 +262,7 @@ class IotDeviceApiController extends Controller
                 'id' => $student->id,
                 'name' => $student->name,
                 'student_number' => $student->student_number,
-                'gender' => $student->gender?->value ?? $student->gender,
+                'gender' => \App\Http\Transformers\SpaTransformer::val($student->gender),
                 'classroom' => $student->classroom?->name ?? 'Semua Santri',
             ],
             'session' => [
@@ -334,7 +334,7 @@ class IotDeviceApiController extends Controller
                 'name' => $stu->name,
                 'student_number' => $stu->student_number,
                 'nisn' => $stu->nisn,
-                'gender' => $stu->gender?->value ?? $stu->gender,
+                'gender' => \App\Http\Transformers\SpaTransformer::val($stu->gender),
                 'classroom' => $stu->classroom?->name ?? 'Belum ada kelas',
                 'dormitory' => $stu->dormitoryRoom?->name ?? 'Non-Asrama',
                 'rfid_uid' => $stu->rfid_uid,

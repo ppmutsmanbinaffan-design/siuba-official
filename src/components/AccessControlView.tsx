@@ -583,14 +583,6 @@ export const AccessControlView: React.FC<Props> = ({
     setFormIsActive(user.is_active);
     setShowPasswordInForm(false);
   };
-    setFormName(user.name);
-    setFormUsername(user.username);
-    setFormEmail(user.email);
-    setFormPassword(user.password || 'password');
-    setFormRole(user.role);
-    setFormIsActive(user.is_active);
-    setShowPasswordInForm(false);
-  };
 
   // Toggle user active status
   const handleToggleUserActive = (user: User) => {

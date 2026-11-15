@@ -1,4 +1,4 @@
-import { apiClient, ApiResponse } from '../../../services/apiClient';
+import { apiClient, ApiResponse, isOfflineError } from '../../../services/apiClient';
 import { Student, StudentStatus, Classroom, DormitoryRoom } from '../../../types';
 import { INITIAL_STUDENTS, INITIAL_CLASSROOMS, INITIAL_DORMITORY_ROOMS } from '../../../data/initialData';
 import { StudentIdentityService } from '../../../services/studentIdentityService';
@@ -80,6 +80,40 @@ function saveLocalStudents(students: Student[]): void {
   }
 }
 
+/** Simpan/perbarui santri dari server ke cache lokal (untuk mode offline). */
+function upsertLocalStudents(items: Student[]): void {
+  if (!items.length) return;
+  // Pertama kali terhubung ke server: buang data contoh (demo) agar tidak tercampur data asli
+  let fromServer = false;
+  try {
+    fromServer = localStorage.getItem('siuba_students_cache_source') === 'server';
+    if (!fromServer) localStorage.setItem('siuba_students_cache_source', 'server');
+  } catch {
+    // ignore
+  }
+  const base = fromServer ? getLocalStudents() : [];
+  const all = base.filter((s) => !items.some((i) => String(i.id) === String(s.id)));
+  saveLocalStudents([...all, ...items]);
+}
+
+function cacheList(key: string, data: unknown[]): void {
+  try {
+    localStorage.setItem(key, JSON.stringify(data));
+  } catch {
+    // ignore
+  }
+}
+
+function readCachedList<T>(key: string, fallback: T[]): T[] {
+  try {
+    const raw = localStorage.getItem(key);
+    const parsed = raw ? JSON.parse(raw) : null;
+    return Array.isArray(parsed) ? parsed : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 export const studentApi = {
   /**
    * Fetch paginated student list with search, filter, and sorting
@@ -110,6 +144,7 @@ export const studentApi = {
       });
 
       if (res.data && Array.isArray(res.data) && res.meta) {
+        upsertLocalStudents(res.data);
         return {
           data: res.data,
           meta: {
@@ -121,7 +156,8 @@ export const studentApi = {
         };
       }
     } catch (err: any) {
-      console.warn('API /students falling back to local master store:', err.message);
+      if (!isOfflineError(err)) throw err;
+      console.warn('Server offline, memakai data santri tersimpan:', err.message);
     }
 
     // Local resilient filtering & pagination
@@ -187,8 +223,12 @@ export const studentApi = {
   async getStudentById(id: number | string): Promise<Student> {
     try {
       const res = await apiClient.get<Student>(`/students/${id}`);
-      if (res.data) return res.data;
+      if (res.data) {
+        upsertLocalStudents([res.data]);
+        return res.data;
+      }
     } catch (err: any) {
+      if (!isOfflineError(err)) throw err;
       console.warn(`API /students/${id} routed to local storage:`, err.message);
     }
 
@@ -204,15 +244,7 @@ export const studentApi = {
    * Create new student
    */
   async createStudent(payload: CreateStudentPayload): Promise<Student> {
-    // Validate uniqueness of NIS in local store
     const all = getLocalStudents();
-    const existingNis = all.find((s) => s.student_number.toLowerCase() === payload.student_number.toLowerCase());
-    if (existingNis) {
-      const err: any = new Error('NIS sudah terdaftar di sistem.');
-      err.status = 422;
-      err.errors = { student_number: ['NIS ini sudah digunakan oleh santri lain.'] };
-      throw err;
-    }
 
     // Resolve class & room names
     const classrooms: Classroom[] = typeof window !== 'undefined' && localStorage.getItem(LOCAL_CLASSROOMS_KEY)
@@ -228,13 +260,21 @@ export const studentApi = {
     try {
       const res = await apiClient.post<Student>('/students', payload);
       if (res.data) {
-        // sync to local store
-        saveLocalStudents([...all, res.data]);
+        upsertLocalStudents([res.data]);
         return res.data;
       }
     } catch (err: any) {
-      if (err.status === 422) throw err;
-      console.warn('API /students POST failed, persisting locally:', err.message);
+      if (!isOfflineError(err)) throw err;
+      console.warn('Server offline, santri disimpan sementara di perangkat ini:', err.message);
+    }
+
+    // Mode offline: cek NIS terhadap data lokal
+    const existingNis = all.find((s) => s.student_number.toLowerCase() === payload.student_number.toLowerCase());
+    if (existingNis) {
+      const err: any = new Error('NIS sudah terdaftar di sistem.');
+      err.status = 422;
+      err.errors = { student_number: ['NIS ini sudah digunakan oleh santri lain.'] };
+      throw err;
     }
 
     const newId = all.reduce((max, s) => Math.max(max, s.id || 0), 0) + 1;
@@ -275,6 +315,17 @@ export const studentApi = {
    * Update student details
    */
   async updateStudent(id: number | string, payload: UpdateStudentPayload): Promise<Student> {
+    try {
+      const res = await apiClient.put<Student>(`/students/${id}`, payload);
+      if (res.data) {
+        upsertLocalStudents([res.data]);
+        return res.data;
+      }
+    } catch (err: any) {
+      if (!isOfflineError(err)) throw err;
+      console.warn(`Server offline, perubahan santri ${id} disimpan sementara di perangkat ini:`, err.message);
+    }
+
     const all = getLocalStudents();
     const index = all.findIndex((s) => String(s.id) === String(id));
     if (index === -1) {
@@ -294,17 +345,6 @@ export const studentApi = {
       }
     }
 
-    try {
-      const res = await apiClient.put<Student>(`/students/${id}`, payload);
-      if (res.data) {
-        all[index] = res.data;
-        saveLocalStudents(all);
-        return res.data;
-      }
-    } catch (err: any) {
-      if (err.status === 422) throw err;
-      console.warn(`API /students/${id} PUT failed, updating local store:`, err.message);
-    }
 
     // Resolve class & room names if changed
     const classrooms: Classroom[] = typeof window !== 'undefined' && localStorage.getItem(LOCAL_CLASSROOMS_KEY)
@@ -348,11 +388,14 @@ export const studentApi = {
   async getClassrooms(): Promise<Classroom[]> {
     try {
       const res = await apiClient.get<Classroom[]>('/classrooms');
-      if (res.data && Array.isArray(res.data)) return res.data;
-    } catch {
-      // fallback
+      if (res.data && Array.isArray(res.data)) {
+        cacheList(LOCAL_CLASSROOMS_KEY, res.data);
+        return res.data;
+      }
+    } catch (err: any) {
+      if (!isOfflineError(err)) throw err;
     }
-    return INITIAL_CLASSROOMS;
+    return readCachedList<Classroom>(LOCAL_CLASSROOMS_KEY, INITIAL_CLASSROOMS);
   },
 
   /**
@@ -361,10 +404,13 @@ export const studentApi = {
   async getDormitoryRooms(): Promise<DormitoryRoom[]> {
     try {
       const res = await apiClient.get<DormitoryRoom[]>('/dormitory-rooms');
-      if (res.data && Array.isArray(res.data)) return res.data;
-    } catch {
-      // fallback
+      if (res.data && Array.isArray(res.data)) {
+        cacheList(LOCAL_ROOMS_KEY, res.data);
+        return res.data;
+      }
+    } catch (err: any) {
+      if (!isOfflineError(err)) throw err;
     }
-    return INITIAL_DORMITORY_ROOMS;
+    return readCachedList<DormitoryRoom>(LOCAL_ROOMS_KEY, INITIAL_DORMITORY_ROOMS);
   },
 };

@@ -22,7 +22,6 @@ import {
   Award,
   Activity,
   Copy,
-  Check,
   ShieldCheck
 } from 'lucide-react';
 import { 

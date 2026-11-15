@@ -2,6 +2,9 @@
 
 use App\Http\Controllers\Api\AnalyticsApiController;
 use App\Http\Controllers\Api\AttendanceApiController;
+use App\Http\Controllers\Api\AttendanceSessionApiController;
+use App\Http\Controllers\Api\MasterDataApiController;
+use App\Http\Controllers\Api\StudentApiController;
 use App\Http\Controllers\Api\AuthApiController;
 use App\Http\Controllers\Api\DataImportApiController;
 use App\Http\Controllers\Api\DeviceManagementApiController;
@@ -78,6 +81,36 @@ Route::prefix('v1')->group(function () {
                 ->middleware('permission:staff.create|staff.edit|users.create');
             Route::post('/staff', [DataImportApiController::class, 'importStaff'])
                 ->middleware('permission:staff.create|staff.edit|users.create');
+        });
+
+        // Master Data Santri (aplikasi React - sebelumnya hanya localStorage)
+        Route::get('/students', [StudentApiController::class, 'index'])->middleware('permission:students.view');
+        Route::get('/students/{student}', [StudentApiController::class, 'show'])->middleware('permission:students.view');
+        Route::post('/students', [StudentApiController::class, 'store'])->middleware('permission:students.create');
+        Route::match(['put', 'patch'], '/students/{student}', [StudentApiController::class, 'update'])
+            ->middleware('permission:students.update|students.edit|students.deactivate');
+        Route::delete('/students/{student}', [StudentApiController::class, 'destroy'])->middleware('permission:students.delete');
+
+        // Referensi kelas, asrama, kamar (dibutuhkan semua pengguna yang login)
+        Route::get('/classrooms', [MasterDataApiController::class, 'classrooms']);
+        Route::get('/dormitories', [MasterDataApiController::class, 'dormitories']);
+        Route::get('/dormitory-rooms', [MasterDataApiController::class, 'dormitoryRooms']);
+
+        // Sesi absensi (aplikasi React)
+        Route::prefix('attendance')->group(function () {
+            $view = 'permission:attendance.view|attendance.sessions.view|attendance.monitoring';
+            Route::get('/sessions', [AttendanceSessionApiController::class, 'index'])->middleware($view);
+            Route::get('/kpi', [AttendanceSessionApiController::class, 'kpi'])->middleware($view);
+            Route::get('/monitoring', [AttendanceSessionApiController::class, 'monitoring'])->middleware($view);
+            Route::get('/sessions/{session}', [AttendanceSessionApiController::class, 'show'])->middleware($view);
+            Route::get('/sessions/{session}/participants', [AttendanceSessionApiController::class, 'participants'])->middleware($view);
+            Route::get('/sessions/{session}/records', [AttendanceSessionApiController::class, 'records'])->middleware($view);
+            Route::post('/sessions/{session}/open', [AttendanceSessionApiController::class, 'open'])->middleware('permission:attendance.sessions.open');
+            Route::post('/sessions/{session}/close', [AttendanceSessionApiController::class, 'close'])->middleware('permission:attendance.sessions.close');
+            Route::post('/sessions/{session}/cancel', [AttendanceSessionApiController::class, 'cancel'])->middleware('permission:attendance.sessions.close');
+            Route::post('/sessions/{session}/manual', [AttendanceSessionApiController::class, 'manual'])->middleware('permission:attendance.manual|attendance.create');
+            Route::post('/sessions/{session}/manual-bulk', [AttendanceSessionApiController::class, 'manualBulk'])->middleware('permission:attendance.manual|attendance.create');
+            Route::post('/records/{record}/correct', [AttendanceSessionApiController::class, 'correct'])->middleware('permission:attendance.update');
         });
 
         // Attendance Core Engine Endpoints

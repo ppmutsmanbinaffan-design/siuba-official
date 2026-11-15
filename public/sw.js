@@ -3,7 +3,7 @@
  * Caches static shell assets, handles offline fallback, routes write endpoints to Network Only
  */
 
-const CACHE_NAME = 'siuba-static-v1.16';
+const CACHE_NAME = 'siuba-static-v1.17';
 const STATIC_ASSETS = [
   '/beranda',
   '/app.html',

@@ -75,6 +75,23 @@ export class ApiClientError extends Error {
   }
 }
 
+/**
+ * True jika error disebabkan server tidak terjangkau (offline / jaringan putus).
+ * Hanya kondisi ini yang boleh memakai fallback data lokal (mode offline PWA).
+ * Error dari server (403, 409, 422, 500, ...) harus ditampilkan, BUKAN diam-diam disimpan di browser.
+ */
+export function isOfflineError(err: unknown): boolean {
+  if (err instanceof ApiClientError) return err.isNetworkError;
+  return err instanceof TypeError; // fetch gagal total (misal DNS / server mati)
+}
+
+/** Ubah error server menjadi hasil gagal yang bisa ditampilkan UI absensi. */
+export function resultFromApiError(err: unknown): { success: false; code: any; message: string } {
+  const e = err as ApiClientError;
+  const code = e?.status === 403 ? 'UNAUTHORIZED' : (e?.code && e.code !== 'HTTP_ERROR' ? e.code : 'SERVER_ERROR');
+  return { success: false, code, message: e?.message || 'Terjadi kesalahan pada server.' };
+}
+
 class ApiClientService {
   private baseUrl: string = '/api/v1';
   private token: string | null = null;

@@ -100,3 +100,51 @@ otomatis hanya dibuat jika hari itu belum ada sesi sama sekali (`NEXABSEN_AUTO_D
 - Pastikan setiap ESP32 mengirim `device_id` yang **unik** (misal `MSJ-RFID-01`, `KLS-7A-01`), bukan bawaan `NEXABSEN-01`.
 
 Test: `tests/Feature/IotTapConsistencyTest.php` (12 test).
+
+---
+
+# Update 3: Satu backend (Laravel) — tahap 1
+
+## Latar belakang
+
+`server.ts` (Express) hanyalah server tiruan: datanya disimpan di memori dan hilang setiap restart.
+Laravel belum punya sebagian besar API yang dipanggil aplikasi React, sehingga React **diam-diam menyimpan
+data ke localStorage browser** setiap kali API gagal — data tiap komputer berbeda dan bisa hilang.
+
+## Yang berubah
+
+- **Express dihapus** (`server.ts`, test Node yang menembak Express, `metadata.json`, `php-test-runner.php`, `bun.lock`).
+- **API Laravel baru** (semua wajib login + izin):
+  - Santri: `GET/POST /api/v1/students`, `GET/PUT/DELETE /api/v1/students/{id}`
+  - Referensi: `GET /api/v1/classrooms`, `/dormitories`, `/dormitory-rooms`
+  - Sesi absensi: `GET /attendance/sessions`, `GET /attendance/sessions/{id}`, `POST .../open|close|cancel`,
+    `GET .../participants`, `GET .../records`, `POST .../manual`, `POST .../manual-bulk`,
+    `POST /attendance/records/{id}/correct` (dengan riwayat koreksi), `GET /attendance/kpi`, `GET /attendance/monitoring`
+  - `POST /attendance/sessions/{id}/qr` kini mengembalikan bentuk respons yang dibaca layar scanner React.
+- **Migrasi baru** `2026_11_15_000018`: kolom profil santri (nama panggilan, TTL, tahun masuk, wali, alamat, status),
+  kode & kapasitas kelas, kode kamar.
+- **Frontend React**: modul `studentApi` & `attendanceApi` sekarang **server-first**. Data lokal hanya dipakai
+  bila server benar-benar tidak terjangkau (mode offline). Error dari server (NIS duplikat, sesi sudah ditutup,
+  tidak punya izin) **ditampilkan**, tidak lagi disimpan diam-diam di browser.
+- Perbaikan bug yang membuat source React tidak bisa di-build (`AccessControlView.tsx`), serta import ikon yang
+  hilang (`DashboardView`, `QrScannerView`) yang bisa membuat halaman crash.
+
+## Cara kerja baru (development & produksi)
+
+```bash
+# Produksi / komputer server pesantren
+composer install --no-dev --optimize-autoloader
+php artisan migrate --force
+npm ci && npm run build      # build React -> public/assets + update public/app.html
+php artisan optimize:clear
+
+# Development
+php artisan serve            # terminal 1 (Laravel, port 8000)
+npm run dev                  # terminal 2 (Vite, port 3000, API diteruskan ke Laravel)
+```
+
+## Belum termasuk (tahap berikutnya)
+
+Banyak tampilan lain di `App.tsx` (dashboard, laporan, KBM, asrama, staf, perangkat, dll.) masih membaca/menulis
+state lokal. Endpoint berikut belum ada di Laravel: `/staff`, `/attendance/devices`, `/attendance/devices/logs`,
+pembuatan sesi dari React, serta seluruh modul KBM/asrama/ekskul di sisi React.

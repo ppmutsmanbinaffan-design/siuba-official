@@ -28,7 +28,8 @@ import {
   User as UserIcon,
   Wifi,
   Upload,
-  HelpCircle
+  HelpCircle,
+  ArrowRight,
 } from 'lucide-react';
 import { 
   Activity, 

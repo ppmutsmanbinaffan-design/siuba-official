@@ -6,6 +6,7 @@ use App\Actions\Attendance\RecordAttendance;
 use App\Enums\AttendanceMethod;
 use App\Enums\AttendanceStatus;
 use App\Http\Controllers\Controller;
+use App\Http\Transformers\SpaTransformer;
 use App\Models\AttendanceDevice;
 use App\Models\AttendanceSession;
 use App\Models\Student;
@@ -64,33 +65,75 @@ class AttendanceApiController extends Controller
 
     /**
      * Record Attendance via QR Token Scan.
+     * Hasil bisnis (sudah absen, bukan peserta, dsb.) dikirim HTTP 200 dengan bentuk
+     * QrAttendanceResponse di `data`, supaya layar scanner React menampilkan alasannya.
      */
     public function recordByQr(Request $request, AttendanceSession $session): JsonResponse
     {
         $validated = $request->validate([
-            'qr_token' => 'required|string',
+            'qr_token' => 'required|string|max:100',
             'device_id' => 'nullable|exists:attendance_devices,id',
-            'timestamp' => 'nullable|date',
         ]);
 
         $device = isset($validated['device_id']) ? AttendanceDevice::find($validated['device_id']) : null;
-        $checkInTime = isset($validated['timestamp']) ? Carbon::parse($validated['timestamp']) : null;
 
+        // Waktu scan selalu jam server (operator online); antrean offline lewat /offline/attendance/sync
         $result = $this->attendanceService->recordByQrToken(
-            session: $session,
+            session: $session->load('activity'),
             qrToken: $validated['qr_token'],
             device: $device,
             operator: Auth::user(),
-            checkInTime: $checkInTime
         );
 
-        return response()->json([
+        $student = $result->student?->loadMissing(['classroom', 'dormitoryRoom']);
+        $record = $result->attendanceRecord?->loadMissing(['device', 'recordedBy', 'student.classroom', 'student.dormitoryRoom']);
+        $code = match ($result->code) {
+            \App\Enums\AttendanceResultCode::STUDENT_NOT_FOUND => 'INVALID_QR',
+            \App\Enums\AttendanceResultCode::SYSTEM_ERROR => 'SERVER_ERROR',
+            default => $result->code->value,
+        };
+
+        $payload = [
             'success' => $result->success,
-            'code' => $result->code->value,
+            'code' => $code,
             'message' => $result->message,
-            'record' => $result->attendanceRecord,
-            'student' => $result->student,
-        ], $result->success ? 200 : 422);
+            'student' => $student ? [
+                'id' => $student->id,
+                'name' => $student->name,
+                'student_number' => $student->student_number,
+                'classroom' => $student->classroom?->name,
+                'dormitory_room' => $student->dormitoryRoom?->name,
+                'photo_path' => $student->photo,
+            ] : null,
+        ];
+
+        if ($record && $result->success) {
+            $payload['attendance'] = [
+                'id' => $record->id,
+                'status' => SpaTransformer::val($record->status),
+                'method' => SpaTransformer::val($record->method),
+                'check_in_at' => $record->check_in_at?->toIso8601String(),
+                'late_minutes' => (int) $record->late_minutes,
+                'device_name' => $record->device?->device_name,
+                'recorded_by' => $record->recordedBy?->name,
+            ];
+            $payload['newRecord'] = SpaTransformer::record($record);
+        } elseif ($record) {
+            $payload['existingAttendance'] = [
+                'status' => SpaTransformer::val($record->status),
+                'method' => SpaTransformer::val($record->method),
+                'check_in_at' => $record->check_in_at?->toIso8601String(),
+                'recorded_by' => $record->recordedBy?->name,
+            ];
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $payload,
+            // kompatibilitas klien lama
+            'code' => $code,
+            'message' => $result->message,
+        ]);
     }
 
     /**

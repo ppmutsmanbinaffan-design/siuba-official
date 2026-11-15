@@ -23,7 +23,8 @@ import {
   ChevronRight,
   QrCode,
   Search,
-  Filter
+  Filter,
+  AlertCircle,
 } from 'lucide-react';
 import { 
   Activity, 
