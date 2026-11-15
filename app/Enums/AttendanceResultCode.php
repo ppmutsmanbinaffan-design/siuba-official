@@ -14,6 +14,7 @@ enum AttendanceResultCode: string
     case STUDENT_NOT_FOUND = 'STUDENT_NOT_FOUND';
     case STUDENT_NOT_PARTICIPANT = 'STUDENT_NOT_PARTICIPANT';
     case UNAUTHORIZED = 'UNAUTHORIZED';
+    case SYSTEM_ERROR = 'SYSTEM_ERROR';
 
     public function message(): string
     {
@@ -28,6 +29,7 @@ enum AttendanceResultCode: string
             self::STUDENT_NOT_FOUND => 'Data santri tidak ditemukan.',
             self::STUDENT_NOT_PARTICIPANT => 'Santri bukan merupakan peserta terdaftar pada sesi ini.',
             self::UNAUTHORIZED => 'Pengguna tidak memiliki izin untuk mencatat absensi.',
+            self::SYSTEM_ERROR => 'Terjadi kesalahan sistem saat menyimpan absensi.',
         };
     }
 }

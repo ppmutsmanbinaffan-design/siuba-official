@@ -117,8 +117,8 @@ class AttendanceService
             ]);
 
             return AttendanceResult::fail(
-                AttendanceResultCode::OUTSIDE_ATTENDANCE_TIME,
-                "Terjadi kesalahan sistem saat menyimpan absensi: " . $e->getMessage(),
+                AttendanceResultCode::SYSTEM_ERROR,
+                'Terjadi kesalahan sistem saat menyimpan absensi. Silakan coba lagi atau hubungi tim IT.',
                 $student
             );
         }

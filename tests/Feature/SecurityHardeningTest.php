@@ -25,7 +25,11 @@ class SecurityHardeningTest extends TestCase
     {
         parent::setUp();
         $this->seed(RolePermissionSeeder::class);
-        config(['services.nexabsen.key' => self::IOT_KEY, 'services.nexabsen.master_admin_uid' => null]);
+        config([
+            'services.nexabsen.key' => self::IOT_KEY,
+            'services.nexabsen.master_admin_uid' => null,
+            'services.nexabsen.auto_register_device' => true, // whitelist alat diuji terpisah di IotTapConsistencyTest
+        ]);
     }
 
     private function userWithRole(string $role, string $username): User

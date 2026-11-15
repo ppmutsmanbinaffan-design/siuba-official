@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AnalyticsApiController;
 use App\Http\Controllers\Api\AttendanceApiController;
 use App\Http\Controllers\Api\AuthApiController;
 use App\Http\Controllers\Api\DataImportApiController;
+use App\Http\Controllers\Api\DeviceManagementApiController;
 use App\Http\Controllers\Api\DomainManagementApiController;
 use App\Http\Controllers\Api\IotDeviceApiController;
 use App\Http\Controllers\Api\LandingCmsApiController;
@@ -220,6 +221,12 @@ Route::prefix('v1')->group(function () {
             Route::match(['get', 'post'], '/ping', [IotDeviceApiController::class, 'ping']);
             Route::get('/active-sessions', [IotDeviceApiController::class, 'getActiveSessions']);
         });
+    });
+
+    // Whitelist perangkat RFID (aktivasi / nonaktifkan alat) - wajib login admin perangkat
+    Route::prefix('devices')->middleware(['auth:sanctum'])->group(function () {
+        Route::get('/', [DeviceManagementApiController::class, 'index'])->middleware('permission:devices.view|devices.manage');
+        Route::patch('/{device}', [DeviceManagementApiController::class, 'update'])->middleware('permission:devices.manage|devices.update');
     });
 
     // Registrasi kartu RFID (dipakai halaman /registrasi-rfid) - wajib login admin

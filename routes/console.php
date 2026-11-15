@@ -94,3 +94,31 @@ Artisan::command('system:health', function () {
     }
     $this->table(['Komponen', 'Status', 'Keterangan'], $rows);
 })->purpose('Memeriksa status konektivitas, kapasitas storage, scheduler, dan kesehatan perangkat IoT');
+
+Artisan::command('siuba:devices', function () {
+    $rows = \App\Models\AttendanceDevice::orderBy('device_code')->get()->map(fn ($d) => [
+        $d->id, $d->device_code, $d->device_name, $d->location ?? '-',
+        $d->is_active ? 'AKTIF' : 'MENUNGGU/NONAKTIF', $d->ip_address ?? '-', $d->last_seen_at?->format('Y-m-d H:i:s') ?? '-',
+    ]);
+    $this->table(['ID', 'Kode', 'Nama', 'Lokasi', 'Status', 'IP', 'Terakhir Terlihat'], $rows->all());
+})->purpose('Daftar perangkat RFID/ESP32 beserta status aktivasinya');
+
+Artisan::command('siuba:device-activate {code} {--name=} {--location=}', function () {
+    $device = \App\Models\AttendanceDevice::where('device_code', $this->argument('code'))->first();
+    if (!$device) {
+        $this->error('Perangkat tidak ditemukan. Nyalakan alat agar melakukan ping/tap sekali, lalu cek dengan: php artisan siuba:devices');
+        return 1;
+    }
+    $device->is_active = true;
+    if ($this->option('name')) $device->device_name = $this->option('name');
+    if ($this->option('location')) $device->location = $this->option('location');
+    $device->save();
+    $this->info("✓ Perangkat {$device->device_code} sekarang AKTIF.");
+    return 0;
+})->purpose('Aktifkan perangkat RFID agar boleh mengirim tap');
+
+Artisan::command('siuba:device-deactivate {code}', function () {
+    $updated = \App\Models\AttendanceDevice::where('device_code', $this->argument('code'))->update(['is_active' => false]);
+    $updated ? $this->info('✓ Perangkat dinonaktifkan.') : $this->error('Perangkat tidak ditemukan.');
+    return $updated ? 0 : 1;
+})->purpose('Nonaktifkan perangkat RFID (tap dari alat ini akan ditolak)');

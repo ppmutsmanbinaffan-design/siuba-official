@@ -61,3 +61,42 @@ yang otomatis menambahkan token login ke setiap panggilan API. Jika belum login,
 
 `tests/Feature/SecurityHardeningTest.php` (16 test) memastikan celah di atas tidak muncul lagi.
 Jalankan: `php artisan test`
+
+---
+
+# Update 2: Tap RFID mengikuti aturan absensi & whitelist perangkat
+
+## Apa yang berubah
+
+Tap kartu dari ESP32 sekarang dicatat lewat `AttendanceService` — **aturan yang sama dengan absensi QR & manual**:
+
+| Kondisi | Respon ke alat (LCD) | HTTP |
+|---|---|---|
+| Berhasil tepat waktu / terlambat | `Absen Sukses` / `Absen (TELAT)` | 200 |
+| Sudah absen di sesi ini | `Sudah Absen` | 200 |
+| Santri nonaktif | `Santri Nonaktif!` | 403 |
+| Bukan peserta sesi | `Bukan Peserta!` | 403 |
+| Kegiatan tidak mengizinkan RFID | `RFID Tdk Diizinkan` | 409 |
+| Lewat batas akhir sesi | `Waktu Habis!` | 409 |
+| Tidak ada sesi terbuka | `Tdk Ada Sesi!` | 409 |
+| Kartu belum terdaftar | `Kartu Ditolak!` | 404 |
+| Alat belum diaktifkan / dinonaktifkan | `Alat Blm Aktif!` | 403 |
+
+Pemilihan sesi: jika ada beberapa sesi terbuka, sistem memilih sesi yang **jamnya sedang berjalan dan santri
+terdaftar sebagai pesertanya**. Sesi yang sudah ditutup/dibatalkan tidak pernah dipakai. Sesi "Presensi Harian"
+otomatis hanya dibuat jika hari itu belum ada sesi sama sekali (`NEXABSEN_AUTO_DAILY_SESSION`).
+
+## Whitelist perangkat
+
+- Alat yang **sudah ada** di tabel `attendance_devices` dan aktif tetap berjalan seperti biasa.
+- Alat **baru** (kode belum dikenal) otomatis tercatat sebagai *menunggu aktivasi*; tap-nya ditolak.
+- Aktifkan alat:
+  ```bash
+  php artisan siuba:devices                                     # lihat daftar & status
+  php artisan siuba:device-activate MSJ-RFID-01 --location="Masjid Utama"
+  php artisan siuba:device-deactivate MSJ-RFID-01               # misal alat hilang/dicuri
+  ```
+  atau lewat API (login, izin `devices.manage`): `GET /api/v1/devices`, `PATCH /api/v1/devices/{id}` dengan `{"is_active": true}`.
+- Pastikan setiap ESP32 mengirim `device_id` yang **unik** (misal `MSJ-RFID-01`, `KLS-7A-01`), bukan bawaan `NEXABSEN-01`.
+
+Test: `tests/Feature/IotTapConsistencyTest.php` (12 test).
