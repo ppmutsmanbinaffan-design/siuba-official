@@ -1,4 +1,5 @@
-import { apiClient } from '../../../services/apiClient';
+import { apiClient, isOfflineError } from '../../../services/apiClient';
+import { ensureLegacyDataPreserved } from '../../../services/localDataGuard';
 import { Staff, StaffType, StaffEmploymentStatus, User } from '../../../types';
 import { StaffIdentityResolver } from '../../../services/staffIdentityResolver';
 import { INITIAL_USERS } from '../../../data/initialData';
@@ -78,6 +79,24 @@ function saveLocalStaff(staff: Staff[]): void {
   }
 }
 
+/** Simpan/perbarui SDM dari server ke cache lokal (untuk mode offline & tampilan lama yang membaca localStorage). */
+function upsertLocalStaff(items: Staff[]): void {
+  if (!items.length) return;
+  let fromServer = false;
+  try {
+    fromServer = localStorage.getItem('siuba_staff_cache_source') === 'server';
+    if (!fromServer) {
+      // Amankan data lama yang belum dimigrasikan sebelum cache ditimpa data server
+      if (!ensureLegacyDataPreserved()) return;
+      localStorage.setItem('siuba_staff_cache_source', 'server');
+    }
+  } catch {
+    // ignore
+  }
+  const base = fromServer ? getLocalStaff() : []; // buang data contoh saat pertama terhubung server
+  saveLocalStaff([...base.filter((s) => !items.some((i) => String(i.id) === String(s.id))), ...items]);
+}
+
 export const staffApi = {
   /**
    * Fetch paginated staff list with search, filter, and sorting
@@ -105,6 +124,7 @@ export const staffApi = {
       });
 
       if (res.data && Array.isArray(res.data) && res.meta) {
+        upsertLocalStaff(res.data);
         return {
           data: res.data,
           meta: {
@@ -116,7 +136,8 @@ export const staffApi = {
         };
       }
     } catch (err: any) {
-      console.warn('API /staff resolved to local repository:', err.message);
+      if (!isOfflineError(err)) throw err;
+      console.warn('Server offline, memakai data SDM tersimpan:', err.message);
     }
 
     let all = getLocalStaff();
@@ -179,9 +200,12 @@ export const staffApi = {
   async getStaffById(id: number | string): Promise<Staff> {
     try {
       const res = await apiClient.get<Staff>(`/staff/${id}`);
-      if (res.data) return res.data;
+      if (res.data) {
+        upsertLocalStaff([res.data]);
+        return res.data;
+      }
     } catch (err: any) {
-      console.warn(`API /staff/${id} routed to local storage:`, err.message);
+      if (!isOfflineError(err)) throw err;
     }
 
     const all = getLocalStaff();
@@ -196,6 +220,17 @@ export const staffApi = {
    * Create new staff
    */
   async createStaff(payload: CreateStaffPayload): Promise<Staff> {
+    try {
+      const res = await apiClient.post<Staff>('/staff', payload);
+      if (res.data) {
+        upsertLocalStaff([res.data]);
+        return res.data;
+      }
+    } catch (err: any) {
+      if (!isOfflineError(err)) throw err;
+      console.warn('Server offline, data SDM disimpan sementara di perangkat ini:', err.message);
+    }
+
     const all = getLocalStaff();
     const existing = all.find((s) => s.staff_number.toLowerCase() === payload.staff_number.toLowerCase());
     if (existing) {
@@ -203,17 +238,6 @@ export const staffApi = {
       err.status = 422;
       err.errors = { staff_number: ['Nomor identitas SDM ini sudah digunakan.'] };
       throw err;
-    }
-
-    try {
-      const res = await apiClient.post<Staff>('/staff', payload);
-      if (res.data) {
-        saveLocalStaff([...all, res.data]);
-        return res.data;
-      }
-    } catch (err: any) {
-      if (err.status === 422) throw err;
-      console.warn('API /staff POST failed, saving locally:', err.message);
     }
 
     const normalizedGender: 'male' | 'female' = 
@@ -249,6 +273,17 @@ export const staffApi = {
    * Update staff
    */
   async updateStaff(id: number | string, payload: UpdateStaffPayload): Promise<Staff> {
+    try {
+      const res = await apiClient.put<Staff>(`/staff/${id}`, payload);
+      if (res.data) {
+        upsertLocalStaff([res.data]);
+        return res.data;
+      }
+    } catch (err: any) {
+      if (!isOfflineError(err)) throw err;
+      console.warn(`Server offline, perubahan SDM ${id} disimpan sementara di perangkat ini:`, err.message);
+    }
+
     const all = getLocalStaff();
     const index = all.findIndex((s) => String(s.id) === String(id));
     if (index === -1) {
@@ -267,17 +302,6 @@ export const staffApi = {
       }
     }
 
-    try {
-      const res = await apiClient.put<Staff>(`/staff/${id}`, payload);
-      if (res.data) {
-        all[index] = res.data;
-        saveLocalStaff(all);
-        return res.data;
-      }
-    } catch (err: any) {
-      if (err.status === 422) throw err;
-      console.warn(`API /staff/${id} PUT failed, updating locally:`, err.message);
-    }
 
     const existing = all[index];
     const normalizedGender: 'male' | 'female' = payload.gender
@@ -311,10 +335,12 @@ export const staffApi = {
    */
   async getUsers(): Promise<User[]> {
     try {
-      const res = await apiClient.get<User[]>('/users');
-      if (res.data && Array.isArray(res.data)) return res.data;
-    } catch {
-      // fallback
+      const res: any = await apiClient.get<User[]>('/users');
+      // Endpoint /users mengembalikan { success, users: [...] }
+      const list = Array.isArray(res?.users) ? res.users : Array.isArray(res?.data) ? res.data : null;
+      if (list) return list;
+    } catch (err: any) {
+      if (!isOfflineError(err)) throw err;
     }
     return INITIAL_USERS;
   },

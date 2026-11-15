@@ -7,6 +7,7 @@ use App\Services\System\RestoreService;
 use App\Services\System\SystemHealthService;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Schedule;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
@@ -122,3 +123,6 @@ Artisan::command('siuba:device-deactivate {code}', function () {
     $updated ? $this->info('✓ Perangkat dinonaktifkan.') : $this->error('Perangkat tidak ditemukan.');
     return $updated ? 0 : 1;
 })->purpose('Nonaktifkan perangkat RFID (tap dari alat ini akan ditolak)');
+
+// Bersihkan log perangkat > 60 hari setiap malam (butuh cron: * * * * * php artisan schedule:run)
+Schedule::command('model:prune', ['--model' => [\App\Models\AttendanceDeviceLog::class]])->dailyAt('02:15');

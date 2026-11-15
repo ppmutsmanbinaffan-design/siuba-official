@@ -314,6 +314,8 @@ class StaffImportService
                         $existing->syncRoles([$targetRole]);
                     }
 
+                    $this->syncStaffProfile($existing, $d);
+
                     $updated++;
                     $processedRecords[] = [
                         'id' => $existing->id,
@@ -328,12 +330,13 @@ class StaffImportService
                         'phone' => $d['phone'],
                     ];
                 } else {
-                    // Create new user with default password
+                    // Password awal ACAK per akun (dulu semua 'password'). Ditampilkan sekali di hasil impor.
+                    $initialPassword = \Illuminate\Support\Str::password(10, symbols: false);
                     $newUser = User::create([
                         'username' => $username,
                         'name' => $d['name'],
                         'email' => $d['email'],
-                        'password' => 'password', // 'hashed' cast auto-hashes
+                        'password' => $initialPassword, // 'hashed' cast auto-hashes
                         'is_active' => $d['is_active'],
                     ]);
 
@@ -343,9 +346,12 @@ class StaffImportService
                         $newUser->syncRoles([$targetRole]);
                     }
 
+                    $this->syncStaffProfile($newUser, $d);
+
                     $created++;
                     $processedRecords[] = [
                         'id' => $newUser->id,
+                        'initial_password' => $initialPassword,
                         'username' => $newUser->username,
                         'name' => $newUser->name,
                         'email' => $newUser->email,
@@ -372,6 +378,46 @@ class StaffImportService
             ],
             'records' => $processedRecords,
         ];
+    }
+
+    /**
+     * Simpan/perbarui profil SDM (no. HP, bagian, jabatan, status kepegawaian, RFID) yang
+     * sebelumnya ikut dibaca dari file impor tetapi tidak pernah disimpan.
+     */
+    protected function syncStaffProfile(User $user, array $d): void
+    {
+        $profile = \App\Models\StaffProfile::withTrashed()->where('user_id', $user->id)->first()
+            ?? \App\Models\StaffProfile::withTrashed()->where('staff_number', $user->username)->first()
+            ?? new \App\Models\StaffProfile(['staff_number' => mb_substr($user->username, 0, 40)]);
+
+        $rfid = \App\Models\Student::normalizeRfidUid($d['rfid_uid'] ?? null);
+        if ($rfid) {
+            $takenByStudent = \App\Models\Student::withTrashed()->where('rfid_uid', $rfid)->exists();
+            $takenByStaff = \App\Models\StaffProfile::withTrashed()->where('rfid_uid', $rfid)
+                ->when($profile->exists, fn ($q) => $q->where('id', '!=', $profile->id))->exists();
+            if ($takenByStudent || $takenByStaff) {
+                $rfid = null; // jangan rebut kartu milik orang lain
+            }
+        }
+
+        $profile->fill(array_filter([
+            'user_id' => $user->id,
+            'name' => $user->name,
+            'gender' => ($d['gender'] ?? 'L') === 'P' ? 'P' : 'L',
+            'staff_type' => \App\Models\StaffProfile::typeFromRole($d['role'] ?? null),
+            'employment_status' => \App\Models\StaffProfile::employmentFromLabel($d['employment_status'] ?? null),
+            'phone' => $d['phone'] ?? null,
+            'email' => $user->email,
+            'department' => $d['department'] ?? null,
+            'position' => $d['position'] ?? null,
+            'rfid_uid' => $rfid,
+            'is_active' => (bool) ($d['is_active'] ?? true),
+        ], fn ($v) => $v !== null && $v !== ''));
+
+        if ($profile->trashed()) {
+            $profile->restore();
+        }
+        $profile->save();
     }
 
     /**

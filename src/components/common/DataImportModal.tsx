@@ -481,6 +481,50 @@ export const DataImportModal: React.FC<DataImportModalProps> = ({
                   </p>
                 </div>
               </div>
+
+              {Array.isArray((executionResult as any).records) &&
+                (executionResult as any).records.some((r: any) => r.initial_password) && (
+                <div className="max-w-xl mx-auto text-left bg-amber-950/30 border border-amber-500/40 rounded-2xl p-4 space-y-2">
+                  <p className="text-xs font-bold text-amber-200">
+                    Password awal akun baru (hanya ditampilkan sekali). Salin & bagikan ke masing-masing guru/SDM, minta mereka segera menggantinya.
+                  </p>
+                  <div className="max-h-48 overflow-y-auto">
+                    <table className="w-full text-xs font-mono">
+                      <thead>
+                        <tr className="text-amber-300/80">
+                          <th className="text-left py-1">Username</th>
+                          <th className="text-left py-1">Nama</th>
+                          <th className="text-left py-1">Password awal</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(executionResult as any).records
+                          .filter((r: any) => r.initial_password)
+                          .map((r: any) => (
+                            <tr key={r.id} className="text-slate-100 border-t border-amber-500/20">
+                              <td className="py-1 pr-2">{r.username}</td>
+                              <td className="py-1 pr-2 font-sans">{r.name}</td>
+                              <td className="py-1 select-all">{r.initial_password}</td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const text = (executionResult as any).records
+                        .filter((r: any) => r.initial_password)
+                        .map((r: any) => `${r.username}\t${r.name}\t${r.initial_password}`)
+                        .join('\n');
+                      navigator.clipboard?.writeText(`Username\tNama\tPassword awal\n${text}`);
+                    }}
+                    className="px-3 py-1.5 text-[11px] font-bold rounded-lg bg-amber-500/20 text-amber-100 border border-amber-500/40 cursor-pointer"
+                  >
+                    Salin semua (tempel ke Excel)
+                  </button>
+                </div>
+              )}
             </div>
           )}
 

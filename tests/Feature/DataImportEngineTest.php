@@ -176,10 +176,12 @@ class DataImportEngineTest extends TestCase
         $this->assertNotNull($musyrif);
         $this->assertTrue($musyrif->hasRole('musyrif'));
 
-        // Test login with newly imported staff account
+        // Login memakai password awal ACAK yang ditampilkan di hasil impor (bukan lagi 'password')
+        $initialPassword = collect($response->json('records'))->firstWhere('username', 'guru.ahmad')['initial_password'];
+        $this->assertNotSame('password', $initialPassword);
         $loginRes = $this->postJson('/api/v1/auth/login', [
             'username' => 'guru.ahmad',
-            'password' => 'password',
+            'password' => $initialPassword,
         ]);
 
         $loginRes->assertStatus(200);

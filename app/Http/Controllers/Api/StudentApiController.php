@@ -173,7 +173,12 @@ class StudentApiController extends Controller
             'address' => ['nullable', 'string', 'max:1000'],
             'status' => ['nullable', Rule::in(self::STATUSES)],
             'is_active' => ['sometimes', 'boolean'],
-            'rfid_uid' => ['nullable', 'string', 'max:64', Rule::unique('students', 'rfid_uid')->ignore($student?->id)],
+            'rfid_uid' => ['nullable', 'string', 'max:64', Rule::unique('students', 'rfid_uid')->ignore($student?->id),
+                function ($attr, $value, $fail) {
+                    if ($value && \App\Models\StaffProfile::withTrashed()->where('rfid_uid', $value)->exists()) {
+                        $fail('Kartu RFID ini sudah terdaftar pada seorang guru/SDM.');
+                    }
+                }],
         ], [
             'student_number.unique' => 'NIS ini sudah digunakan oleh santri lain.',
             'rfid_uid.unique' => 'Kartu RFID ini sudah terdaftar pada santri lain.',

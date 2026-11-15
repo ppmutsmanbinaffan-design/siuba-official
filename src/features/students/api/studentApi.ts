@@ -1,4 +1,5 @@
 import { apiClient, ApiResponse, isOfflineError } from '../../../services/apiClient';
+import { ensureLegacyDataPreserved } from '../../../services/localDataGuard';
 import { Student, StudentStatus, Classroom, DormitoryRoom } from '../../../types';
 import { INITIAL_STUDENTS, INITIAL_CLASSROOMS, INITIAL_DORMITORY_ROOMS } from '../../../data/initialData';
 import { StudentIdentityService } from '../../../services/studentIdentityService';
@@ -87,7 +88,11 @@ function upsertLocalStudents(items: Student[]): void {
   let fromServer = false;
   try {
     fromServer = localStorage.getItem('siuba_students_cache_source') === 'server';
-    if (!fromServer) localStorage.setItem('siuba_students_cache_source', 'server');
+    if (!fromServer) {
+      // Amankan data lama yang belum dimigrasikan sebelum cache ditimpa data server
+      if (!ensureLegacyDataPreserved()) return;
+      localStorage.setItem('siuba_students_cache_source', 'server');
+    }
   } catch {
     // ignore
   }

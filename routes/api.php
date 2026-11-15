@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\AttendanceApiController;
 use App\Http\Controllers\Api\AttendanceSessionApiController;
 use App\Http\Controllers\Api\MasterDataApiController;
 use App\Http\Controllers\Api\StudentApiController;
+use App\Http\Controllers\Api\StaffApiController;
 use App\Http\Controllers\Api\AuthApiController;
 use App\Http\Controllers\Api\DataImportApiController;
 use App\Http\Controllers\Api\DeviceManagementApiController;
@@ -92,6 +93,12 @@ Route::prefix('v1')->group(function () {
             ->middleware('permission:students.update|students.edit|students.deactivate');
         Route::delete('/students/{student}', [StudentApiController::class, 'destroy'])->middleware('permission:students.delete');
 
+        // Master Data SDM (guru, pelatih, musyrif, staf)
+        Route::get('/staff', [StaffApiController::class, 'index'])->middleware('permission:staff.view');
+        Route::get('/staff/{staff}', [StaffApiController::class, 'show'])->middleware('permission:staff.view');
+        Route::post('/staff', [StaffApiController::class, 'store'])->middleware('permission:staff.create');
+        Route::match(['put', 'patch'], '/staff/{staff}', [StaffApiController::class, 'update'])->middleware('permission:staff.edit|staff.deactivate');
+
         // Referensi kelas, asrama, kamar (dibutuhkan semua pengguna yang login)
         Route::get('/classrooms', [MasterDataApiController::class, 'classrooms']);
         Route::get('/dormitories', [MasterDataApiController::class, 'dormitories']);
@@ -112,6 +119,12 @@ Route::prefix('v1')->group(function () {
             Route::post('/sessions/{session}/manual', [AttendanceSessionApiController::class, 'manual'])->middleware('permission:attendance.manual|attendance.create');
             Route::post('/sessions/{session}/manual-bulk', [AttendanceSessionApiController::class, 'manualBulk'])->middleware('permission:attendance.manual|attendance.create');
             Route::post('/records/{record}/correct', [AttendanceSessionApiController::class, 'correct'])->middleware('permission:attendance.update');
+            Route::get('/snapshot', [AttendanceSessionApiController::class, 'snapshot'])->middleware($view);
+
+            // Perangkat RFID (bentuk data untuk aplikasi React)
+            Route::get('/devices', [DeviceManagementApiController::class, 'spaIndex'])->middleware('permission:devices.view|devices.manage|attendance.monitoring');
+            Route::get('/devices/logs', [DeviceManagementApiController::class, 'logs'])->middleware('permission:devices.view|devices.manage');
+            Route::get('/devices/{device}/logs', [DeviceManagementApiController::class, 'logs'])->middleware('permission:devices.view|devices.manage');
         });
 
         // Attendance Core Engine Endpoints

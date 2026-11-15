@@ -576,7 +576,7 @@ export const AccessControlView: React.FC<Props> = ({
     setFormName(user.name);
     setFormUsername(user.username);
     setFormEmail(user.email);
-    setFormPassword(user.password || 'password');
+    setFormPassword(''); // kosong = password tidak diubah (dulu terisi 'password' sehingga ikut ter-reset)
     const userRoles = Array.isArray(user.roles) && user.roles.length > 0 ? user.roles : [user.role || 'guru'];
     setFormRoles(userRoles);
     setFormRole(userRoles[0] || 'guru');
@@ -1706,7 +1706,7 @@ export const AccessControlView: React.FC<Props> = ({
                   <div className="relative">
                     <input
                       type={showPasswordInForm ? 'text' : 'password'}
-                      placeholder="Ubah password..."
+                      placeholder="Kosongkan jika tidak diubah (min. 8 karakter)"
                       value={formPassword}
                       onChange={(e) => setFormPassword(e.target.value)}
                       className="w-full bg-slate-50 text-slate-900 font-mono font-bold pl-3.5 pr-10 py-2.5 rounded-xl border border-slate-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"

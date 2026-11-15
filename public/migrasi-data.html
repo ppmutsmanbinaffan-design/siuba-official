@@ -121,9 +121,19 @@
 
   function scanBrowser() {
     data = {};
-    Object.keys(KEYS).forEach(function (k) { data[k] = readArray(KEYS[k]); });
-    sourceLabel = 'browser ' + location.host;
-    document.getElementById('source-label').innerHTML = 'Sumber: browser ini (<span>' + esc(location.origin) + '</span>).';
+    // Jika aplikasi sudah sempat mengamankan data lama sebelum ditimpa data server, pakai salinan itu
+    var preserved = null;
+    try { preserved = JSON.parse(localStorage.getItem('siuba_unmigrated_backup_v1') || 'null'); } catch (e) { preserved = null; }
+    if (preserved && preserved.keys) {
+      var store = { getItem: function (k) { return preserved.keys[k] != null ? preserved.keys[k] : null; } };
+      Object.keys(KEYS).forEach(function (k) { data[k] = readArray(KEYS[k], store); });
+      sourceLabel = 'salinan data lama browser ' + location.host + ' (diamankan ' + String(preserved.saved_at || '').slice(0, 16).replace('T', ' ') + ')';
+      document.getElementById('source-label').innerHTML = 'Sumber: <b>' + esc(sourceLabel) + '</b> — data lama yang otomatis diamankan sebelum aplikasi memakai data server.';
+    } else {
+      Object.keys(KEYS).forEach(function (k) { data[k] = readArray(KEYS[k]); });
+      sourceLabel = 'browser ' + location.host;
+      document.getElementById('source-label').innerHTML = 'Sumber: browser ini (<span>' + esc(location.origin) + '</span>).';
+    }
     render();
   }
 

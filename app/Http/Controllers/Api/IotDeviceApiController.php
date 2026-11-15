@@ -10,6 +10,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Activity;
 use App\Models\ActivityCategory;
 use App\Models\AttendanceDevice;
+use App\Models\AttendanceDeviceLog;
 use App\Models\AttendanceRecord;
 use App\Models\AttendanceSession;
 use App\Models\AttendanceSessionParticipant;
@@ -62,9 +63,8 @@ class IotDeviceApiController extends Controller
         $resolved = $this->deviceResolver->resolve($request, $jsonData);
         $device = $resolved['device'];
         if (!$resolved['allowed']) {
-            Log::notice('Tap RFID dari perangkat belum aktif ditolak', [
-                'device_code' => $device->device_code, 'ip' => $request->ip(), 'reason' => $resolved['code'],
-            ]);
+            AttendanceDeviceLog::record($device, $device->device_code, 'DEVICE_DISABLED', 'warning',
+                'Tap ditolak: perangkat belum diaktifkan admin.', ['uid' => $normalizedUid], $request->ip());
             return $this->lcd(false, $resolved['code'], 'Alat Blm Aktif!', 403, [
                 'device' => $device->device_code,
             ]);
@@ -89,6 +89,8 @@ class IotDeviceApiController extends Controller
                 'device' => $device->device_code,
                 'tapped_at' => now()->format('H:i:s') . ' WIB',
             ], 600);
+            AttendanceDeviceLog::record($device, $device->device_code, 'RFID_NOT_REGISTERED', 'warning',
+                "Kartu {$normalizedUid} belum terdaftar ke santri.", ['uid' => $normalizedUid], $request->ip());
 
             return $this->lcd(false, 'CARD_NOT_REGISTERED', 'Kartu Ditolak!', 404, [
                 'data' => ['name' => 'UID: ' . $normalizedUid, 'uid' => $normalizedUid],
@@ -104,6 +106,9 @@ class IotDeviceApiController extends Controller
         // 6. Pilih sesi yang tepat untuk santri ini
         $session = $this->resolveSession($request, $student, $checkInTime);
         if (!$session) {
+            AttendanceDeviceLog::record($device, $device->device_code, 'NO_ACTIVE_SESSION', 'warning',
+                "Tap {$student->name} ditolak: tidak ada sesi terbuka.", ['uid' => $normalizedUid, 'student_id' => $student->id], $request->ip());
+
             return $this->lcd(false, 'NO_ACTIVE_SESSION', 'Tdk Ada Sesi!', 409, [
                 'data' => ['name' => $student->name, 'uid' => $normalizedUid],
                 'device' => $device->device_code,
@@ -121,6 +126,12 @@ class IotDeviceApiController extends Controller
             notes: 'Tap via Hardware [' . $device->device_code . ']',
             metadata: ['source' => 'iot', 'device_ip' => $request->ip()],
         );
+
+        $ok = in_array($result->code, [AttendanceResultCode::SUCCESS, AttendanceResultCode::ALREADY_RECORDED], true);
+        AttendanceDeviceLog::record($device, $device->device_code, 'CARD_SCANNED', $ok ? 'info' : 'warning',
+            "{$student->name}: {$result->message}",
+            ['uid' => $normalizedUid, 'student_id' => $student->id, 'session_id' => $session->id, 'code' => $result->code->value],
+            $request->ip());
 
         return $this->respondFromResult($result, $student, $session, $device, $normalizedUid);
     }
@@ -379,6 +390,14 @@ class IotDeviceApiController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => "Kartu RFID [{$normalizedUid}] sudah terdaftar pada santri: {$existing->name} (NIS: {$existing->student_number}).",
+            ], 422);
+        }
+
+        $staffOwner = \App\Models\StaffProfile::withTrashed()->where('rfid_uid', $normalizedUid)->first();
+        if ($staffOwner) {
+            return response()->json([
+                'success' => false,
+                'message' => "Kartu RFID [{$normalizedUid}] sudah terdaftar pada SDM: {$staffOwner->name}.",
             ], 422);
         }
 

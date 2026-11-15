@@ -53,6 +53,8 @@ import { ServerConnectivityService } from './services/serverConnectivityService'
 import { OfflineStorageService } from './services/offlineStorageService';
 import { AcademicSessionGenerator } from './services/academicSessionGenerator';
 import { apiClient } from './services/apiClient';
+import { loadServerSnapshot, persistSnapshotToCache } from './services/serverHydrationService';
+import { hasPendingLegacyMigration } from './services/localDataGuard';
 import { 
   StudentListPage, 
   StudentDetailPage, 
@@ -242,31 +244,7 @@ export function App() {
     return INITIAL_USERS;
   });
 
-  // Sync users list from backend database on startup
-  useEffect(() => {
-    fetch('/api/v1/users', {
-      headers: { 'Accept': 'application/json' },
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success && Array.isArray(data.users) && data.users.length > 0) {
-          setUsers((prev) => {
-            const next = data.users.map((dbUser: User) => {
-              const localMatch = prev.find((p) => p.id === dbUser.id || p.username === dbUser.username);
-              return {
-                ...dbUser,
-                password: localMatch?.password || 'password',
-              };
-            });
-            try {
-              localStorage.setItem('siuba_custom_users_v1', JSON.stringify(stripPasswordsForStorage(next)));
-            } catch {}
-            return next;
-          });
-        }
-      })
-      .catch(() => {});
-  }, []);
+  // Daftar pengguna kini dimuat dari server setelah login (lihat efek hidrasi server di bawah)
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [students, setStudents] = useState<Student[]>(() => loadPersistentCollection('siuba_master_students', INITIAL_STUDENTS));
   const [classrooms, setClassrooms] = useState<Classroom[]>(() => loadPersistentCollection('siuba_master_classrooms', INITIAL_CLASSROOMS));
@@ -349,6 +327,61 @@ export function App() {
   const [eventOrganizers, setEventOrganizers] = useState<EventOrganizer[]>(INITIAL_EVENT_ORGANIZERS);
   const [participantRules, setParticipantRules] = useState<ActivityParticipantRule[]>(INITIAL_ACTIVITY_PARTICIPANT_RULES);
   const [walkInAuditLogs, setWalkInAuditLogs] = useState<WalkInAuditLog[]>(INITIAL_WALK_IN_AUDIT_LOGS);
+
+  // ===================================================================
+  // HIDRASI DARI SERVER: setelah login, isi state dengan data MySQL (Laravel)
+  // menggantikan data contoh / localStorage. Offline -> tetap pakai data lokal.
+  // ===================================================================
+  const [serverSyncInfo, setServerSyncInfo] = useState<{ at: string | null; errors: string[] }>({ at: null, errors: [] });
+
+  useEffect(() => {
+    if (authStatus !== 'authenticated') return;
+    let cancelled = false;
+
+    let firstRun = true;
+    const hydrate = async () => {
+      const snap = await loadServerSnapshot({ attendanceOnly: !firstRun });
+      if (cancelled) return;
+
+      if (snap.students) setStudents(snap.students);
+      if (snap.classrooms) setClassrooms(snap.classrooms);
+      if (snap.dormitories) setDormitories(snap.dormitories);
+      if (snap.dormitoryRooms) setDormitoryRooms(snap.dormitoryRooms);
+      if (snap.sessions) setSessions(snap.sessions);
+      if (snap.participants) setSessionParticipants(snap.participants);
+      if (snap.records) setRecords(snap.records);
+      if (snap.devices) setDevices(snap.devices);
+      if (snap.users && snap.users.length > 0) {
+        // Password tidak pernah disimpan / ditampilkan di browser
+        const serverUsers = snap.users.map((u: User) => ({ ...u, password: '' }) as User);
+        setUsers(serverUsers);
+        try {
+          localStorage.setItem('siuba_custom_users_v1', JSON.stringify(stripPasswordsForStorage(serverUsers)));
+        } catch {
+          // ignore
+        }
+      }
+      persistSnapshotToCache(snap);
+      setServerSyncInfo({ at: new Date().toISOString(), errors: snap.errors });
+
+      if (snap.errors.length > 0) {
+        console.warn('SIUBA: sebagian data gagal dimuat dari server:', snap.errors);
+      }
+      if (firstRun && hasPendingLegacyMigration()) {
+        showToast('Ada data lama di browser ini yang belum dipindahkan ke server. Buka menu /migrasi-data (Super Admin).', 'info');
+      }
+      firstRun = false;
+    };
+
+    hydrate();
+    // Segarkan data absensi & perangkat secara berkala (tiap 60 detik) selama aplikasi terbuka
+    const timer = window.setInterval(hydrate, 60000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authStatus]);
 
   // Authentication & URL Synchronization Lifecycle
   useEffect(() => {

@@ -664,9 +664,11 @@ export const attendanceApi = {
     try {
       const res = await apiClient.request<AttendanceDevice[]>('/attendance/devices');
       if (res && res.data && Array.isArray(res.data)) {
+        setLocalCache(DEVICES_STORAGE_KEY, res.data);
         return res.data;
       }
-    } catch {
+    } catch (err: any) {
+      if (!isOfflineError(err)) throw err;
       // fallback
     }
 
@@ -683,7 +685,8 @@ export const attendanceApi = {
       if (res && res.data && Array.isArray(res.data)) {
         return res.data;
       }
-    } catch {
+    } catch (err: any) {
+      if (!isOfflineError(err)) throw err;
       // fallback
     }
 

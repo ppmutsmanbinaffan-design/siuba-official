@@ -26,6 +26,11 @@ class VerifyIotKey
         }
 
         if ($providedKey === '' || !hash_equals($configuredKey, $providedKey)) {
+            \App\Models\AttendanceDeviceLog::record(
+                null,
+                (string) ($request->input('device_id') ?? $request->input('device_code') ?? 'TIDAK-DIKENAL'),
+                'AUTH_FAILED', 'error', 'Permintaan perangkat ditolak: API key salah atau kosong.', [], $request->ip()
+            );
             return response()->json([
                 'success' => false,
                 'code' => 'INVALID_API_KEY',

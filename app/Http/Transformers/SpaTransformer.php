@@ -10,6 +10,9 @@ use App\Models\Classroom;
 use App\Models\Dormitory;
 use App\Models\DormitoryRoom;
 use App\Models\Student;
+use App\Models\StaffProfile;
+use App\Models\AttendanceDevice;
+use App\Models\AttendanceDeviceLog;
 
 /**
  * Mengubah model Eloquent menjadi bentuk JSON yang diharapkan aplikasi React (src/types.ts).
@@ -210,6 +213,72 @@ class SpaTransformer
             'changed_by' => $h->changed_by,
             'changed_at' => $h->changed_at?->toIso8601String(),
             'created_at' => $h->created_at?->toIso8601String(),
+        ];
+    }
+
+    public static function staff(StaffProfile $s): array
+    {
+        return [
+            'id' => $s->id,
+            'user_id' => $s->user_id,
+            'username' => $s->relationLoaded('user') ? $s->user?->username : null,
+            'roles' => $s->relationLoaded('user') && $s->user ? $s->user->getRoleNames()->values() : [],
+            'staff_number' => $s->staff_number,
+            'name' => $s->name,
+            'gender' => $s->gender === 'P' ? 'female' : 'male',
+            'staff_type' => $s->staff_type,
+            'employment_status' => $s->employment_status,
+            'phone' => $s->phone,
+            'email' => $s->email,
+            'photo' => $s->photo,
+            'qr_token' => $s->qr_token,
+            'rfid_uid' => $s->rfid_uid,
+            'department' => $s->department,
+            'position' => $s->position,
+            'join_date' => $s->join_date?->format('Y-m-d'),
+            'leave_date' => $s->leave_date?->format('Y-m-d'),
+            'requires_daily_attendance' => (bool) $s->requires_daily_attendance,
+            'is_active' => (bool) $s->is_active,
+            'created_at' => $s->created_at?->toIso8601String(),
+            'updated_at' => $s->updated_at?->toIso8601String(),
+            'deleted_at' => $s->deleted_at?->toIso8601String(),
+        ];
+    }
+
+    public static function device(AttendanceDevice $d, int $tapsToday = 0): array
+    {
+        $threshold = (int) config('services.nexabsen.offline_threshold_seconds', 60);
+        $online = $d->is_active && $d->last_seen_at && $d->last_seen_at->diffInSeconds(now(), true) <= $threshold;
+
+        return [
+            'id' => $d->id,
+            'device_code' => $d->device_code,
+            'device_name' => $d->device_name,
+            'device_type' => self::val($d->device_type),
+            'location' => $d->location ?? '',
+            'ip_address' => $d->ip_address ?? '',
+            'last_seen_at' => $d->last_seen_at?->toIso8601String() ?? '',
+            'is_active' => (bool) $d->is_active,
+            'is_online' => $online,
+            'status' => !$d->is_active ? 'pending_or_disabled' : ($online ? 'online' : 'offline'),
+            'tap_count_today' => $tapsToday,
+            'created_at' => $d->created_at?->toIso8601String(),
+            'updated_at' => $d->updated_at?->toIso8601String(),
+        ];
+    }
+
+    public static function deviceLog(AttendanceDeviceLog $l): array
+    {
+        return [
+            'id' => $l->id,
+            'attendance_device_id' => $l->attendance_device_id,
+            'device_code' => $l->device_code,
+            'event_type' => $l->event_type,
+            'level' => $l->level,
+            'status' => $l->level === 'info' ? 'success' : $l->level,
+            'message' => $l->message,
+            'metadata' => $l->metadata,
+            'created_at' => $l->created_at?->toIso8601String(),
         ];
     }
 }

@@ -182,3 +182,42 @@ komputer operator. Halaman `/migrasi-data` memindahkannya ke MySQL.
 
 Belum diimpor (belum ada tabelnya di server): data staf/absensi SDM, izin santri, jadwal KBM/asrama/ekskul.
 Semua tetap ikut di file cadangan .json.
+
+---
+
+# Update 5: Satu backend — tahap 2 (SDM, perangkat, hidrasi aplikasi dari server)
+
+## Yang berubah
+
+- **Data SDM tersimpan di server** — tabel baru `staff_profiles` (NIP, jenis SDM, status kepegawaian, HP, bagian,
+  jabatan, QR `STF-…`, RFID). API: `GET/POST /api/v1/staff`, `GET/PUT /api/v1/staff/{id}`.
+  Impor Guru/SDM kini ikut menyimpan profil ini (sebelumnya dibaca dari CSV lalu dibuang).
+- **Password awal akun hasil impor SDM acak** (sebelumnya semua `password`). Password ditampilkan **sekali** di layar
+  hasil impor, lengkap dengan tombol "Salin semua (tempel ke Excel)".
+- **Satu kartu RFID hanya untuk satu orang** — tidak bisa dipakai bersama oleh santri dan SDM.
+- **Perangkat & log perangkat**: `GET /api/v1/attendance/devices` (status online/offline, jumlah tap hari ini),
+  `GET /api/v1/attendance/devices/logs`. Setiap tap, kartu tak dikenal, alat belum aktif, dan API key salah dicatat
+  di tabel `attendance_device_logs` (otomatis dibersihkan setelah 60 hari — butuh cron `schedule:run`).
+- **Snapshot absensi**: `GET /api/v1/attendance/snapshot?from=&to=` (sesi + peserta + catatan, maks. 62 hari).
+- **Aplikasi React memuat data dari server setelah login**: santri, kelas, asrama, kamar, sesi & absensi 14 hari terakhir,
+  perangkat, SDM, dan pengguna. Absensi & perangkat disegarkan tiap 60 detik. Dashboard, laporan, dan monitoring kini
+  menampilkan data MySQL, bukan data contoh.
+- **Data lama di browser diamankan otomatis** ke `siuba_unmigrated_backup_v1` sebelum cache ditimpa data server.
+  Aplikasi menampilkan pengingat, dan halaman `/migrasi-data` otomatis memakai salinan ini.
+- **Perbaikan bug reset password diam-diam**: membuka form "Edit Pengguna" lalu menyimpan tanpa mengubah password
+  dulu mengirim password `password` ke server (mereset password akun). Kini kolom password kosong = tidak diubah.
+
+## Langkah setelah update
+
+```bash
+php artisan migrate --force
+php artisan optimize:clear
+# Cron (Linux) atau Task Scheduler (Windows) tiap menit:
+php artisan schedule:run
+```
+
+## Belum termasuk (tahap 3)
+
+Modul yang masih memakai data lokal di React: KBM/jadwal pelajaran, asrama/halaqah/piket, ekskul & event, izin santri,
+absensi SDM/mengajar/pelatih, serta tombol "Login sebagai pengguna ini" di Manajemen Akses (hanya mengganti tampilan,
+bukan login sungguhan).
