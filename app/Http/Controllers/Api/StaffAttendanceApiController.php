@@ -26,11 +26,13 @@ class StaffAttendanceApiController extends Controller
 
     public function daily(Request $request): JsonResponse
     {
-        $request->validate(['date' => 'nullable|date']);
+        $request->validate(['date' => 'nullable|date', 'type' => 'nullable|in:daily,teaching,training,all']);
         $date = $request->input('date', today()->toDateString());
+        $type = $request->input('type', 'daily');
 
         $rows = StaffAttendanceRecord::with('staff')->whereDate('attendance_date', $date)
-            ->where('attendance_type', 'daily')->orderBy('check_in_at')->get();
+            ->when($type !== 'all', fn ($q) => $q->where('attendance_type', $type))
+            ->orderBy('check_in_at')->get();
 
         return response()->json(['success' => true, 'data' => $rows->map(fn ($r) => SpaTransformer::staffRecord($r))->values()]);
     }

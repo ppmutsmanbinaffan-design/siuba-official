@@ -334,40 +334,64 @@ export function App() {
   // ===================================================================
   const [serverSyncInfo, setServerSyncInfo] = useState<{ at: string | null; errors: string[] }>({ at: null, errors: [] });
 
+  const applyServerSnapshot = (snap: Awaited<ReturnType<typeof loadServerSnapshot>>) => {
+    if (snap.students) setStudents(snap.students);
+    if (snap.classrooms) setClassrooms(snap.classrooms);
+    if (snap.dormitories) setDormitories(snap.dormitories);
+    if (snap.dormitoryRooms) setDormitoryRooms(snap.dormitoryRooms);
+    if (snap.sessions) setSessions(snap.sessions);
+    if (snap.participants) setSessionParticipants(snap.participants);
+    if (snap.records) setRecords(snap.records);
+    if (snap.devices) setDevices(snap.devices);
+    if (snap.excusals) setExcusals(snap.excusals);
+    if (snap.academic) {
+      const a = snap.academic;
+      setAcademicYears(a.academic_years);
+      setSemesters(a.semesters);
+      setSubjects(a.subjects);
+      setLessonPeriods(a.lesson_periods);
+      setTeachers(a.teachers);
+      setTeachingAssignments(a.teaching_assignments);
+      setAcademicSchedules(a.academic_schedules);
+      setAcademicCalendarEvents(a.calendar_events);
+      setAcademicSessionContexts(a.session_contexts);
+      setAcademicSubstitutions(a.substitutions);
+    }
+    if (snap.users && snap.users.length > 0) {
+      // Password tidak pernah disimpan / ditampilkan di browser
+      const serverUsers = snap.users.map((u: User) => ({ ...u, password: '' }) as User);
+      setUsers(serverUsers);
+      try {
+        localStorage.setItem('siuba_custom_users_v1', JSON.stringify(stripPasswordsForStorage(serverUsers)));
+      } catch {
+        // ignore
+      }
+    }
+    persistSnapshotToCache(snap);
+    setServerSyncInfo({ at: new Date().toISOString(), errors: snap.errors });
+    if (snap.errors.length > 0) {
+      console.warn('SIUBA: sebagian data gagal dimuat dari server:', snap.errors);
+    }
+  };
+
+  /** Muat ulang data dari server setelah perubahan (absensi/KBM saja agar cepat). */
+  const refreshServerData = async (attendanceOnly = true) => {
+    try {
+      applyServerSnapshot(await loadServerSnapshot({ attendanceOnly }));
+    } catch (e) {
+      console.warn('SIUBA: gagal memuat ulang data server', e);
+    }
+  };
+
   useEffect(() => {
     if (authStatus !== 'authenticated') return;
     let cancelled = false;
-
     let firstRun = true;
+
     const hydrate = async () => {
       const snap = await loadServerSnapshot({ attendanceOnly: !firstRun });
       if (cancelled) return;
-
-      if (snap.students) setStudents(snap.students);
-      if (snap.classrooms) setClassrooms(snap.classrooms);
-      if (snap.dormitories) setDormitories(snap.dormitories);
-      if (snap.dormitoryRooms) setDormitoryRooms(snap.dormitoryRooms);
-      if (snap.sessions) setSessions(snap.sessions);
-      if (snap.participants) setSessionParticipants(snap.participants);
-      if (snap.records) setRecords(snap.records);
-      if (snap.devices) setDevices(snap.devices);
-      if (snap.excusals) setExcusals(snap.excusals);
-      if (snap.users && snap.users.length > 0) {
-        // Password tidak pernah disimpan / ditampilkan di browser
-        const serverUsers = snap.users.map((u: User) => ({ ...u, password: '' }) as User);
-        setUsers(serverUsers);
-        try {
-          localStorage.setItem('siuba_custom_users_v1', JSON.stringify(stripPasswordsForStorage(serverUsers)));
-        } catch {
-          // ignore
-        }
-      }
-      persistSnapshotToCache(snap);
-      setServerSyncInfo({ at: new Date().toISOString(), errors: snap.errors });
-
-      if (snap.errors.length > 0) {
-        console.warn('SIUBA: sebagian data gagal dimuat dari server:', snap.errors);
-      }
+      applyServerSnapshot(snap);
       if (firstRun && hasPendingLegacyMigration()) {
         showToast('Ada data lama di browser ini yang belum dipindahkan ke server. Buka menu /migrasi-data (Super Admin).', 'info');
       }
@@ -375,7 +399,7 @@ export function App() {
     };
 
     hydrate();
-    // Segarkan data absensi & perangkat secara berkala (tiap 60 detik) selama aplikasi terbuka
+    // Segarkan data absensi, KBM & perangkat secara berkala (tiap 60 detik) selama aplikasi terbuka
     const timer = window.setInterval(hydrate, 60000);
     return () => {
       cancelled = true;
@@ -549,40 +573,48 @@ export function App() {
     setExcusals(updatedExcusals);
   };
 
-  const handleAddSubject = (subj: Subject) => setSubjects((prev) => [...prev, subj]);
-  const handleUpdateSubject = (id: number, subj: Partial<Subject>) => {
-    setSubjects((prev) => prev.map((s) => (s.id === id ? { ...s, ...subj } : s)));
-    showToast('Mata pelajaran berhasil diperbarui.', 'success');
-  };
-  const handleDeleteSubject = (id: number) => {
-    setSubjects((prev) => prev.filter((s) => s.id !== id));
-    showToast('Mata pelajaran berhasil dihapus.', 'info');
-  };
-
-  const handleAddTeacher = (tch: Teacher) => setTeachers((prev) => [...prev, tch]);
-  const handleUpdateTeacher = (id: number, tch: Partial<Teacher>) => {
-    setTeachers((prev) => prev.map((t) => (t.id === id ? { ...t, ...tch } : t)));
-    showToast('Data guru berhasil diperbarui.', 'success');
-  };
-  const handleDeleteTeacher = (id: number) => {
-    setTeachers((prev) => prev.filter((t) => t.id !== id));
-    showToast('Data guru berhasil dihapus.', 'info');
+  // ===== KBM: semua perubahan master data disimpan di server lalu dimuat ulang =====
+  const kbmCall = async (fn: () => Promise<any>, successMsg: string) => {
+    try {
+      const res: any = await fn();
+      showToast(res?.message || successMsg, 'success');
+      await refreshServerData(true);
+      return res;
+    } catch (err: any) {
+      const fieldMsg = err?.fieldErrors ? (Object.values(err.fieldErrors).flat()[0] as string | undefined) : undefined;
+      showToast(isOfflineError(err) ? 'Server offline: perubahan KBM belum bisa disimpan.' : fieldMsg || err?.message || 'Gagal menyimpan.', 'error');
+      return null;
+    }
   };
 
-  const handleAddAssignment = (ta: TeachingAssignment) => setTeachingAssignments((prev) => [...prev, ta]);
-  const handleDeleteAssignment = (id: number) => {
-    setTeachingAssignments((prev) => prev.filter((ta) => ta.id !== id));
-    showToast('Penugasan mengajar berhasil dihapus.', 'info');
-  };
+  const handleAddSubject = (subj: Subject) =>
+    kbmCall(() => apiClient.post('/academic/subjects', subj), `Mata pelajaran '${subj.name}' ditambahkan.`);
+  const handleUpdateSubject = (id: number, subj: Partial<Subject>) =>
+    kbmCall(() => apiClient.put(`/academic/subjects/${id}`, subj), 'Mata pelajaran berhasil diperbarui.');
+  const handleDeleteSubject = (id: number) =>
+    kbmCall(() => apiClient.delete(`/academic/subjects/${id}`), 'Mata pelajaran berhasil dihapus.');
 
-  const handleAddCalendarEvent = (ev: AcademicCalendarEvent) => setAcademicCalendarEvents((prev) => [...prev, ev]);
-  const handleDeleteCalendarEvent = (id: number) => {
-    setAcademicCalendarEvents((prev) => prev.filter((ev) => ev.id !== id));
-    showToast('Agenda kalender berhasil dihapus.', 'info');
-  };
+  const handleAddTeacher = (tch: Teacher) =>
+    kbmCall(() => apiClient.post('/academic/teachers', tch), `Guru '${tch.name}' ditambahkan.`);
+  const handleUpdateTeacher = (id: number, tch: Partial<Teacher>) =>
+    kbmCall(() => apiClient.put(`/academic/teachers/${id}`, tch), 'Data guru berhasil diperbarui.');
+  const handleDeleteTeacher = (id: number) =>
+    kbmCall(() => apiClient.delete(`/academic/teachers/${id}`), 'Guru dinonaktifkan.');
 
-  const handleAddSchedule = (sched: AcademicSchedule) => setAcademicSchedules((prev) => [...prev, sched]);
-  const handleDeleteSchedule = (id: number) => setAcademicSchedules((prev) => prev.filter((s) => s.id !== id));
+  const handleAddAssignment = (ta: TeachingAssignment) =>
+    kbmCall(() => apiClient.post('/academic/assignments', ta), 'Penugasan mengajar ditambahkan.');
+  const handleDeleteAssignment = (id: number) =>
+    kbmCall(() => apiClient.delete(`/academic/assignments/${id}`), 'Penugasan mengajar berhasil dihapus.');
+
+  const handleAddCalendarEvent = (ev: AcademicCalendarEvent) =>
+    kbmCall(() => apiClient.post('/academic/calendar-events', ev), `Agenda '${ev.name}' ditambahkan.`);
+  const handleDeleteCalendarEvent = (id: number) =>
+    kbmCall(() => apiClient.delete(`/academic/calendar-events/${id}`), 'Agenda kalender berhasil dihapus.');
+
+  const handleAddSchedule = (sched: AcademicSchedule) =>
+    kbmCall(() => apiClient.post('/academic/schedules', sched), 'Jadwal pelajaran ditambahkan.');
+  const handleDeleteSchedule = (id: number) =>
+    kbmCall(() => apiClient.delete(`/academic/schedules/${id}`), 'Jadwal pelajaran dihapus.');
 
   // User & Access Control Handlers with Instant Backend & Local Sync
   const handleAddUser = (newUser: User, plainPassword?: string) => {
@@ -713,40 +745,22 @@ export function App() {
     authService.setAuthenticatedUser(user, `token_${user.id}`, true);
   };
 
-  const handleGenerateAcademicSessions = (dateStr: string) => {
-    const res = AcademicSessionGenerator.generateSessionsForDate({
-      date: dateStr,
-      academicYearId: 1,
-      semesterId: 1,
-      academicSchedules,
-      lessonPeriods,
-      calendarEvents: academicCalendarEvents,
-      classrooms,
-      subjects,
-      teachers,
-      students,
-      activities,
-      existingSessions: sessions,
-      existingContexts: academicSessionContexts,
-      existingParticipants: sessionParticipants,
-      currentUser,
-    });
-
-    if (res.result.is_holiday) {
-      showToast(res.result.errors[0] || 'Tanggal libur.', 'error');
-      return;
-    }
-
-    if (res.result.sessions_created > 0) {
-      setSessions((prev) => [...res.newSessions, ...prev]);
-      setAcademicSessionContexts((prev) => [...res.newContexts, ...prev]);
-      setSessionParticipants((prev) => [...res.newParticipants, ...prev]);
-      if (res.newActivities.length > 0) {
-        setActivities((prev) => [...prev, ...res.newActivities]);
+  const handleGenerateAcademicSessions = async (dateStr: string) => {
+    try {
+      const res: any = await apiClient.post('/academic/generate', { date: dateStr });
+      const d = res?.data || {};
+      if (d.holidays?.length) {
+        showToast(`Tanggal ${dateStr} libur di kalender akademik — sesi KBM tidak dibuat.`, 'error');
+      } else if (d.created > 0) {
+        showToast(`Berhasil membuat ${d.created} sesi KBM untuk tanggal ${dateStr}.`, 'success');
+      } else if (d.messages?.length) {
+        showToast(d.messages[0], 'error');
+      } else {
+        showToast(`Sesi KBM tanggal ${dateStr} sudah lengkap (${d.existing || 0} sesi).`, 'info');
       }
-      showToast(`Berhasil menggenerate ${res.result.sessions_created} sesi KBM untuk tanggal ${dateStr}.`, 'success');
-    } else {
-      showToast(`Sesi KBM tanggal ${dateStr} sudah lengkap (${res.result.sessions_existing} sesi terverifikasi).`, 'info');
+      await refreshServerData(true);
+    } catch (err: any) {
+      showToast(isOfflineError(err) ? 'Server offline: sesi KBM belum bisa dibuat.' : err?.message || 'Gagal membuat sesi KBM.', 'error');
     }
   };
 
@@ -1053,64 +1067,23 @@ export function App() {
   };
 
   // Close Session with Auto Alpha & Active Excuse Processing (Sprint 3 Engine)
-  const handleCloseSession = (sessionId: number) => {
-    const session = sessions.find((s) => s.id === sessionId);
-    if (!session) return;
+  // Buka/tutup/batal sesi lewat server (peserta yang belum tercatat otomatis difinalisasi saat ditutup)
+  const handleCloseSession = (sessionId: number) => handleUpdateSessionStatus(sessionId, 'closed');
 
-    const closeResult = AttendanceEngine.finalizeSessionAttendance({
-      session,
-      allStudents: students,
-      excusals,
-      existingRecords: records,
-      sessionParticipants,
-      operator: currentUser,
-    });
-
-    if (closeResult.success) {
-      setSessions((prev) => prev.map((s) => (s.id === sessionId ? closeResult.closedSession : s)));
-      if (closeResult.autoRecords.length > 0) {
-        setRecords((prev) => [...closeResult.autoRecords, ...prev]);
-      }
-      showToast(closeResult.message, 'success');
-    } else {
-      showToast(closeResult.message, 'error');
-    }
-  };
-
-  // Update Session Status with strict transition validation
-  const handleUpdateSessionStatus = (sessionId: number, newStatus: SessionStatus, cancelReason?: string) => {
+  const handleUpdateSessionStatus = async (sessionId: number, newStatus: SessionStatus, cancelReason?: string) => {
     const targetSession = sessions.find((s) => s.id === sessionId);
-    if (!targetSession) return;
-
-    if (newStatus === 'closed') {
-      handleCloseSession(sessionId);
+    const action = newStatus === 'open' ? 'open' : newStatus === 'closed' ? 'close' : newStatus === 'cancelled' ? 'cancel' : null;
+    if (!action) {
+      showToast(`Perubahan status ke '${newStatus}' tidak didukung.`, 'error');
       return;
     }
-
-    if (!AttendanceEngine.canTransition(targetSession.status, newStatus)) {
-      showToast(`Transisi status dari '${targetSession.status.toUpperCase()}' ke '${newStatus.toUpperCase()}' tidak diperbolehkan.`, 'error');
-      return;
+    try {
+      const res: any = await apiClient.post(`/attendance/sessions/${sessionId}/${action}`, action === 'cancel' ? { reason: cancelReason || 'Dibatalkan operator' } : {});
+      showToast(res?.message || `Status sesi '${targetSession?.session_code || sessionId}' diubah menjadi ${newStatus.toUpperCase()}.`, 'success');
+      await refreshServerData(true);
+    } catch (err: any) {
+      showToast(isOfflineError(err) ? 'Server offline: status sesi belum bisa diubah.' : err?.message || 'Gagal mengubah status sesi.', 'error');
     }
-
-    setSessions((prev) =>
-      prev.map((s) => {
-        if (s.id === sessionId) {
-          const nowStr = new Date().toISOString();
-          return {
-            ...s,
-            status: newStatus,
-            opened_by: newStatus === 'open' ? currentUser.name : s.opened_by,
-            opened_at: newStatus === 'open' ? nowStr : s.opened_at,
-            closed_by: s.closed_by,
-            closed_at: s.closed_at,
-            notes: cancelReason ? `${s.notes || ''} [BATAL: ${cancelReason}]` : s.notes,
-          };
-        }
-        return s;
-      })
-    );
-
-    showToast(`Status sesi '${targetSession.session_code}' berhasil diubah menjadi ${newStatus.toUpperCase()}.`, 'success');
   };
 
   // Excusal Handlers — disimpan ke server (MySQL). Hanya saat server tidak terjangkau dicatat sementara di browser.
@@ -1436,36 +1409,12 @@ export function App() {
   };
 
   // Lesson Periods CRUD Handlers
-  const handleAddLessonPeriod = (periodData: Partial<LessonPeriod>) => {
-    const nextSort = lessonPeriods.length > 0 ? Math.max(...lessonPeriods.map((lp) => lp.sort_order || 0)) + 1 : 1;
-    const nextNum = lessonPeriods.length > 0 ? Math.max(...lessonPeriods.map((lp) => lp.period_number || 0)) + 1 : 1;
-    const newPeriod: LessonPeriod = {
-      id: Date.now(),
-      code: periodData.code || `JP-${nextNum.toString().padStart(2, '0')}`,
-      name: periodData.name || `JP ${nextNum}`,
-      period_number: periodData.period_number || nextNum,
-      start_time: periodData.start_time || '07:00',
-      end_time: periodData.end_time || '07:45',
-      is_break: Boolean(periodData.is_break),
-      is_active: true,
-      sort_order: periodData.sort_order || nextSort,
-    };
-    setLessonPeriods((prev) => [...prev, newPeriod].sort((a, b) => a.sort_order - b.sort_order));
-    showToast(`Jam Pelajaran '${newPeriod.name}' berhasil ditambahkan.`, 'success');
-  };
-
-  const handleUpdateLessonPeriod = (periodId: number, updateData: Partial<LessonPeriod>) => {
-    setLessonPeriods((prev) =>
-      prev.map((lp) => (lp.id === periodId ? { ...lp, ...updateData } : lp)).sort((a, b) => a.sort_order - b.sort_order)
-    );
-    showToast('Jam Pelajaran berhasil diperbarui.', 'success');
-  };
-
-  const handleDeleteLessonPeriod = (periodId: number) => {
-    const target = lessonPeriods.find((lp) => lp.id === periodId);
-    setLessonPeriods((prev) => prev.filter((lp) => lp.id !== periodId));
-    showToast(`Jam Pelajaran '${target?.name || ''}' berhasil dihapus.`, 'info');
-  };
+  const handleAddLessonPeriod = (periodData: Partial<LessonPeriod>) =>
+    kbmCall(() => apiClient.post('/academic/lesson-periods', periodData), `Jam Pelajaran '${periodData.name || ''}' ditambahkan.`);
+  const handleUpdateLessonPeriod = (periodId: number, updateData: Partial<LessonPeriod>) =>
+    kbmCall(() => apiClient.put(`/academic/lesson-periods/${periodId}`, updateData), 'Jam Pelajaran berhasil diperbarui.');
+  const handleDeleteLessonPeriod = (periodId: number) =>
+    kbmCall(() => apiClient.delete(`/academic/lesson-periods/${periodId}`), 'Jam Pelajaran berhasil dihapus.');
 
   const handleToggleActivityMethod = (activityId: number, method: 'manual' | 'qr' | 'rfid') => {
     setActivities((prev) =>

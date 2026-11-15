@@ -125,7 +125,10 @@ class AcademicSessionGenerator
                         ['code' => $activityCode],
                         [
                             'name' => "KBM {$schedule->subject->name} ({$schedule->classroom->name})",
-                            'activity_category_id' => 1,
+                            // dulu di-hardcode id 1 (gagal jika kategori itu tidak ada)
+                            'activity_category_id' => \App\Models\ActivityCategory::firstOrCreate(
+                                ['code' => 'AKADEMIK'], ['name' => 'Akademik / KBM']
+                            )->id,
                             'allow_manual' => true,
                             'allow_qr' => true,
                             'allow_rfid' => false,

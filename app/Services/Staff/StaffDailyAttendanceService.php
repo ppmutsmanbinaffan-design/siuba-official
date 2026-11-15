@@ -177,6 +177,55 @@ class StaffDailyAttendanceService
         return $count;
     }
 
+    /**
+     * Presensi mengajar: dicatat saat guru membuka (masuk) dan menutup (selesai) sesi KBM.
+     * Satu catatan per guru per sesi (attendance_type 'teaching', context_key = id sesi).
+     */
+    public function recordTeaching(\App\Models\AttendanceSession $session, string $action, ?User $operator = null): ?StaffAttendanceRecord
+    {
+        $context = \App\Models\AcademicSessionContext::where('attendance_session_id', $session->id)->first();
+        if (!$context) {
+            return null;
+        }
+        $teacherUserId = $context->teaching_teacher_id ?: $context->scheduled_teacher_id;
+        $staff = StaffProfile::where('user_id', $teacherUserId)->first();
+        if (!$staff) {
+            return null; // guru belum punya profil SDM
+        }
+
+        $record = StaffAttendanceRecord::firstOrNew([
+            'staff_profile_id' => $staff->id,
+            'attendance_type' => 'teaching',
+            'context_key' => 'session:' . $session->id,
+        ]);
+        $now = now();
+
+        if ($action === 'open' && !$record->check_in_at) {
+            $grace = 10;
+            $late = $session->start_at && $now->gt($session->start_at->copy()->addMinutes($grace))
+                ? (int) floor($session->start_at->diffInMinutes($now, true)) : 0;
+            $record->fill([
+                'attendance_date' => $session->session_date?->toDateString() ?? $now->toDateString(),
+                'status' => $late > 0 ? 'late' : 'present',
+                'scheduled_start_at' => $session->start_at,
+                'scheduled_end_at' => $session->end_at,
+                'check_in_at' => $now,
+                'check_in_method' => 'manual',
+                'late_minutes' => min(65535, $late),
+                'recorded_by' => $operator?->id,
+                'recorded_by_name' => $operator?->name,
+                'notes' => ($context->teaching_teacher_id && $context->teaching_teacher_id !== $context->scheduled_teacher_id ? 'Guru pengganti. ' : '')
+                    . ($late > 0 ? "Membuka kelas terlambat {$late} menit" : 'Membuka kelas tepat waktu'),
+                'metadata' => ['session_id' => $session->id, 'session_code' => $session->session_code],
+            ])->save();
+        } elseif ($action === 'close' && $record->exists && !$record->check_out_at) {
+            $early = $session->end_at && $now->lt($session->end_at) ? (int) floor($now->diffInMinutes($session->end_at, true)) : 0;
+            $record->update(['check_out_at' => $now, 'check_out_method' => 'manual', 'early_leave_minutes' => min(65535, $early)]);
+        }
+
+        return $record->exists ? $record : null;
+    }
+
     private function fail(string $code, string $message, ?StaffProfile $staff = null, ?StaffAttendanceRecord $record = null): array
     {
         return array_filter(['success' => false, 'code' => $code, 'message' => $message, 'staff' => $staff, 'record' => $record], fn ($v) => $v !== null);

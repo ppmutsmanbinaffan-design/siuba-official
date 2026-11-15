@@ -47,4 +47,9 @@ class AcademicSessionContext extends Model
     {
         return $this->belongsTo(User::class, 'teaching_teacher_id');
     }
+
+    public function schedule(): BelongsTo
+    {
+        return $this->belongsTo(AcademicSchedule::class, 'academic_schedule_id');
+    }
 }

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { todayLocalDate } from '../utils/today';
 import { 
   AcademicSessionContext, 
   AttendanceRecord, 
@@ -61,7 +62,7 @@ export const KbmMonitoringView: React.FC<Props> = ({
   const safeTeachers = teachers || [];
   const safeLessonPeriods = lessonPeriods || [];
 
-  const [selectedDate, setSelectedDate] = useState<string>('2026-08-24');
+  const [selectedDate, setSelectedDate] = useState<string>(todayLocalDate());
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [filterClassroom, setFilterClassroom] = useState<number | 'all'>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');

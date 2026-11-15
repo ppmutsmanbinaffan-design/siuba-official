@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\AttendanceSessionApiController;
 use App\Http\Controllers\Api\MasterDataApiController;
 use App\Http\Controllers\Api\StudentApiController;
 use App\Http\Controllers\Api\StaffApiController;
+use App\Http\Controllers\Api\AcademicApiController;
 use App\Http\Controllers\Api\StudentExcusalApiController;
 use App\Http\Controllers\Api\StaffAttendanceApiController;
 use App\Http\Controllers\Api\AuthApiController;
@@ -121,6 +122,33 @@ Route::prefix('v1')->group(function () {
             Route::post('/absences', [StaffAttendanceApiController::class, 'storeAbsence'])->middleware('permission:staff.attendance');
             Route::post('/absences/{absence}/approve', [StaffAttendanceApiController::class, 'approveAbsence'])->middleware('permission:staff.edit|staff.deactivate');
             Route::post('/absences/{absence}/reject', [StaffAttendanceApiController::class, 'rejectAbsence'])->middleware('permission:staff.edit|staff.deactivate');
+        });
+
+        // KBM: mapel, guru, jam pelajaran, penugasan, jadwal, kalender, guru pengganti
+        Route::prefix('academic')->group(function () {
+            $kbmView = 'permission:kbm.master|kbm.timetable|kbm.monitoring|kbm.teacher_dashboard|kbm.reports';
+            Route::get('/master', [AcademicApiController::class, 'master'])->middleware($kbmView);
+            Route::middleware('permission:kbm.master')->group(function () {
+                Route::post('/subjects', [AcademicApiController::class, 'storeSubject']);
+                Route::match(['put', 'patch'], '/subjects/{subject}', [AcademicApiController::class, 'updateSubject']);
+                Route::delete('/subjects/{subject}', [AcademicApiController::class, 'deleteSubject']);
+                Route::post('/teachers', [AcademicApiController::class, 'storeTeacher']);
+                Route::match(['put', 'patch'], '/teachers/{teacher}', [AcademicApiController::class, 'updateTeacher']);
+                Route::delete('/teachers/{teacher}', [AcademicApiController::class, 'deactivateTeacher']);
+                Route::post('/assignments', [AcademicApiController::class, 'storeAssignment']);
+                Route::delete('/assignments/{assignment}', [AcademicApiController::class, 'deleteAssignment']);
+                Route::post('/calendar-events', [AcademicApiController::class, 'storeEvent']);
+                Route::delete('/calendar-events/{event}', [AcademicApiController::class, 'deleteEvent']);
+            });
+            Route::middleware('permission:kbm.master|kbm.timetable')->group(function () {
+                Route::post('/lesson-periods', [AcademicApiController::class, 'storePeriod']);
+                Route::match(['put', 'patch'], '/lesson-periods/{period}', [AcademicApiController::class, 'updatePeriod']);
+                Route::delete('/lesson-periods/{period}', [AcademicApiController::class, 'deletePeriod']);
+                Route::post('/schedules', [AcademicApiController::class, 'storeSchedule']);
+                Route::delete('/schedules/{schedule}', [AcademicApiController::class, 'deleteSchedule']);
+            });
+            Route::post('/generate', [AcademicApiController::class, 'generate'])->middleware('permission:kbm.master|kbm.timetable|attendance.sessions.create');
+            Route::post('/substitutions', [AcademicApiController::class, 'storeSubstitution'])->middleware('permission:kbm.master|kbm.monitoring');
         });
 
         // Referensi kelas, asrama, kamar (dibutuhkan semua pengguna yang login)

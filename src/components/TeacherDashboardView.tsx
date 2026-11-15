@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { todayLocalDate } from '../utils/today';
 import { 
   AcademicSessionContext, 
   AcademicSubstitution, 
@@ -79,7 +80,7 @@ export const TeacherDashboardView: React.FC<Props> = ({
     safeTeachers.find((t) => t && (t.user_id === currentUser.id || (t.name || '').includes('Hasan')))?.id || safeTeachers[0]?.id || 1
   );
 
-  const [selectedDate, setSelectedDate] = useState<string>('2026-08-24'); // Monday date
+  const [selectedDate, setSelectedDate] = useState<string>(todayLocalDate());
 
   // Filter KBM sessions for this date
   const dateSessions = safeSessions.filter(

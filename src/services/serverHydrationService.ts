@@ -21,6 +21,19 @@ import type {
 } from '../types';
 import { mergeServerDailyRecords } from '../features/staff-attendance/api/staffAttendanceApi';
 
+export interface AcademicMaster {
+  academic_years: any[];
+  semesters: any[];
+  subjects: any[];
+  lesson_periods: any[];
+  teachers: any[];
+  teaching_assignments: any[];
+  academic_schedules: any[];
+  calendar_events: any[];
+  session_contexts: any[];
+  substitutions: any[];
+}
+
 export interface ServerSnapshot {
   students?: Student[];
   classrooms?: Classroom[];
@@ -35,6 +48,7 @@ export interface ServerSnapshot {
   excusals?: StudentExcusal[];
   staffDaily?: StaffAttendanceRecord[];
   staffAbsences?: StaffAbsenceRequest[];
+  academic?: AcademicMaster;
   errors: string[];
 }
 
@@ -77,24 +91,25 @@ export async function loadServerSnapshot(options: { attendanceOnly?: boolean } =
 
   const dailyExtras = () =>
     Promise.all([
+      attempt('KBM', async () => ((await apiClient.get<AcademicMaster>('/academic/master')) as any).data as AcademicMaster, errors),
       attempt('Izin santri', async () => ((await apiClient.get<StudentExcusal[]>('/student-excusals')) as any).data as StudentExcusal[], errors),
       attempt('Presensi SDM', async () => ((await apiClient.get<StaffAttendanceRecord[]>('/staff-attendance/daily')) as any).data as StaffAttendanceRecord[], errors),
       attempt('Izin SDM', async () => ((await apiClient.get<StaffAbsenceRequest[]>('/staff-attendance/absences')) as any).data as StaffAbsenceRequest[], errors),
-    ]);
+    ] as const);
 
   if (options.attendanceOnly) {
-    const [attendance, devices, [excusals, staffDaily, staffAbsences]] = await Promise.all([
+    const [attendance, devices, [academic, excusals, staffDaily, staffAbsences]] = await Promise.all([
       attempt('Absensi', async () => ((await apiClient.get<any>('/attendance/snapshot')) as any).data, errors),
       attempt('Perangkat', async () => ((await apiClient.get<AttendanceDevice[]>('/attendance/devices')) as any).data as AttendanceDevice[], errors),
       dailyExtras(),
     ]);
     return {
       sessions: attendance?.sessions, participants: attendance?.participants, records: attendance?.records, devices,
-      excusals, staffDaily, staffAbsences, errors,
+      excusals, staffDaily, staffAbsences, academic, errors,
     };
   }
 
-  const [[excusals, staffDaily, staffAbsences], students, classrooms, dormitories, dormitoryRooms, attendance, devices, staff, users] = await Promise.all([
+  const [[academic, excusals, staffDaily, staffAbsences], students, classrooms, dormitories, dormitoryRooms, attendance, devices, staff, users] = await Promise.all([
     dailyExtras(),
     attempt('Santri', fetchAllStudents, errors),
     attempt('Kelas', async () => ((await apiClient.get<Classroom[]>('/classrooms')) as any).data as Classroom[], errors),
@@ -123,6 +138,7 @@ export async function loadServerSnapshot(options: { attendanceOnly?: boolean } =
     excusals,
     staffDaily,
     staffAbsences,
+    academic,
     errors,
   };
 }

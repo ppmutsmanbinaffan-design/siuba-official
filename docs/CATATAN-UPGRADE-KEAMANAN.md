@@ -259,3 +259,45 @@ php artisan config:cache   # setelah menyesuaikan config/siuba.php bila perlu
 
 Presensi mengajar (KBM) & melatih (ekskul), jadwal pelajaran, asrama/halaqah/piket, event, serta tombol
 "Login sebagai pengguna ini" di Manajemen Akses.
+
+---
+
+# Update 7: Tahap 4 — KBM (jadwal pelajaran & presensi mengajar) di server
+
+## Latar belakang
+
+Seluruh data KBM di aplikasi (mapel, guru, jam pelajaran, penugasan, jadwal, kalender akademik) sebelumnya hanya
+disimpan di memori browser — **hilang setiap halaman dimuat ulang** — dan sesi KBM dibuat di browser saja.
+
+## Yang berubah
+
+- API `GET /api/v1/academic/master` + CRUD: mapel, jam pelajaran, guru, penugasan mengajar, jadwal pelajaran
+  (dengan cek bentrok kelas & guru), kalender akademik, dan guru pengganti. Halaman **KBM Master**, **Jadwal**,
+  **Dashboard Guru**, dan **Monitoring KBM** kini memakai data server.
+- **Guru = akun pengguna** (role `guru`) + profil SDM. Menambah guru dari menu KBM otomatis membuat akun login
+  dengan password awal acak (ditampilkan sekali di notifikasi). Menghapus guru = menonaktifkan (riwayat tetap utuh).
+- **Generate sesi KBM** di server (`POST /api/v1/academic/generate`, bisa rentang ≤31 hari), aman diulang,
+  melewati hari libur di kalender akademik. Tahun ajaran & semester aktif dibuat otomatis bila belum ada.
+- **Buka/tutup/batal sesi** dari aplikasi kini lewat server (sebelumnya hanya berubah di browser).
+  - Saat sesi ditutup, peserta yang belum tercatat otomatis diberi status **izin/sakit/dispensasi** (jika ada izin
+    disetujui) atau **alpa**.
+  - **Presensi mengajar guru** otomatis tercatat: membuka kelas = hadir/terlambat (toleransi 10 menit),
+    menutup kelas = selesai. Jika ada guru pengganti, yang tercatat adalah guru pengganti.
+    Lihat via `GET /api/v1/staff-attendance/daily?type=teaching&date=YYYY-MM-DD`.
+- Perbaikan bug generator sesi KBM server yang gagal jika kategori kegiatan ber-id 1 tidak ada.
+- Tanggal bawaan di halaman Jadwal, Dashboard Guru, Monitoring KBM, dan Kalender kini hari ini (sebelumnya
+  tertanam 24/25 Agustus 2026).
+
+## Langkah setelah update
+
+```bash
+php artisan migrate --force   # tidak ada migrasi baru, aman dijalankan
+php artisan optimize:clear
+```
+
+Data KBM lama di browser tidak bisa dimigrasikan (memang tidak pernah tersimpan); masukkan ulang lewat menu KBM.
+
+## Belum termasuk (tahap 5)
+
+Presensi melatih (ekskul) & ekstrakurikuler, asrama/halaqah/piket/rutinitas, event, dan tombol
+"Login sebagai pengguna ini" di Manajemen Akses.

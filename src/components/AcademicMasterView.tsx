@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { todayLocalDate } from '../utils/today';
 import { 
   AcademicCalendarEvent, 
   AcademicYear, 
@@ -108,8 +109,8 @@ export const AcademicMasterView: React.FC<Props> = ({
 
   const [showCalModal, setShowCalModal] = useState(false);
   const [calName, setCalName] = useState('');
-  const [calStartDate, setCalStartDate] = useState('2026-08-25');
-  const [calEndDate, setCalEndDate] = useState('2026-08-25');
+  const [calStartDate, setCalStartDate] = useState(todayLocalDate());
+  const [calEndDate, setCalEndDate] = useState(todayLocalDate());
   const [calType, setCalType] = useState<'holiday' | 'exam' | 'school_event' | 'pesantren_event'>('holiday');
 
   // Delete Confirmation Modal

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { todayLocalDate } from '../utils/today';
 import { 
   AcademicSchedule, 
   AcademicScheduleConflictError, 
@@ -94,7 +95,7 @@ export const TimetableManagerView: React.FC<Props> = ({
 
   const [selectedClassroom, setSelectedClassroom] = useState<number>(safeClassrooms[0]?.id || 1);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [targetDate, setTargetDate] = useState<string>('2026-08-24'); // Monday
+  const [targetDate, setTargetDate] = useState<string>(todayLocalDate());
 
   // Modals
   const [showAddModal, setShowAddModal] = useState(false);
