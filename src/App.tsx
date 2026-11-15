@@ -52,7 +52,7 @@ import { StudentCardDesignerView } from './components/StudentCardDesignerView';
 import { ServerConnectivityService } from './services/serverConnectivityService';
 import { OfflineStorageService } from './services/offlineStorageService';
 import { AcademicSessionGenerator } from './services/academicSessionGenerator';
-import { apiClient } from './services/apiClient';
+import { apiClient, isOfflineError } from './services/apiClient';
 import { loadServerSnapshot, persistSnapshotToCache } from './services/serverHydrationService';
 import { hasPendingLegacyMigration } from './services/localDataGuard';
 import { 
@@ -351,6 +351,7 @@ export function App() {
       if (snap.participants) setSessionParticipants(snap.participants);
       if (snap.records) setRecords(snap.records);
       if (snap.devices) setDevices(snap.devices);
+      if (snap.excusals) setExcusals(snap.excusals);
       if (snap.users && snap.users.length > 0) {
         // Password tidak pernah disimpan / ditampilkan di browser
         const serverUsers = snap.users.map((u: User) => ({ ...u, password: '' }) as User);
@@ -1112,79 +1113,76 @@ export function App() {
     showToast(`Status sesi '${targetSession.session_code}' berhasil diubah menjadi ${newStatus.toUpperCase()}.`, 'success');
   };
 
-  // Excusal Handlers (Sprint 3)
-  const handleAddExcusal = (data: Partial<StudentExcusal>) => {
-    const student = students.find((s) => s.id === data.student_id);
-    if (!student) return;
+  // Excusal Handlers — disimpan ke server (MySQL). Hanya saat server tidak terjangkau dicatat sementara di browser.
+  const upsertExcusalState = (exc: StudentExcusal) =>
+    setExcusals((prev) => [exc, ...prev.filter((e) => e.id !== exc.id)]);
 
-    const newExcusal: StudentExcusal = {
-      id: Date.now(),
+  const handleAddExcusal = async (data: Partial<StudentExcusal>) => {
+    const student = students.find((s) => s.id === data.student_id);
+    if (!student || !currentUser) return;
+
+    const today = new Date().toISOString().slice(0, 10);
+    const payload = {
       student_id: student.id,
-      student_name: student.name,
-      student_number: student.student_number,
-      classroom_name: student.classroom_name,
-      dormitory_room_name: student.dormitory_room_name,
       type: data.type || 'sick',
       reason: data.reason || 'Izin dari wali santri',
-      start_at: data.start_at || '2026-08-23T04:00:00',
-      end_at: data.end_at || '2026-08-23T20:00:00',
-      status: 'approved', // Auto-approved when entered by authorized staff
-      approved_by: currentUser.name,
-      approved_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
+      start_at: data.start_at || `${today}T00:00:00`,
+      end_at: data.end_at || `${today}T23:59:00`,
       notes: data.notes,
-      created_by: currentUser.name,
-      created_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
-      updated_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
+      status: data.status === 'pending' ? 'pending' : 'approved',
     };
 
-    setExcusals((prev) => [newExcusal, ...prev]);
-    showToast(`Surat izin/dispensasi '${student.name}' berhasil disimpan dan disetujui.`, 'success');
+    try {
+      const res: any = await apiClient.post<StudentExcusal>('/student-excusals', payload);
+      upsertExcusalState(res.data);
+      showToast(
+        res.data.status === 'approved'
+          ? `Surat izin '${student.name}' tersimpan di server dan disetujui.`
+          : `Surat izin '${student.name}' tersimpan, menunggu persetujuan.`,
+        'success'
+      );
+    } catch (err: any) {
+      if (!isOfflineError(err)) {
+        showToast(err?.message || 'Surat izin gagal disimpan.', 'error');
+        return;
+      }
+      const nowStr = new Date().toISOString().slice(0, 19).replace('T', ' ');
+      upsertExcusalState({
+        id: Date.now(),
+        student_id: student.id,
+        student_name: student.name,
+        student_number: student.student_number,
+        classroom_name: student.classroom_name,
+        dormitory_room_name: student.dormitory_room_name,
+        ...payload,
+        status: 'approved',
+        approved_by: currentUser.name,
+        approved_at: nowStr,
+        created_by: currentUser.name,
+        created_at: nowStr,
+        updated_at: nowStr,
+      } as StudentExcusal);
+      showToast('Server offline: surat izin disimpan sementara di perangkat ini.', 'info');
+    }
   };
 
-  const handleApproveExcusal = (id: number) => {
-    setExcusals((prev) =>
-      prev.map((exc) =>
-        exc.id === id
-          ? {
-              ...exc,
-              status: 'approved',
-              approved_by: currentUser?.name || 'Musyrif / Super Admin',
-              approved_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
-            }
-          : exc
-      )
-    );
-    showToast('Surat izin berhasil disetujui.', 'success');
+  const changeExcusalStatus = async (id: number, action: 'approve' | 'reject' | 'cancel', reason = '') => {
+    try {
+      const res: any = await apiClient.post<StudentExcusal>(`/student-excusals/${id}/${action}`, action === 'reject' ? { reason } : {});
+      upsertExcusalState(res.data);
+      const label = action === 'approve' ? 'disetujui' : action === 'reject' ? 'ditolak' : 'dibatalkan';
+      showToast(`Surat izin berhasil ${label}.`, action === 'reject' ? 'error' : 'success');
+    } catch (err: any) {
+      showToast(
+        isOfflineError(err) ? 'Server offline: perubahan status izin belum bisa disimpan.' : err?.message || 'Gagal mengubah status izin.',
+        'error'
+      );
+    }
   };
 
-  const handleRejectExcusal = (id: number, reason: string = '') => {
-    setExcusals((prev) =>
-      prev.map((exc) =>
-        exc.id === id
-          ? {
-              ...exc,
-              status: 'rejected',
-              notes: reason ? `Ditolak: ${reason}` : (exc.notes || 'Ditolak oleh Musyrif/Admin'),
-            }
-          : exc
-      )
-    );
-    showToast('Surat izin ditolak.', 'error');
-  };
-
-  const handleCancelExcusal = (id: number) => {
-    setExcusals((prev) =>
-      prev.map((exc) =>
-        exc.id === id
-          ? {
-              ...exc,
-              status: 'cancelled',
-            }
-          : exc
-      )
-    );
-    showToast('Surat izin dibatalkan.', 'success');
-  };
+  const handleApproveExcusal = (id: number) => changeExcusalStatus(id, 'approve');
+  const handleRejectExcusal = (id: number, reason: string = '') => changeExcusalStatus(id, 'reject', reason);
+  const handleCancelExcusal = (id: number) => changeExcusalStatus(id, 'cancel');
 
   // Add Student
   const handleAddStudent = (studentData: Partial<Student>) => {

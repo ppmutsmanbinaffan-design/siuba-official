@@ -10,6 +10,9 @@ use App\Models\Classroom;
 use App\Models\Dormitory;
 use App\Models\DormitoryRoom;
 use App\Models\Student;
+use App\Models\StudentExcusal;
+use App\Models\StaffAttendanceRecord;
+use App\Models\StaffAbsenceRequest;
 use App\Models\StaffProfile;
 use App\Models\AttendanceDevice;
 use App\Models\AttendanceDeviceLog;
@@ -279,6 +282,90 @@ class SpaTransformer
             'message' => $l->message,
             'metadata' => $l->metadata,
             'created_at' => $l->created_at?->toIso8601String(),
+        ];
+    }
+
+    public static function excusal(StudentExcusal $e): array
+    {
+        $st = $e->relationLoaded('student') ? $e->student : null;
+
+        return [
+            'id' => $e->id,
+            'student_id' => $e->student_id,
+            'student_name' => $st?->name ?? '',
+            'student_number' => $st?->student_number ?? '',
+            'classroom_name' => $st?->classroom?->name,
+            'dormitory_room_name' => $st?->dormitoryRoom?->name,
+            'type' => $e->type,
+            'start_at' => $e->start_at?->format('Y-m-d\TH:i:s'),
+            'end_at' => $e->end_at?->format('Y-m-d\TH:i:s'),
+            'reason' => $e->reason,
+            'status' => $e->status,
+            'notes' => $e->notes,
+            'attachment_path' => $e->attachment_path,
+            'approved_by' => $e->relationLoaded('approver') ? $e->approver?->name : null,
+            'approved_at' => $e->approved_at?->format('Y-m-d H:i:s'),
+            'created_by' => $e->created_by_name ?? '',
+            'created_at' => $e->created_at?->format('Y-m-d H:i:s'),
+            'updated_at' => $e->updated_at?->format('Y-m-d H:i:s'),
+        ];
+    }
+
+    public static function staffRecord(StaffAttendanceRecord $r): array
+    {
+        $staff = $r->relationLoaded('staff') ? $r->staff : null;
+
+        return [
+            'id' => $r->id,
+            'staff_id' => $r->staff_profile_id,
+            'staff_name' => $staff?->name,
+            'staff_number' => $staff?->staff_number,
+            'staff_type' => $staff?->staff_type,
+            'attendance_date' => $r->attendance_date?->format('Y-m-d'),
+            'attendance_type' => $r->attendance_type,
+            'context_type' => $r->attendance_type === 'daily' ? 'general' : null,
+            'scheduled_start_at' => $r->scheduled_start_at?->toIso8601String(),
+            'scheduled_end_at' => $r->scheduled_end_at?->toIso8601String(),
+            'check_in_at' => $r->check_in_at?->toIso8601String(),
+            'check_out_at' => $r->check_out_at?->toIso8601String(),
+            'status' => $r->status,
+            'check_in_method' => $r->check_in_method,
+            'check_out_method' => $r->check_out_method,
+            'late_minutes' => (int) $r->late_minutes,
+            'early_leave_minutes' => (int) $r->early_leave_minutes,
+            'attendance_device_id' => $r->attendance_device_id,
+            'recorded_by' => $r->recorded_by_name,
+            'notes' => $r->notes,
+            'metadata' => $r->metadata,
+            'created_at' => $r->created_at?->toIso8601String(),
+            'updated_at' => $r->updated_at?->toIso8601String(),
+        ];
+    }
+
+    public static function staffAbsence(StaffAbsenceRequest $a): array
+    {
+        $staff = $a->relationLoaded('staff') ? $a->staff : null;
+        $decided = in_array($a->status, ['approved', 'rejected'], true);
+
+        return [
+            'id' => $a->id,
+            'staff_id' => $a->staff_profile_id,
+            'staff_name' => $staff?->name,
+            'staff_number' => $staff?->staff_number,
+            'type' => $a->type,
+            'start_at' => $a->start_at?->format('Y-m-d\TH:i:s'),
+            'end_at' => $a->end_at?->format('Y-m-d\TH:i:s'),
+            'reason' => $a->reason,
+            'attachment' => $a->attachment,
+            'status' => $a->status,
+            'requested_at' => $a->created_at?->toIso8601String(),
+            'approved_by' => $a->status === 'approved' ? $a->decided_by_name : null,
+            'approved_at' => $a->status === 'approved' ? $a->decided_at?->toIso8601String() : null,
+            'rejected_by' => $a->status === 'rejected' ? $a->decided_by_name : null,
+            'rejected_at' => $a->status === 'rejected' ? $a->decided_at?->toIso8601String() : null,
+            'decision_notes' => $decided ? $a->decision_notes : null,
+            'created_at' => $a->created_at?->toIso8601String(),
+            'updated_at' => $a->updated_at?->toIso8601String(),
         ];
     }
 }

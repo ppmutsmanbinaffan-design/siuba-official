@@ -29,6 +29,10 @@ class LocalDataMigrationApiController extends Controller
             'sessions' => 'nullable|array|max:50000',
             'participants' => 'nullable|array|max:500000',
             'records' => 'nullable|array|max:500000',
+            'excusals' => 'nullable|array|max:100000',
+            'staff' => 'nullable|array|max:5000',
+            'staff_records' => 'nullable|array|max:200000',
+            'staff_absences' => 'nullable|array|max:50000',
         ]);
 
         $dryRun = $request->boolean('dry_run');

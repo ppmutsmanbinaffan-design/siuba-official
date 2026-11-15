@@ -172,7 +172,7 @@ class AttendanceSessionApiController extends Controller
             student: $student,
             method: AttendanceMethod::MANUAL,
             operator: $request->user(),
-            overrideStatus: AttendanceStatus::from($data['status']),
+            overrideStatus: $this->applyExcusal($session, $student, AttendanceStatus::from($data['status'])),
             notes: $data['notes'] ?? null,
         );
 
@@ -207,7 +207,7 @@ class AttendanceSessionApiController extends Controller
                 student: $student,
                 method: AttendanceMethod::MANUAL,
                 operator: $request->user(),
-                overrideStatus: $status,
+                overrideStatus: $this->applyExcusal($session, $student, $status),
                 notes: $data['notes'] ?? null,
             );
 
@@ -437,6 +437,24 @@ class AttendanceSessionApiController extends Controller
         }
 
         return $out;
+    }
+
+    /**
+     * Jika santri ditandai "alpa" padahal punya izin/sakit/dispensasi yang DISETUJUI pada jam sesi,
+     * status otomatis diganti sesuai jenis izinnya.
+     */
+    private function applyExcusal(AttendanceSession $session, Student $student, AttendanceStatus $status): AttendanceStatus
+    {
+        if ($status !== AttendanceStatus::ABSENT) {
+            return $status;
+        }
+
+        $excusal = \App\Models\StudentExcusal::where('student_id', $student->id)
+            ->activeBetween($session->start_at ?? $session->session_date, $session->end_at ?? $session->session_date)
+            ->orderByDesc('approved_at')
+            ->first();
+
+        return $excusal ? (AttendanceStatus::tryFrom($excusal->type) ?? $status) : $status;
     }
 
     private function resultPayload(AttendanceResult $result, Student $student): array

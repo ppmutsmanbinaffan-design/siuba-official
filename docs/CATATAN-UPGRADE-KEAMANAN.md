@@ -221,3 +221,41 @@ php artisan schedule:run
 Modul yang masih memakai data lokal di React: KBM/jadwal pelajaran, asrama/halaqah/piket, ekskul & event, izin santri,
 absensi SDM/mengajar/pelatih, serta tombol "Login sebagai pengguna ini" di Manajemen Akses (hanya mengganti tampilan,
 bukan login sungguhan).
+
+---
+
+# Update 6: Tahap 3 — Izin santri & presensi harian SDM di server
+
+## Yang berubah
+
+- **Izin / sakit / dispensasi santri** tersimpan di tabel `student_excusals`.
+  API: `GET/POST /api/v1/student-excusals`, `POST /student-excusals/{id}/approve|reject|cancel`.
+  Petugas dengan izin `attendance.excuses` → izin langsung disetujui. Halaman **Izin** di aplikasi kini menyimpan ke server.
+  Saat operator menandai santri **alpa** (manual / sekaligus), santri yang punya izin disetujui pada jam sesi otomatis
+  tercatat sesuai jenis izinnya (sakit/izin/dispensasi).
+- **Presensi harian SDM** (check-in/check-out) di tabel `staff_attendance_records`:
+  - Scan QR/RFID/NIP & entri manual susulan dari halaman **Presensi SDM** (`/sdm/presensi`) → server.
+  - **Tap kartu RFID guru/SDM di alat ESP32** yang sama dengan santri: tap pertama = masuk, tap berikutnya = pulang
+    (LCD: `Masuk Sukses`, `Masuk (TELAT)`, `Pulang Sukses`, `Hari Libur`, `Sedang Izin`).
+  - Koreksi (wajib alasan, tercatat di audit log) dan **Finalisasi alpa** per tanggal.
+  - Jadwal kerja server diatur di **`config/siuba.php`** (default: masuk 06:00, terlambat setelah 07:15, pulang 16:00;
+    Jum'at 12:00; Sabtu 14:00; Ahad libur). Mengubah jadwal di layar aplikasi belum mengubah jadwal server.
+- **Pengajuan izin/sakit/cuti/dinas SDM** di tabel `staff_absence_requests`; saat disetujui, hari kerja dalam rentang
+  tanggal otomatis ditandai sesuai jenisnya, dan SDM tidak bisa check-in pada hari tersebut.
+- Halaman SDM kini juga mengelola **data SDM lewat server** (tambah, ubah, nonaktifkan, pasang/lepas RFID, ganti QR).
+- **Migrasi**: `/migrasi-data` kini juga mengimpor izin santri, data SDM, presensi harian SDM, dan pengajuan izin SDM
+  dari browser. Data lama izin/presensi SDM yang dibuat di browser ikut diamankan sebelum cache ditimpa data server.
+- Formulir izin santri tidak lagi berisi tanggal contoh `2026-08-23` (kini tanggal hari ini).
+
+## Langkah setelah update
+
+```bash
+php artisan migrate --force
+php artisan optimize:clear
+php artisan config:cache   # setelah menyesuaikan config/siuba.php bila perlu
+```
+
+## Belum termasuk (tahap 4)
+
+Presensi mengajar (KBM) & melatih (ekskul), jadwal pelajaran, asrama/halaqah/piket, event, serta tombol
+"Login sebagai pengguna ini" di Manajemen Akses.

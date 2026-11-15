@@ -82,6 +82,14 @@ class IotDeviceApiController extends Controller
 
         // 4. Identitas santri
         $student = Student::with(['classroom', 'dormitoryRoom'])->where('rfid_uid', $normalizedUid)->first();
+        // 4b. Bukan kartu santri? Cek kartu guru/SDM -> presensi harian SDM (masuk/pulang)
+        if (!$student) {
+            $staff = \App\Models\StaffProfile::where('rfid_uid', $normalizedUid)->first();
+            if ($staff) {
+                return $this->handleStaffTap($request, $staff, $device, $normalizedUid, $jsonData);
+            }
+        }
+
         if (!$student) {
             // Disimpan agar langsung muncul di halaman /registrasi-rfid
             Cache::put('last_scanned_rfid', [
@@ -134,6 +142,48 @@ class IotDeviceApiController extends Controller
             $request->ip());
 
         return $this->respondFromResult($result, $student, $session, $device, $normalizedUid);
+    }
+
+    /**
+     * Tap kartu guru/SDM: check-in pada tap pertama, check-out pada tap berikutnya (jadwal di config/siuba.php).
+     */
+    private function handleStaffTap(Request $request, \App\Models\StaffProfile $staff, AttendanceDevice $device, string $uid, array $jsonData): JsonResponse
+    {
+        $at = $this->resolveCheckInTime($request->input('tapped_at') ?? ($jsonData['tapped_at'] ?? null));
+        $r = app(\App\Services\Staff\StaffDailyAttendanceService::class)->scan($staff, 'rfid', $at, null, $device);
+
+        [$lcd, $http] = match ($r['code']) {
+            'CHECK_IN_SUCCESS' => [($r['record']->status ?? '') === 'late' ? 'Masuk (TELAT)' : 'Masuk Sukses', 200],
+            'CHECK_OUT_SUCCESS' => ['Pulang Sukses', 200],
+            'ALREADY_CHECKED_OUT', 'TOO_SOON_TO_CHECK_OUT' => ['Sudah Absen', 200],
+            'STAFF_INACTIVE' => ['SDM Nonaktif!', 403],
+            'ON_APPROVED_ABSENCE' => ['Sedang Izin', 409],
+            'NOT_WORKING_DAY' => ['Hari Libur', 409],
+            'CHECK_IN_NOT_OPEN' => ['Blm Waktunya', 409],
+            'CHECK_IN_CLOSED' => ['Waktu Habis!', 409],
+            default => ['Gagal!', 422],
+        };
+
+        AttendanceDeviceLog::record($device, $device->device_code, 'CARD_SCANNED', $r['success'] ? 'info' : 'warning',
+            "SDM {$staff->name}: {$r['message']}", ['uid' => $uid, 'staff_id' => $staff->id, 'code' => $r['code']], $request->ip());
+
+        $record = $r['record'] ?? null;
+
+        return response()->json([
+            'success' => $r['success'] || in_array($r['code'], ['ALREADY_CHECKED_OUT', 'TOO_SOON_TO_CHECK_OUT'], true),
+            'code' => $r['code'],
+            'message' => $lcd,
+            'detail' => $r['message'],
+            'data' => ['name' => $staff->name, 'uid' => $uid],
+            'person_type' => 'staff',
+            'staff' => ['id' => $staff->id, 'name' => $staff->name, 'staff_number' => $staff->staff_number, 'staff_type' => $staff->staff_type],
+            'mode' => $r['mode'] ?? null,
+            'status' => $record?->status,
+            'late_minutes' => (int) ($record?->late_minutes ?? 0),
+            'check_in_at' => $record?->check_in_at ? $record->check_in_at->format('H:i:s') . ' WIB' : null,
+            'check_out_at' => $record?->check_out_at ? $record->check_out_at->format('H:i:s') . ' WIB' : null,
+            'device' => $device->device_code,
+        ], $http);
     }
 
     /**

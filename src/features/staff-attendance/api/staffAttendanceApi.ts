@@ -28,11 +28,61 @@ import { StaffIdentityResolver } from '../../../services/staffIdentityResolver';
 import { AuditService } from '../../../services/auditService';
 import { INITIAL_DEVICES, INITIAL_DEVICE_LOGS } from '../../../data/initialData';
 
+import { apiClient, isOfflineError } from '../../../services/apiClient';
+
+/** Gabungkan presensi harian dari server ke cache lokal; presensi mengajar/melatih lokal tetap dipertahankan. */
+export function mergeServerDailyRecords(serverRecords: StaffAttendanceRecord[], datesToReplace: string[] = []): void {
+  try {
+    const dates = new Set([...serverRecords.map((r) => r.attendance_date), ...datesToReplace]);
+    const local: StaffAttendanceRecord[] = JSON.parse(localStorage.getItem('siuba_staff_attendance_records') || '[]');
+    const kept = Array.isArray(local)
+      ? local.filter((r) => r.attendance_type !== 'daily' || (!dates.has(r.attendance_date) && !(r as any).__server))
+      : [];
+    const tagged = serverRecords.map((r) => ({ ...r, __server: true }));
+    localStorage.setItem('siuba_staff_attendance_records', JSON.stringify([...tagged, ...kept]));
+  } catch {
+    // ignore
+  }
+}
+
+function serverScanToFeedback(d: any, method: AttendanceMethod): StaffScanFeedbackItem {
+  const rec = d?.record || {};
+  return {
+    id: String(Date.now()),
+    timestamp: new Date().toISOString(),
+    resultCode: d?.code,
+    success: !!d?.success,
+    message: d?.message,
+    staff: d?.staff || undefined,
+    staffName: d?.staff?.name,
+    staffNumber: d?.staff?.staff_number,
+    staffType: d?.staff?.staff_type,
+    attendanceType: 'daily',
+    status: rec.status,
+    method,
+    mode: d?.mode || undefined,
+    checkInAt: rec.check_in_at || undefined,
+    checkOutAt: rec.check_out_at || undefined,
+    lateMinutes: rec.late_minutes || 0,
+    earlyLeaveMinutes: rec.early_leave_minutes || 0,
+    contextName: 'Presensi Harian Kantor / Gerbang',
+  } as StaffScanFeedbackItem;
+}
+
 export class StaffAttendanceApi {
   // ==========================================
   // 1. KEHADIRAN HARIAN SDM
   // ==========================================
   public static async getDailyRecords(dateStr?: string): Promise<{ data: StaffAttendanceRecord[]; error?: string }> {
+    try {
+      const res: any = await apiClient.get('/staff-attendance/daily', { date: dateStr || new Date().toISOString().substring(0, 10) });
+      if (Array.isArray(res?.data)) {
+        mergeServerDailyRecords(res.data, [dateStr || new Date().toISOString().substring(0, 10)]);
+        return { data: res.data };
+      }
+    } catch (err: any) {
+      if (!isOfflineError(err)) return { data: [], error: err?.message || 'Gagal memuat presensi SDM.' };
+    }
     const today = dateStr || new Date().toISOString().substring(0, 10);
     const records = StaffAttendanceService.getRecords().filter(
       r => r.attendance_type === 'daily' && r.attendance_date === today
@@ -41,6 +91,13 @@ export class StaffAttendanceApi {
   }
 
   public static async getDailySummary(dateStr?: string): Promise<{ data: StaffDailySummary; error?: string }> {
+    try {
+      const res: any = await apiClient.get('/staff-attendance/daily/summary', { date: dateStr || new Date().toISOString().substring(0, 10) });
+      if (res?.data) return { data: res.data };
+    } catch (err: any) {
+      // gagal dari server: hitung dari cache lokal (sudah berisi data server terakhir)
+      console.warn('Ringkasan presensi SDM dari server gagal:', err?.message);
+    }
     const today = dateStr || new Date().toISOString().substring(0, 10);
     const staffList = StaffIdentityResolver.getStaffList().filter(s => s.is_active);
     const records = StaffAttendanceService.getRecords().filter(
@@ -98,6 +155,18 @@ export class StaffAttendanceApi {
     method: AttendanceMethod;
     operatorName?: string;
   }): Promise<StaffScanFeedbackItem> {
+    try {
+      const res: any = await apiClient.post('/staff-attendance/daily/scan', { identifier: params.identifier, method: params.method });
+      return serverScanToFeedback(res.data, params.method);
+    } catch (err: any) {
+      if (!isOfflineError(err)) {
+        return {
+          id: String(Date.now()), timestamp: new Date().toISOString(), resultCode: (err?.code || 'SERVER_ERROR') as any,
+          success: false, message: err?.message || 'Gagal mencatat presensi.', attendanceType: 'daily', method: params.method,
+          lateMinutes: 0, earlyLeaveMinutes: 0, contextName: 'Presensi Harian Kantor / Gerbang',
+        } as StaffScanFeedbackItem;
+      }
+    }
     const res = StaffAttendanceService.recordDailyScan({
       identifier: params.identifier,
       method: params.method,
@@ -132,6 +201,13 @@ export class StaffAttendanceApi {
     notes?: string;
     operatorName: string;
   }): Promise<{ success: boolean; message: string; record?: StaffAttendanceRecord }> {
+    try {
+      const res: any = await apiClient.post('/staff-attendance/daily/manual', { staff_id: params.staffId, action: params.action, notes: params.notes });
+      const d = res.data || {};
+      return { success: !!d.success, message: d.message, record: d.record || undefined };
+    } catch (err: any) {
+      if (!isOfflineError(err)) return { success: false, message: err?.message || 'Gagal mencatat presensi.' };
+    }
     const staff = StaffIdentityResolver.resolveById(params.staffId);
     if (!staff) {
       return { success: false, message: 'Data staf tidak ditemukan.' };
@@ -158,6 +234,14 @@ export class StaffAttendanceApi {
     notes: string;
     operatorName: string;
   }): Promise<{ success: boolean; message: string }> {
+    try {
+      const res: any = await apiClient.post(`/staff-attendance/records/${params.recordId}/correct`, {
+        status: params.status, late_minutes: params.lateMinutes, early_leave_minutes: params.earlyLeaveMinutes, notes: params.notes,
+      });
+      return { success: true, message: res?.message || 'Koreksi presensi harian berhasil disimpan.' };
+    } catch (err: any) {
+      if (!isOfflineError(err)) return { success: false, message: err?.message || 'Koreksi gagal disimpan.' };
+    }
     const records = StaffAttendanceService.getRecords();
     const index = records.findIndex(r => r.id === params.recordId);
     if (index === -1) {
@@ -191,6 +275,15 @@ export class StaffAttendanceApi {
   // 2. IZIN / SAKIT / CUTI / DINAS (ABSENCE)
   // ==========================================
   public static async getAbsenceRequests(): Promise<{ data: StaffAbsenceRequest[]; error?: string }> {
+    try {
+      const res: any = await apiClient.get('/staff-attendance/absences');
+      if (Array.isArray(res?.data)) {
+        try { localStorage.setItem('siuba_staff_absence_requests', JSON.stringify(res.data)); } catch { /* ignore */ }
+        return { data: res.data };
+      }
+    } catch (err: any) {
+      if (!isOfflineError(err)) return { data: [], error: err?.message || 'Gagal memuat pengajuan.' };
+    }
     const requests = StaffAttendanceService.getAbsenceRequests();
     return { data: requests };
   }
@@ -203,6 +296,14 @@ export class StaffAttendanceApi {
     reason: string;
     operatorName: string;
   }): Promise<{ success: boolean; message: string; request?: StaffAbsenceRequest }> {
+    try {
+      const res: any = await apiClient.post('/staff-attendance/absences', {
+        staff_id: params.staffId, type: params.type, start_at: params.startAt, end_at: params.endAt, reason: params.reason,
+      });
+      return { success: true, message: res?.message || 'Pengajuan berhasil diajukan.', request: res?.data };
+    } catch (err: any) {
+      if (!isOfflineError(err)) return { success: false, message: err?.message || 'Pengajuan gagal disimpan.' };
+    }
     const staff = StaffIdentityResolver.resolveById(params.staffId);
     if (!staff) {
       return { success: false, message: 'Data staf tidak ditemukan.' };
@@ -246,6 +347,12 @@ export class StaffAttendanceApi {
     approverName: string;
     notes?: string;
   }): Promise<{ success: boolean; message: string }> {
+    try {
+      const res: any = await apiClient.post(`/staff-attendance/absences/${params.id}/approve`, { notes: params.notes });
+      return { success: true, message: res?.message || 'Pengajuan disetujui.' };
+    } catch (err: any) {
+      if (!isOfflineError(err)) return { success: false, message: err?.message || 'Gagal menyetujui pengajuan.' };
+    }
     const requests = StaffAttendanceService.getAbsenceRequests();
     const index = requests.findIndex(r => r.id === params.id);
     if (index === -1) {
@@ -278,6 +385,12 @@ export class StaffAttendanceApi {
     approverName: string;
     rejectionReason: string;
   }): Promise<{ success: boolean; message: string }> {
+    try {
+      const res: any = await apiClient.post(`/staff-attendance/absences/${params.id}/reject`, { rejection_reason: params.rejectionReason });
+      return { success: true, message: res?.message || 'Pengajuan ditolak.' };
+    } catch (err: any) {
+      if (!isOfflineError(err)) return { success: false, message: err?.message || 'Gagal menolak pengajuan.' };
+    }
     const requests = StaffAttendanceService.getAbsenceRequests();
     const index = requests.findIndex(r => r.id === params.id);
     if (index === -1) {

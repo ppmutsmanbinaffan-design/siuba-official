@@ -15,6 +15,10 @@ use App\Models\Dormitory;
 use App\Models\DormitoryRoom;
 use App\Models\Student;
 use App\Models\User;
+use App\Models\StaffProfile;
+use App\Models\StaffAttendanceRecord;
+use App\Models\StaffAbsenceRequest;
+use App\Models\StudentExcusal;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -39,9 +43,15 @@ class LocalDataMigrationService
     private string $mode = 'skip';
 
     /** @var array<string,array<int|string,int>> peta id lokal -> id server */
-    private array $map = ['classrooms' => [], 'rooms' => [], 'activities' => [], 'students' => [], 'sessions' => []];
+    private array $map = ['classrooms' => [], 'rooms' => [], 'activities' => [], 'students' => [], 'sessions' => [], 'staff' => []];
 
     private array $local = [];
+
+    /** Catatan buatan pengguna di browser memakai id Date.now(); data contoh ber-id kecil. */
+    private function isUserCreated(array $row): bool
+    {
+        return isset($row['id']) && is_numeric($row['id']) && (float) $row['id'] > 1e11;
+    }
 
     public function run(array $payload, ?User $operator, bool $dryRun = true): array
     {
@@ -50,7 +60,8 @@ class LocalDataMigrationService
         $this->includeDemo = (bool) ($payload['include_demo'] ?? false);
         $this->demo = $this->loadDemoIdentifiers();
 
-        foreach (['classrooms', 'dormitories', 'dormitory_rooms', 'activities', 'students', 'sessions', 'participants', 'records'] as $k) {
+        foreach (['classrooms', 'dormitories', 'dormitory_rooms', 'activities', 'students', 'sessions', 'participants', 'records',
+            'excusals', 'staff', 'staff_records', 'staff_absences'] as $k) {
             $this->local[$k] = collect(is_array($payload[$k] ?? null) ? $payload[$k] : [])
                 ->filter(fn ($row) => is_array($row))->values();
         }
@@ -61,6 +72,10 @@ class LocalDataMigrationService
             $this->importSessions();
             $this->importParticipants();
             $this->importRecords();
+            $this->importExcusals();
+            $this->importStaff();
+            $this->importStaffRecords();
+            $this->importStaffAbsences();
 
             if ($dryRun) {
                 DB::rollBack();
@@ -426,13 +441,214 @@ class LocalDataMigrationService
         return Student::whereRaw('LOWER(student_number) = ?', [mb_strtolower($nis)])->value('id');
     }
 
+    // ------------------------------------------------------------------ Izin santri
+
+    private function importExcusals(): void
+    {
+        foreach ($this->local['excusals'] as $row) {
+            if (!$this->includeDemo && !$this->isUserCreated($row)) {
+                $this->count('excusals', 'demo_skipped');
+                continue;
+            }
+            $studentId = $this->mapStudent($row);
+            $start = $this->dateTime($row['start_at'] ?? null);
+            $end = $this->dateTime($row['end_at'] ?? null);
+            $type = in_array($row['type'] ?? '', StudentExcusal::TYPES, true) ? $row['type'] : null;
+            if (!$studentId) {
+                $this->count('excusals', 'unmatched');
+                continue;
+            }
+            if (!$start || !$end || !$type) {
+                $this->count('excusals', 'failed');
+                $this->warn('Izin ' . ($row['student_name'] ?? '') . ': jenis/tanggal tidak valid, dilewati.');
+                continue;
+            }
+
+            $dup = StudentExcusal::where('student_id', $studentId)->where('type', $type)
+                ->where('start_at', $start)->where('end_at', $end)->exists();
+            if ($dup) {
+                $this->count('excusals', 'existing');
+                continue;
+            }
+
+            $status = in_array($row['status'] ?? '', StudentExcusal::STATUSES, true) ? $row['status'] : 'approved';
+            StudentExcusal::create([
+                'student_id' => $studentId,
+                'type' => $type,
+                'start_at' => $start,
+                'end_at' => $end,
+                'reason' => mb_substr((string) ($row['reason'] ?? '-'), 0, 500),
+                'status' => $status,
+                'notes' => trim(($row['notes'] ?? '') . ' [Impor dari browser' . (!empty($row['approved_by']) ? ', disetujui ' . $row['approved_by'] : '') . ']'),
+                'approved_at' => $status === 'approved' ? ($this->dateTime($row['approved_at'] ?? null) ?? $start) : null,
+                'created_by_name' => $this->str($row['created_by'] ?? null, 150),
+            ]);
+            $this->count('excusals', 'created');
+        }
+    }
+
+    // ------------------------------------------------------------------ SDM
+
+    private function importStaff(): void
+    {
+        foreach ($this->local['staff'] as $row) {
+            $number = trim((string) ($row['staff_number'] ?? ''));
+            $name = trim((string) ($row['name'] ?? ''));
+            if ($number === '' || $name === '') {
+                $this->count('staff', 'failed');
+                continue;
+            }
+            if (!$this->includeDemo && in_array($number, $this->demo['staff_numbers'] ?? [], true)) {
+                $this->count('staff', 'demo_skipped');
+                continue;
+            }
+
+            $existing = StaffProfile::withTrashed()->where('staff_number', $number)->first();
+            if ($existing) {
+                if (isset($row['id'])) $this->map['staff'][$row['id']] = $existing->id;
+                $this->count('staff', 'existing');
+                continue;
+            }
+
+            $attrs = [
+                'staff_number' => mb_substr($number, 0, 40),
+                'name' => mb_substr($name, 0, 150),
+                'gender' => in_array($row['gender'] ?? 'male', ['female', 'P'], true) ? 'P' : 'L',
+                'staff_type' => in_array($row['staff_type'] ?? '', StaffProfile::TYPES, true) ? $row['staff_type'] : 'other',
+                'employment_status' => in_array($row['employment_status'] ?? '', StaffProfile::EMPLOYMENT, true) ? $row['employment_status'] : 'permanent',
+                'phone' => $this->str($row['phone'] ?? null, 30),
+                'email' => $this->str($row['email'] ?? null, 191),
+                'department' => $this->str($row['department'] ?? null, 100),
+                'position' => $this->str($row['position'] ?? null, 100),
+                'join_date' => $this->date($row['join_date'] ?? null),
+                'requires_daily_attendance' => (bool) ($row['requires_daily_attendance'] ?? true),
+                'is_active' => (bool) ($row['is_active'] ?? true),
+            ];
+            $qr = trim((string) ($row['qr_token'] ?? ''));
+            if ($qr !== '' && strlen($qr) <= 64 && !StaffProfile::withTrashed()->where('qr_token', $qr)->exists()) {
+                $attrs['qr_token'] = $qr;
+            }
+            $rfid = Student::normalizeRfidUid($this->str($row['rfid_uid'] ?? null, 64));
+            if ($rfid) {
+                if (StaffProfile::withTrashed()->where('rfid_uid', $rfid)->exists() || Student::withTrashed()->where('rfid_uid', $rfid)->exists()) {
+                    $this->warn("Kartu RFID {$rfid} milik SDM {$name} sudah dipakai orang lain; RFID tidak diimpor.");
+                } else {
+                    $attrs['rfid_uid'] = $rfid;
+                }
+            }
+
+            $staff = StaffProfile::create($attrs);
+            if (isset($row['id'])) $this->map['staff'][$row['id']] = $staff->id;
+            $this->count('staff', 'created');
+        }
+    }
+
+    private function mapStaff(array $row): ?int
+    {
+        $localId = $row['staff_id'] ?? null;
+        if ($localId !== null && isset($this->map['staff'][$localId])) {
+            return $this->map['staff'][$localId];
+        }
+        $number = trim((string) ($row['staff_number'] ?? ''));
+
+        return $number !== '' ? StaffProfile::where('staff_number', $number)->value('id') : null;
+    }
+
+    private function importStaffRecords(): void
+    {
+        foreach ($this->local['staff_records'] as $row) {
+            if (($row['attendance_type'] ?? 'daily') !== 'daily') {
+                continue; // presensi mengajar/melatih belum dipindahkan ke server
+            }
+            if (!$this->includeDemo && !$this->isUserCreated($row)) {
+                $this->count('staff_records', 'demo_skipped');
+                continue;
+            }
+            $staffId = $this->mapStaff($row);
+            $date = $this->date($row['attendance_date'] ?? null);
+            $status = in_array($row['status'] ?? '', StaffAttendanceRecord::STATUSES, true) ? $row['status'] : null;
+            if (!$staffId) {
+                $this->count('staff_records', 'unmatched');
+                continue;
+            }
+            if (!$date || !$status) {
+                $this->count('staff_records', 'failed');
+                continue;
+            }
+            $exists = StaffAttendanceRecord::where('staff_profile_id', $staffId)->whereDate('attendance_date', $date)
+                ->where('attendance_type', 'daily')->where('context_key', 'daily')->exists();
+            if ($exists) {
+                $this->count('staff_records', 'existing');
+                continue;
+            }
+
+            StaffAttendanceRecord::create([
+                'staff_profile_id' => $staffId,
+                'attendance_date' => $date,
+                'attendance_type' => 'daily',
+                'context_key' => 'daily',
+                'status' => $status,
+                'check_in_at' => $this->dateTime($row['check_in_at'] ?? null),
+                'check_out_at' => $this->dateTime($row['check_out_at'] ?? null),
+                'check_in_method' => $this->str($row['check_in_method'] ?? null, 20),
+                'check_out_method' => $this->str($row['check_out_method'] ?? null, 20),
+                'late_minutes' => max(0, min(65535, (int) ($row['late_minutes'] ?? 0))),
+                'early_leave_minutes' => max(0, min(65535, (int) ($row['early_leave_minutes'] ?? 0))),
+                'recorded_by_name' => $this->str($row['recorded_by'] ?? null, 150),
+                'notes' => trim(($row['notes'] ?? '') . ' [Impor dari browser]'),
+                'metadata' => ['imported_from' => 'localStorage', 'local_id' => $row['id'] ?? null],
+            ]);
+            $this->count('staff_records', 'created');
+        }
+    }
+
+    private function importStaffAbsences(): void
+    {
+        foreach ($this->local['staff_absences'] as $row) {
+            if (!$this->includeDemo && !$this->isUserCreated($row)) {
+                $this->count('staff_absences', 'demo_skipped');
+                continue;
+            }
+            $staffId = $this->mapStaff($row);
+            $start = $this->dateTime($row['start_at'] ?? null);
+            $end = $this->dateTime($row['end_at'] ?? null);
+            $type = in_array($row['type'] ?? '', StaffAbsenceRequest::TYPES, true) ? $row['type'] : null;
+            if (!$staffId) {
+                $this->count('staff_absences', 'unmatched');
+                continue;
+            }
+            if (!$start || !$end || !$type) {
+                $this->count('staff_absences', 'failed');
+                continue;
+            }
+            if (StaffAbsenceRequest::where('staff_profile_id', $staffId)->where('type', $type)->where('start_at', $start)->where('end_at', $end)->exists()) {
+                $this->count('staff_absences', 'existing');
+                continue;
+            }
+
+            $status = in_array($row['status'] ?? '', ['pending', 'approved', 'rejected', 'cancelled'], true) ? $row['status'] : 'pending';
+            StaffAbsenceRequest::create([
+                'staff_profile_id' => $staffId,
+                'type' => $type,
+                'start_at' => $start,
+                'end_at' => $end,
+                'reason' => mb_substr((string) ($row['reason'] ?? '-'), 0, 500),
+                'status' => $status,
+                'decided_by_name' => $this->str($row['approved_by'] ?? $row['rejected_by'] ?? null, 150),
+                'decided_at' => $this->dateTime($row['approved_at'] ?? $row['rejected_at'] ?? null),
+                'decision_notes' => trim(($row['decision_notes'] ?? '') . ' [Impor dari browser]'),
+            ]);
+            $this->count('staff_absences', 'created');
+        }
+    }
+
     // ------------------------------------------------------------------ Helper
 
     private function reset(): void
     {
         $this->warnings = [];
         $this->local = [];
-        $this->map = ['classrooms' => [], 'rooms' => [], 'activities' => [], 'students' => [], 'sessions' => []];
+        $this->map = ['classrooms' => [], 'rooms' => [], 'activities' => [], 'students' => [], 'sessions' => [], 'staff' => []];
         $blank = fn (array $keys) => array_fill_keys($keys, 0);
         $this->report = [
             'students' => $blank(['created', 'updated', 'existing', 'demo_skipped', 'failed']),
@@ -443,6 +659,10 @@ class LocalDataMigrationService
             'sessions' => $blank(['created', 'existing', 'demo_skipped', 'failed']),
             'participants' => $blank(['created', 'existing', 'unmatched']),
             'records' => $blank(['created', 'existing', 'unmatched', 'failed']),
+            'excusals' => $blank(['created', 'existing', 'demo_skipped', 'unmatched', 'failed']),
+            'staff' => $blank(['created', 'updated', 'existing', 'demo_skipped', 'failed']),
+            'staff_records' => $blank(['created', 'existing', 'demo_skipped', 'unmatched', 'failed']),
+            'staff_absences' => $blank(['created', 'existing', 'demo_skipped', 'unmatched', 'failed']),
         ];
     }
 

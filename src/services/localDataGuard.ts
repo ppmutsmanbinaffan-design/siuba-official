@@ -22,6 +22,7 @@ export const LEGACY_KEYS = [
   'siuba_attendance_records_cache',
   'siuba_student_excusals_v1',
   'siuba_staff_attendance_records',
+  'siuba_staff_absence_requests',
 ];
 
 const demoNis = new Set(INITIAL_STUDENTS.map((s) => String(s.student_number)));
@@ -41,12 +42,17 @@ function readArray(key: string): any[] {
 export function hasRealLocalData(): boolean {
   if (typeof window === 'undefined') return false;
   // Cache yang sudah berasal dari server tidak dihitung sebagai data lama
-  if (localStorage.getItem('siuba_students_cache_source') === 'server') return false;
-  const students = readArray('siuba_master_students');
-  const sessions = readArray('siuba_attendance_sessions_cache');
+  const fromServer = localStorage.getItem('siuba_students_cache_source') === 'server';
+  const students = fromServer ? [] : readArray('siuba_master_students');
+  const sessions = fromServer ? [] : readArray('siuba_attendance_sessions_cache');
+  // Catatan yang dibuat pengguna di browser memakai id Date.now() (angka sangat besar); data contoh ber-id kecil.
+  const userCreated = (key: string) => readArray(key).some((r) => r && Number(r.id) > 1e11 && !r.__server);
   return (
     students.some((s) => s && s.student_number && !demoNis.has(String(s.student_number))) ||
-    sessions.some((s) => s && s.session_code && !demoSessions.has(String(s.session_code)))
+    sessions.some((s) => s && s.session_code && !demoSessions.has(String(s.session_code))) ||
+    userCreated('siuba_student_excusals_v1') ||
+    userCreated('siuba_staff_attendance_records') ||
+    userCreated('siuba_staff_absence_requests')
   );
 }
 
@@ -57,7 +63,25 @@ export function hasRealLocalData(): boolean {
 export function ensureLegacyDataPreserved(): boolean {
   if (typeof window === 'undefined') return true;
   try {
-    if (localStorage.getItem(MIGRATED_FLAG) || localStorage.getItem(PRESERVED_BACKUP_KEY)) return true;
+    if (localStorage.getItem(MIGRATED_FLAG)) return true;
+
+    const existing = localStorage.getItem(PRESERVED_BACKUP_KEY);
+    if (existing) {
+      // Salinan sudah ada (dari versi sebelumnya). Tambahkan data izin/presensi SDM yang dibuat
+      // setelahnya di browser, sebelum fitur itu pindah ke server.
+      const dump = JSON.parse(existing);
+      let changed = false;
+      for (const key of ['siuba_student_excusals_v1', 'siuba_staff_attendance_records', 'siuba_staff_absence_requests']) {
+        const rows = readArray(key);
+        if (rows.some((r) => r && Number(r.id) > 1e11 && !r.__server)) {
+          dump.keys = dump.keys || {};
+          dump.keys[key] = localStorage.getItem(key);
+          changed = true;
+        }
+      }
+      if (changed) localStorage.setItem(PRESERVED_BACKUP_KEY, JSON.stringify(dump));
+      return true;
+    }
     if (!hasRealLocalData()) return true;
 
     const dump: Record<string, string | null> = {};

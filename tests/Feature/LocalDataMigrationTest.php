@@ -158,4 +158,50 @@ class LocalDataMigrationTest extends TestCase
 
         $this->postJson('/api/v1/migration/local-data', ['dry_run' => true])->assertStatus(403);
     }
+
+    public function test_imports_excusals_staff_and_staff_attendance(): void
+    {
+        $payload = $this->browserPayload() + [
+            'excusals' => [
+                ['id' => 1763200000001, 'student_id' => 101, 'student_name' => 'Hasan Basri', 'type' => 'sick', 'reason' => 'Demam',
+                    'start_at' => '2026-10-01T04:00:00', 'end_at' => '2026-10-01T20:00:00', 'status' => 'approved', 'approved_by' => 'Ustadz Ali'],
+                ['id' => 1, 'student_id' => 1, 'student_name' => 'Ahmad Fauzan', 'type' => 'sick', 'reason' => 'demo',
+                    'start_at' => '2026-08-23T04:00:00', 'end_at' => '2026-08-23T20:00:00', 'status' => 'approved'],
+            ],
+            'staff' => [
+                ['id' => 77, 'staff_number' => 'NIP-ASLI-9', 'name' => 'Ustadzah Aisyah', 'gender' => 'female', 'staff_type' => 'musyrif', 'employment_status' => 'contract', 'qr_token' => 'STF-ASLI00009'],
+                ['id' => 1, 'staff_number' => 'STF260001', 'name' => 'Demo Staff', 'gender' => 'male', 'staff_type' => 'teacher'],
+            ],
+            'staff_records' => [
+                ['id' => 1763200000002, 'staff_id' => 77, 'attendance_date' => '2026-10-01', 'attendance_type' => 'daily', 'status' => 'late',
+                    'check_in_at' => '2026-10-01T07:30:00+07:00', 'late_minutes' => 30, 'check_in_method' => 'qr'],
+                ['id' => 1763200000003, 'staff_id' => 77, 'attendance_date' => '2026-10-01', 'attendance_type' => 'teaching', 'status' => 'present'],
+            ],
+            'staff_absences' => [
+                ['id' => 1763200000004, 'staff_id' => 77, 'type' => 'leave', 'start_at' => '2026-10-05T00:00:00', 'end_at' => '2026-10-06T23:59:00', 'reason' => 'Cuti', 'status' => 'approved', 'approved_by' => 'Kabag TU'],
+            ],
+        ];
+
+        $res = $this->postJson('/api/v1/migration/local-data', ['dry_run' => false] + $payload)->assertOk()->json('data.summary');
+
+        $this->assertSame(1, $res['excusals']['created']);
+        $this->assertSame(1, $res['excusals']['demo_skipped']);
+        $this->assertSame(1, $res['staff']['created']);
+        $this->assertSame(1, $res['staff']['demo_skipped']);
+        $this->assertSame(1, $res['staff_records']['created']);
+        $this->assertSame(1, $res['staff_absences']['created']);
+
+        $this->assertSame('sick', \App\Models\StudentExcusal::first()->type);
+        $staff = \App\Models\StaffProfile::where('staff_number', 'NIP-ASLI-9')->first();
+        $this->assertSame('STF-ASLI00009', $staff->qr_token);
+        $this->assertSame('P', $staff->gender);
+        $this->assertSame(30, \App\Models\StaffAttendanceRecord::first()->late_minutes);
+
+        // Diulang -> tidak ada duplikat
+        $again = $this->postJson('/api/v1/migration/local-data', ['dry_run' => false] + $payload)->assertOk()->json('data.summary');
+        $this->assertSame(1, $again['excusals']['existing']);
+        $this->assertSame(1, $again['staff']['existing']);
+        $this->assertSame(1, $again['staff_records']['existing']);
+        $this->assertSame(1, $again['staff_absences']['existing']);
+    }
 }

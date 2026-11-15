@@ -14,8 +14,12 @@ import type {
   DormitoryRoom,
   Staff,
   Student,
+  StudentExcusal,
+  StaffAttendanceRecord,
+  StaffAbsenceRequest,
   User,
 } from '../types';
+import { mergeServerDailyRecords } from '../features/staff-attendance/api/staffAttendanceApi';
 
 export interface ServerSnapshot {
   students?: Student[];
@@ -28,6 +32,9 @@ export interface ServerSnapshot {
   devices?: AttendanceDevice[];
   staff?: Staff[];
   users?: User[];
+  excusals?: StudentExcusal[];
+  staffDaily?: StaffAttendanceRecord[];
+  staffAbsences?: StaffAbsenceRequest[];
   errors: string[];
 }
 
@@ -68,15 +75,27 @@ async function attempt<T>(label: string, fn: () => Promise<T>, errors: string[])
 export async function loadServerSnapshot(options: { attendanceOnly?: boolean } = {}): Promise<ServerSnapshot> {
   const errors: string[] = [];
 
+  const dailyExtras = () =>
+    Promise.all([
+      attempt('Izin santri', async () => ((await apiClient.get<StudentExcusal[]>('/student-excusals')) as any).data as StudentExcusal[], errors),
+      attempt('Presensi SDM', async () => ((await apiClient.get<StaffAttendanceRecord[]>('/staff-attendance/daily')) as any).data as StaffAttendanceRecord[], errors),
+      attempt('Izin SDM', async () => ((await apiClient.get<StaffAbsenceRequest[]>('/staff-attendance/absences')) as any).data as StaffAbsenceRequest[], errors),
+    ]);
+
   if (options.attendanceOnly) {
-    const [attendance, devices] = await Promise.all([
+    const [attendance, devices, [excusals, staffDaily, staffAbsences]] = await Promise.all([
       attempt('Absensi', async () => ((await apiClient.get<any>('/attendance/snapshot')) as any).data, errors),
       attempt('Perangkat', async () => ((await apiClient.get<AttendanceDevice[]>('/attendance/devices')) as any).data as AttendanceDevice[], errors),
+      dailyExtras(),
     ]);
-    return { sessions: attendance?.sessions, participants: attendance?.participants, records: attendance?.records, devices, errors };
+    return {
+      sessions: attendance?.sessions, participants: attendance?.participants, records: attendance?.records, devices,
+      excusals, staffDaily, staffAbsences, errors,
+    };
   }
 
-  const [students, classrooms, dormitories, dormitoryRooms, attendance, devices, staff, users] = await Promise.all([
+  const [[excusals, staffDaily, staffAbsences], students, classrooms, dormitories, dormitoryRooms, attendance, devices, staff, users] = await Promise.all([
+    dailyExtras(),
     attempt('Santri', fetchAllStudents, errors),
     attempt('Kelas', async () => ((await apiClient.get<Classroom[]>('/classrooms')) as any).data as Classroom[], errors),
     attempt('Asrama', async () => ((await apiClient.get<Dormitory[]>('/dormitories')) as any).data as Dormitory[], errors),
@@ -101,6 +120,9 @@ export async function loadServerSnapshot(options: { attendanceOnly?: boolean } =
     devices,
     staff,
     users,
+    excusals,
+    staffDaily,
+    staffAbsences,
     errors,
   };
 }
@@ -128,6 +150,10 @@ export function persistSnapshotToCache(snap: ServerSnapshot): void {
   write('siuba_attendance_records_cache', snap.records);
   write('siuba_attendance_devices_cache', snap.devices);
   write('siuba_master_staff', snap.staff);
+  write('siuba_student_excusals_v1', snap.excusals);
+  write('siuba_staff_absence_requests', snap.staffAbsences);
+  if (snap.staffDaily) mergeServerDailyRecords(snap.staffDaily, [new Date().toISOString().substring(0, 10)]);
+  write('siuba_staff_master', snap.staff); // daftar SDM yang dibaca halaman Presensi SDM
   try {
     if (snap.students) localStorage.setItem('siuba_students_cache_source', 'server');
     if (snap.staff) localStorage.setItem('siuba_staff_cache_source', 'server');

@@ -6,6 +6,8 @@ use App\Http\Controllers\Api\AttendanceSessionApiController;
 use App\Http\Controllers\Api\MasterDataApiController;
 use App\Http\Controllers\Api\StudentApiController;
 use App\Http\Controllers\Api\StaffApiController;
+use App\Http\Controllers\Api\StudentExcusalApiController;
+use App\Http\Controllers\Api\StaffAttendanceApiController;
 use App\Http\Controllers\Api\AuthApiController;
 use App\Http\Controllers\Api\DataImportApiController;
 use App\Http\Controllers\Api\DeviceManagementApiController;
@@ -98,6 +100,28 @@ Route::prefix('v1')->group(function () {
         Route::get('/staff/{staff}', [StaffApiController::class, 'show'])->middleware('permission:staff.view');
         Route::post('/staff', [StaffApiController::class, 'store'])->middleware('permission:staff.create');
         Route::match(['put', 'patch'], '/staff/{staff}', [StaffApiController::class, 'update'])->middleware('permission:staff.edit|staff.deactivate');
+        Route::post('/staff/{staff}/regenerate-qr', [StaffApiController::class, 'regenerateQr'])->middleware('permission:staff.edit');
+
+        // Izin / sakit / dispensasi santri
+        Route::get('/student-excusals', [StudentExcusalApiController::class, 'index'])->middleware('permission:attendance.excuses|attendance.view|attendance.monitoring');
+        Route::post('/student-excusals', [StudentExcusalApiController::class, 'store'])->middleware('permission:attendance.excuses|attendance.manual');
+        Route::post('/student-excusals/{excusal}/approve', [StudentExcusalApiController::class, 'approve'])->middleware('permission:attendance.excuses');
+        Route::post('/student-excusals/{excusal}/reject', [StudentExcusalApiController::class, 'reject'])->middleware('permission:attendance.excuses');
+        Route::post('/student-excusals/{excusal}/cancel', [StudentExcusalApiController::class, 'cancel'])->middleware('permission:attendance.excuses');
+
+        // Presensi harian SDM & pengajuan izin SDM
+        Route::prefix('staff-attendance')->group(function () {
+            Route::get('/daily', [StaffAttendanceApiController::class, 'daily'])->middleware('permission:staff.attendance|staff.reports|staff.view');
+            Route::get('/daily/summary', [StaffAttendanceApiController::class, 'summary'])->middleware('permission:staff.attendance|staff.reports|staff.view');
+            Route::post('/daily/scan', [StaffAttendanceApiController::class, 'scan'])->middleware('permission:staff.attendance');
+            Route::post('/daily/manual', [StaffAttendanceApiController::class, 'manual'])->middleware('permission:staff.attendance');
+            Route::post('/daily/finalize', [StaffAttendanceApiController::class, 'finalize'])->middleware('permission:staff.edit|staff.reports');
+            Route::post('/records/{record}/correct', [StaffAttendanceApiController::class, 'correct'])->middleware('permission:staff.attendance|staff.edit');
+            Route::get('/absences', [StaffAttendanceApiController::class, 'absences'])->middleware('permission:staff.attendance|staff.reports|staff.view');
+            Route::post('/absences', [StaffAttendanceApiController::class, 'storeAbsence'])->middleware('permission:staff.attendance');
+            Route::post('/absences/{absence}/approve', [StaffAttendanceApiController::class, 'approveAbsence'])->middleware('permission:staff.edit|staff.deactivate');
+            Route::post('/absences/{absence}/reject', [StaffAttendanceApiController::class, 'rejectAbsence'])->middleware('permission:staff.edit|staff.deactivate');
+        });
 
         // Referensi kelas, asrama, kamar (dibutuhkan semua pengguna yang login)
         Route::get('/classrooms', [MasterDataApiController::class, 'classrooms']);

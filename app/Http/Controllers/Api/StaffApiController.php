@@ -99,6 +99,15 @@ class StaffApiController extends Controller
         ]);
     }
 
+    /** Buat QR baru (QR lama tidak berlaku lagi — misal kartu hilang). */
+    public function regenerateQr(Request $request, StaffProfile $staff): JsonResponse
+    {
+        $staff->update(['qr_token' => StaffProfile::generateUniqueQrToken()]);
+        Log::warning('QR SDM diganti', ['staff_id' => $staff->id, 'user_id' => $request->user()?->id]);
+
+        return response()->json(['success' => true, 'message' => "QR {$staff->name} berhasil diganti.", 'data' => SpaTransformer::staff($staff->fresh('user'))]);
+    }
+
     private function validated(Request $request, ?StaffProfile $staff = null): array
     {
         $req = $staff ? 'sometimes' : 'required';

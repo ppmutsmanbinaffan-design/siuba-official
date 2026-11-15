@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   CheckCircle, 
   Clock, 
@@ -86,10 +86,22 @@ export const ExcuseManagerView: React.FC<ExcuseManagerViewProps> = ({
   const [selectedExcuseForDetail, setSelectedExcuseForDetail] = useState<StudentExcusal | null>(null);
 
   // New Excuse Form State
+  const todayLocal = (() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  })();
   const [formStudentId, setFormStudentId] = useState<number>(safeStudents[0]?.id || 1);
   const [formType, setFormType] = useState<ExcusalType>('sick');
-  const [formStartAt, setFormStartAt] = useState<string>('2026-08-23T04:00');
-  const [formEndAt, setFormEndAt] = useState<string>('2026-08-23T18:00');
+  const [formStartAt, setFormStartAt] = useState<string>(`${todayLocal}T04:00`);
+  const [formEndAt, setFormEndAt] = useState<string>(`${todayLocal}T18:00`);
+
+  // Data santri bisa berganti setelah dimuat dari server: pastikan pilihan santri tetap valid
+  useEffect(() => {
+    if (safeStudents.length > 0 && !safeStudents.some((s) => s && s.id === Number(formStudentId))) {
+      setFormStudentId(safeStudents[0].id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [safeStudents]);
   const [formReason, setFormReason] = useState<string>('');
   const [formNotes, setFormNotes] = useState<string>('');
   const [formAutoApprove, setFormAutoApprove] = useState<boolean>(true);

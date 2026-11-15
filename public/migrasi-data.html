@@ -88,7 +88,7 @@
 <script>
 (function () {
   'use strict';
-  var DEMO = {"student_numbers": ["UBA260001", "UBA260002", "UBA260003", "UBA260004", "UBA260005", "UBA260006", "UBA260007", "UBA260008", "UBA260009", "UBA260010", "UBA260011", "UBA260012", "UBA260013", "UBA260014", "UBA260015", "UBA260099"], "session_codes": ["ATT-20260823-SUBUH-001", "ATT-20260823-FIQIH-001", "ATT-20260822-DZUHUR-001"]};
+  var DEMO = {"student_numbers": ["UBA260001", "UBA260002", "UBA260003", "UBA260004", "UBA260005", "UBA260006", "UBA260007", "UBA260008", "UBA260009", "UBA260010", "UBA260011", "UBA260012", "UBA260013", "UBA260014", "UBA260015", "UBA260099"], "session_codes": ["ATT-20260823-SUBUH-001", "ATT-20260823-FIQIH-001", "ATT-20260822-DZUHUR-001"], "staff_numbers": ["STF260001", "STF260002", "STF260003", "STF260004", "STF260005", "STF260006", "STF260007", "STF260008"]};
   var KEYS = {
     students: 'siuba_master_students',
     classrooms: 'siuba_master_classrooms',
@@ -97,11 +97,16 @@
     activities: 'siuba_master_activities',
     sessions: 'siuba_attendance_sessions_cache',
     participants: 'siuba_session_participants_cache',
-    records: 'siuba_attendance_records_cache'
+    records: 'siuba_attendance_records_cache',
+    excusals: 'siuba_student_excusals_v1',
+    staff: 'siuba_master_staff',
+    staff_records: 'siuba_staff_attendance_records',
+    staff_absences: 'siuba_staff_absence_requests'
   };
   var LABELS = {
     students: 'Santri', classrooms: 'Kelas', dormitories: 'Asrama', dormitory_rooms: 'Kamar asrama',
-    activities: 'Kegiatan', sessions: 'Sesi absensi', participants: 'Peserta sesi', records: 'Catatan absensi'
+    activities: 'Kegiatan', sessions: 'Sesi absensi', participants: 'Peserta sesi', records: 'Catatan absensi',
+    excusals: 'Izin santri', staff: 'Data SDM', staff_records: 'Presensi harian SDM', staff_absences: 'Pengajuan izin SDM'
   };
   var CHUNK = 3000;
   var esc = window.siubaEsc || function (v) { return String(v == null ? '' : v); };
@@ -140,6 +145,10 @@
   function demoCount(k) {
     if (k === 'students') return data.students.filter(function (s) { return DEMO.student_numbers.indexOf(String(s.student_number)) !== -1; }).length;
     if (k === 'sessions') return data.sessions.filter(function (s) { return DEMO.session_codes.indexOf(String(s.session_code)) !== -1; }).length;
+    if (k === 'staff') return data.staff.filter(function (s) { return DEMO.staff_numbers.indexOf(String(s.staff_number)) !== -1; }).length;
+    if (k === 'excusals' || k === 'staff_records' || k === 'staff_absences') {
+      return data[k].filter(function (r) { return !(Number(r.id) > 1e11); }).length;
+    }
     if (k === 'records' || k === 'participants') {
       var demoSessionIds = data.sessions.filter(function (s) { return DEMO.session_codes.indexOf(String(s.session_code)) !== -1; }).map(function (s) { return s.id; });
       return data[k].filter(function (r) { return demoSessionIds.indexOf(r.attendance_session_id) !== -1; }).length;
@@ -152,7 +161,7 @@
     var realTotal = 0;
     body.innerHTML = Object.keys(KEYS).map(function (k) {
       var n = data[k].length, d = demoCount(k);
-      if (k === 'students' || k === 'records') realTotal += n - (d || 0);
+      if (['students', 'records', 'excusals', 'staff', 'staff_records', 'staff_absences'].indexOf(k) !== -1) realTotal += n - (d || 0);
       return '<tr><td>' + LABELS[k] + '</td><td class="num">' + n + '</td><td class="num">' + (d === null ? '–' : d) + '</td></tr>';
     }).join('');
     var alert = document.getElementById('scan-alert');
@@ -230,7 +239,17 @@
         return s;
       }),
       sessions: data.sessions.map(function (r) { return slim(r, ['id', 'activity_id', 'activity_code', 'activity_name', 'category_name', 'session_code', 'session_date',
-        'start_at', 'present_until', 'late_until', 'end_at', 'status', 'location', 'opened_at', 'closed_at', 'notes']); })
+        'start_at', 'present_until', 'late_until', 'end_at', 'status', 'location', 'opened_at', 'closed_at', 'notes']); }),
+      excusals: data.excusals.map(function (r) { return slim(r, ['id', 'student_id', 'student_number', 'student_name', 'type', 'start_at', 'end_at', 'reason', 'status', 'notes', 'approved_by', 'approved_at', 'created_by']); }),
+      staff: data.staff.map(function (r) {
+        var s = slim(r, ['id', 'staff_number', 'name', 'gender', 'staff_type', 'employment_status', 'phone', 'email', 'department', 'position', 'join_date', 'qr_token', 'rfid_uid', 'requires_daily_attendance', 'is_active']);
+        if (r.is_active === false) s.is_active = false;
+        return s;
+      }),
+      staff_records: data.staff_records.filter(function (r) { return (r.attendance_type || 'daily') === 'daily' && !r.__server; }).map(function (r) {
+        return slim(r, ['id', 'staff_id', 'staff_number', 'attendance_date', 'attendance_type', 'status', 'check_in_at', 'check_out_at', 'check_in_method', 'check_out_method', 'late_minutes', 'early_leave_minutes', 'recorded_by', 'notes']);
+      }),
+      staff_absences: data.staff_absences.map(function (r) { return slim(r, ['id', 'staff_id', 'staff_number', 'type', 'start_at', 'end_at', 'reason', 'status', 'approved_by', 'approved_at', 'rejected_by', 'rejected_at', 'decision_notes']); })
     };
   }
 
