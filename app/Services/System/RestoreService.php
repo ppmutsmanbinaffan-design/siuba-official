@@ -7,107 +7,106 @@ use App\Services\Security\AuditService;
 use App\Services\Security\DataIntegrityAuditService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Schema;
 
+/**
+ * Pulihkan database dari backup BackupService.
+ * - Backup pengaman dibuat dulu.
+ * - Semua tabel data dikosongkan dengan DELETE (bisa di-rollback; TRUNCATE di MySQL langsung commit sehingga
+ *   versi lama tidak benar-benar bisa dibatalkan bila restore gagal di tengah jalan).
+ * - Hanya kolom yang masih ada di skema sekarang yang diisi (backup lama tetap bisa dipulihkan setelah update).
+ */
 class RestoreService
 {
-    /**
-     * Restore database from a verified SystemBackup instance.
-     */
     public static function restoreFromBackup(SystemBackup $backup, ?string $reason = null, ?int $userId = null): array
     {
-        // 1. Verify backup existence & checksum
-        if (!File::exists($backup->path)) {
-            throw new \Exception("File backup tidak ditemukan pada lokasi disk: {$backup->path}");
+        $path = BackupService::pathFor($backup);
+        if (!File::exists($path)) {
+            throw new \RuntimeException('Berkas backup tidak ditemukan di folder storage/app/backups.');
+        }
+        if (!BackupService::verifyBackup($backup)) {
+            throw new \RuntimeException('Checksum tidak cocok: berkas backup rusak atau telah diubah.');
         }
 
-        $currentChecksum = hash_file('sha256', $backup->path);
-        if (!hash_equals($backup->checksum ?? '', $currentChecksum)) {
-            throw new \Exception("Checksum mismatch! File backup corrupt atau telah dimodifikasi.");
+        $gz = gzopen($path, 'rb');
+        $first = json_decode((string) gzgets($gz, 1 << 20), true);
+        if (($first['manifest']['format'] ?? null) !== BackupService::FORMAT) {
+            gzclose($gz);
+            throw new \RuntimeException('Format backup tidak dikenali (backup versi lama berformat JSON tidak bisa dipulihkan otomatis).');
         }
 
-        $content = File::get($backup->path);
-        $data = json_decode($content, true);
-
-        if (!$data || !isset($data['manifest']) || !isset($data['tables'])) {
-            throw new \Exception("Format file backup tidak valid atau rusak.");
-        }
-
-        // 2. Create safety pre-restore backup
-        $safetyBackup = BackupService::createBackup(
-            type: 'database',
-            notes: 'Pre-Restore Safety Snapshot sebelum me-restore ' . $backup->backup_id,
-            userId: $userId
-        );
-
+        $safety = BackupService::createBackup('database', 'Backup pengaman otomatis sebelum restore ' . $backup->backup_id, $userId);
         AuditService::log(
-            event: 'restore_started',
-            auditableType: SystemBackup::class,
-            auditableId: $backup->id,
-            newValues: ['target_backup_id' => $backup->backup_id, 'safety_backup_id' => $safetyBackup->backup_id],
-            reason: $reason ?? 'System Disaster Recovery / Database Restoration',
-            userId: $userId
+            event: 'restore_started', auditableType: SystemBackup::class, auditableId: $backup->id,
+            newValues: ['target_backup_id' => $backup->backup_id, 'safety_backup_id' => $safety->backup_id],
+            reason: $reason ?? 'Pemulihan database', userId: $userId
         );
 
-        // 3. Execute DB Restoration inside Transaction
+        $current = BackupService::dataTables();
+        $backupTables = array_values(array_intersect($first['manifest']['tables'] ?? [], $current));
+        $columns = [];
+        foreach ($backupTables as $t) {
+            $columns[$t] = array_flip(Schema::getColumnListing($t));
+        }
+        $restored = [];
+
+        Schema::disableForeignKeyConstraints(); // harus di luar transaksi (SQLite)
         DB::beginTransaction();
+        if (DB::connection()->getDriverName() === 'sqlite') {
+            DB::statement('PRAGMA defer_foreign_keys = ON'); // berlaku juga bila sudah di dalam transaksi
+        }
         try {
-            DB::statement('SET FOREIGN_KEY_CHECKS=0;');
-
-            foreach ($data['tables'] as $tableName => $rows) {
-                if (SchemaHasTable($tableName)) {
-                    DB::table($tableName)->truncate();
-                    if (!empty($rows)) {
-                        // Chunk inserts to prevent memory overflow
-                        $chunks = array_chunk($rows, 200);
-                        foreach ($chunks as $chunk) {
-                            $insertData = array_map(function ($item) {
-                                return (array) $item;
-                            }, $chunk);
-                            DB::table($tableName)->insert($insertData);
-                        }
-                    }
-                }
+            foreach ($backupTables as $t) {
+                DB::table($t)->delete();
             }
-
-            DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+            $buffer = [];
+            $flush = function () use (&$buffer, &$restored) {
+                foreach ($buffer as $t => $rows) {
+                    foreach (array_chunk($rows, 200) as $chunk) {
+                        DB::table($t)->insert($chunk);
+                    }
+                    $restored[$t] = ($restored[$t] ?? 0) + count($rows);
+                }
+                $buffer = [];
+            };
+            $n = 0;
+            while (!gzeof($gz)) {
+                $line = gzgets($gz, 16 << 20);
+                if ($line === false || trim($line) === '') continue;
+                $item = json_decode($line, true);
+                if (!isset($item['t'], $item['r']) || !isset($columns[$item['t']])) continue;
+                $buffer[$item['t']][] = array_intersect_key($item['r'], $columns[$item['t']]);
+                if (++$n % 1000 === 0) $flush();
+            }
+            $flush();
+            gzclose($gz);
             DB::commit();
-
-            // 4. Run Post-Restore Integrity Audit
-            $integrityResult = DataIntegrityAuditService::runFullAudit();
-
-            AuditService::log(
-                event: 'restore_completed',
-                auditableType: SystemBackup::class,
-                auditableId: $backup->id,
-                newValues: [
-                    'target_backup_id' => $backup->backup_id,
-                    'integrity_status' => $integrityResult['status'],
-                    'critical_issues' => $integrityResult['critical_count'],
-                ],
-                reason: 'Database restore executed and verified successfully.',
-                userId: $userId
-            );
-
-            return [
-                'success' => true,
-                'backup_id' => $backup->backup_id,
-                'safety_backup_id' => $safetyBackup->backup_id,
-                'integrity_result' => $integrityResult,
-                'restored_at' => now()->toISOString(),
-            ];
         } catch (\Throwable $e) {
             DB::rollBack();
-            DB::statement('SET FOREIGN_KEY_CHECKS=1;');
-
-            AuditService::log(
-                event: 'restore_failed',
-                auditableType: SystemBackup::class,
-                auditableId: $backup->id,
-                reason: $e->getMessage(),
-                userId: $userId
-            );
+            @gzclose($gz);
+            Schema::enableForeignKeyConstraints();
+            AuditService::log(event: 'restore_failed', auditableType: SystemBackup::class, auditableId: $backup->id, reason: $e->getMessage(), userId: $userId);
 
             throw $e;
         }
+        Schema::enableForeignKeyConstraints();
+        \Illuminate\Support\Facades\Cache::flush();
+
+        try {
+            $integrity = DataIntegrityAuditService::runFullAudit();
+        } catch (\Throwable $e) {
+            $integrity = ['status' => 'UNKNOWN', 'critical_count' => 0, 'error' => $e->getMessage()];
+        }
+        AuditService::log(
+            event: 'restore_completed', auditableType: SystemBackup::class, auditableId: $backup->id,
+            newValues: ['target_backup_id' => $backup->backup_id, 'rows' => array_sum($restored), 'integrity_status' => $integrity['status']],
+            reason: 'Database berhasil dipulihkan.', userId: $userId
+        );
+
+        return [
+            'success' => true, 'backup_id' => $backup->backup_id, 'safety_backup_id' => $safety->backup_id,
+            'tables' => count($restored), 'rows' => array_sum($restored), 'integrity_result' => $integrity,
+            'restored_at' => now()->toIso8601String(),
+        ];
     }
 }

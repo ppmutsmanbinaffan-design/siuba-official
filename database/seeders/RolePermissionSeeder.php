@@ -125,6 +125,7 @@ class RolePermissionSeeder extends Seeder
             // System
             'system.sync_center',
             'system.maintenance',
+            'system.backup',
             'system.security_audit',
             'system.settings',
             'settings.manage',
@@ -140,7 +141,7 @@ class RolePermissionSeeder extends Seeder
             'super-admin' => $permissions,
 
             'admin' => [
-                'classrooms.manage', 'routine_schedule.manage', 'halaqah.manage', 'duty_roster.manage', 'extracurriculars.manage',
+                'system.backup', 'classrooms.manage', 'routine_schedule.manage', 'halaqah.manage', 'duty_roster.manage', 'extracurriculars.manage',
                 'dashboard.view',
                 'dashboard.executive',
                 'students.view', 'students.create', 'students.update', 'students.edit', 'students.deactivate', 'students.cards',

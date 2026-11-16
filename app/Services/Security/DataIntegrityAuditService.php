@@ -147,7 +147,7 @@ class DataIntegrityAuditService
         $invalidDeviceAssignments = DB::table('attendance_devices as d')
             ->join('attendance_sessions as s', 'd.current_session_id', '=', 's.id')
             ->whereIn('s.status', ['closed', 'cancelled'])
-            ->select('d.id as device_id', 'd.name as device_name', 's.id as session_id', 's.status as session_status')
+            ->select('d.id as device_id', 'd.device_name as device_name', 's.id as session_id', 's.status as session_status')
             ->get();
 
         foreach ($invalidDeviceAssignments as $inv) {

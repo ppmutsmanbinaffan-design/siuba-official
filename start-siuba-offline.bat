@@ -44,4 +44,7 @@ echo  *JANGAN TUTUP JENDELA INI SELAMA APLIKASI DIGUNAKAN.*
 echo ========================================================
 echo.
 
+echo Memeriksa backup database harian...
+php artisan system:backup --notes="Backup otomatis saat aplikasi dinyalakan" --if-older-than=20
+echo.
 php artisan serve --host=0.0.0.0 --port=8000

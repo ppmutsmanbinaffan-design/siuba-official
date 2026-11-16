@@ -110,7 +110,7 @@ export const MaintenanceHubPage: React.FC<MaintenanceHubPageProps> = ({
       <div className="flex items-center gap-2 p-1.5 bg-slate-100/90 dark:bg-zinc-900/90 rounded-2xl border border-slate-200/80 dark:border-zinc-800 pb-1.5 overflow-x-auto scrollbar-none shadow-2xs">
         {[
           { id: 'status', label: 'Status Sistem', icon: Server },
-          { id: 'backup', label: `Backup Database (${backups.length})`, icon: HardDrive },
+          { id: 'backup', label: 'Backup Database', icon: HardDrive },
           { id: 'reset', label: 'Reset Database', icon: Database, badge: isSuperAdmin ? 'Terproteksi' : 'Kunci' },
           { id: 'integrity', label: 'Pemeriksaan Integritas', icon: ShieldCheck },
           { id: 'logs', label: `Log Maintenance (${logs.length})`, icon: FileText },

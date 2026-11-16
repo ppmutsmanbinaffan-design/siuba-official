@@ -33,20 +33,30 @@ Artisan::command('system:audit-integrity', function () {
     }
 })->purpose('Audit seluruh integritas data, relasi presensi, dan keunikan kredensial IoT');
 
-Artisan::command('system:backup {--type=database} {--notes=}', function () {
+Artisan::command('system:backup {--type=database} {--notes=} {--if-older-than= : Lewati bila backup terakhir lebih baru dari N jam}', function () {
     $type = $this->option('type') ?: 'database';
-    $notes = $this->option('notes') ?: 'Manual CLI Backup';
+    $notes = $this->option('notes') ?: 'Backup otomatis';
+    $hours = $this->option('if-older-than');
+    if ($hours !== null && $hours !== '') {
+        $last = SystemBackup::where('status', 'verified')->latest('created_at')->first();
+        if ($last && $last->created_at->gt(now()->subHours((int) $hours))) {
+            $this->line("Backup terakhir {$last->created_at->diffForHumans()} — tidak perlu backup baru.");
+            return 0;
+        }
+    }
 
     $this->info("Menjalankan backup sistem ({$type})...");
     try {
         $backup = BackupService::createBackup($type, $notes);
         $this->info("✓ Backup Berhasil Terverifikasi: {$backup->backup_id}");
-        $this->line("  File     : {$backup->filename}");
+        $this->line("  File     : storage/app/backups/{$backup->filename}");
         $this->line("  Ukuran   : " . round($backup->size / 1024, 2) . " KB");
-        $this->line("  SHA-256  : {$backup->checksum}");
+        $this->line("  Isi      : {$backup->notes}");
     } catch (\Throwable $e) {
         $this->error("✗ Backup Gagal: " . $e->getMessage());
+        return 1;
     }
+    return 0;
 })->purpose('Membuat berkas cadangan database/metadata terverifikasi');
 
 Artisan::command('system:restore {--backup-id=} {--reason=}', function () {
@@ -126,3 +136,7 @@ Artisan::command('siuba:device-deactivate {code}', function () {
 
 // Bersihkan log perangkat > 60 hari setiap malam (butuh cron: * * * * * php artisan schedule:run)
 Schedule::command('model:prune', ['--model' => [\App\Models\AttendanceDeviceLog::class]])->dailyAt('02:15');
+
+// Backup database harian (bila server memakai cron / Task Scheduler). Di XAMPP, start-siuba-offline.bat juga
+// membuat backup saat aplikasi dinyalakan bila backup terakhir lebih dari 20 jam lalu.
+Schedule::command('system:backup', ['--notes' => 'Backup harian terjadwal', '--if-older-than' => 20])->dailyAt('01:30');

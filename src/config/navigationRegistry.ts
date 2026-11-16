@@ -656,7 +656,7 @@ export const NAVIGATION_REGISTRY: NavItemConfig[] = [
     icon: Server,
     category: 'SISTEM',
     route: '/maintenance',
-    permission: 'system.maintenance',
+    permissionsAny: ['system.maintenance', 'system.backup'],
   },
   {
     id: 'go-live-qa',

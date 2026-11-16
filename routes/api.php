@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\DeviceManagementApiController;
 use App\Http\Controllers\Api\CommunityApiController;
 use App\Http\Controllers\Api\RoutineApiController;
 use App\Http\Controllers\Api\AppSettingsApiController;
+use App\Http\Controllers\Api\SystemBackupApiController;
 use App\Http\Controllers\Api\ReportDatasetApiController;
 use App\Http\Controllers\Api\TrainerApiController;
 use App\Http\Controllers\Api\DomainManagementApiController;
@@ -355,6 +356,15 @@ Route::prefix('v1')->group(function () {
     // Migrasi data lama dari localStorage browser ke MySQL (halaman /migrasi-data)
     Route::post('/migration/local-data', LocalDataMigrationApiController::class)
         ->middleware(['auth:sanctum', 'permission:system.maintenance']);
+
+    // Backup database (admin & super-admin); pemulihan hanya super-admin + kalimat konfirmasi
+    Route::prefix('maintenance/backups')->middleware(['auth:sanctum', 'permission:system.backup|system.maintenance'])->group(function () {
+        Route::get('/', [SystemBackupApiController::class, 'index']);
+        Route::post('/', [SystemBackupApiController::class, 'store']);
+        Route::get('/{backupId}/download', [SystemBackupApiController::class, 'download']);
+        Route::delete('/{backupId}', [SystemBackupApiController::class, 'destroy']);
+        Route::post('/{backupId}/restore', [SystemBackupApiController::class, 'restore'])->middleware('role:super-admin');
+    });
 
     // System Maintenance & Database Reset (Super Admin only + exact phrase verification)
     Route::prefix('maintenance')->middleware(['auth:sanctum', 'role:super-admin'])->group(function () {

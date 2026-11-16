@@ -564,3 +564,42 @@ Lalu buka **Pengaturan → Profil Lembaga & Waktu**, lengkapi identitas lembaga,
 - Halaman **Izin Santri**: hitungan "izin hari ini" memakai tanggal hari ini (sebelumnya tertanam 23 Agustus 2026).
 
 Tidak ada migrasi baru; cukup `php artisan optimize:clear`.
+
+---
+
+# Update 15: Tahap 12 — Backup & pemulihan database sungguhan
+
+## Latar belakang
+
+- Tombol **Buat Backup** di Maintenance Hub hanya menyimpan salinan data *browser* ke penyimpanan browser — database
+  server tidak pernah dicadangkan dari aplikasi.
+- Perintah `php artisan system:backup` di server hanya mencadangkan ±29 tabel tertentu: **data SDM, hak akses/role,
+  pengaturan, CMS, ekskul/pembina, kelompok santri, dll. tidak ikut**. Pemulihannya memakai TRUNCATE yang di MySQL
+  tidak bisa dibatalkan bila gagal di tengah jalan.
+- `php artisan system:audit-integrity` selalu error (kolom `d.name` tidak ada).
+
+## Yang berubah
+
+- Backup mencakup **semua tabel data** (otomatis, termasuk tabel yang ditambah di masa depan), ditulis bertahap ke
+  `storage/app/backups/*.ndjson.gz` (hemat memori, terkompresi). Tabel sistem (sesi login, token, cache, antrean)
+  tidak ikut. Disimpan 14 backup terakhir.
+- **Pusat Backup** di Maintenance Hub: buat backup, lihat daftar & status, **unduh** berkas backup, hapus, dan
+  **pulihkan** (hanya Super Admin, wajib mengetik `PULIHKAN <ID BACKUP>`).
+- Pemulihan: backup pengaman dibuat otomatis dulu; data diganti dalam satu transaksi (bila gagal, semua dibatalkan);
+  backup dari versi aplikasi lebih lama tetap bisa dipulihkan (kolom yang sudah tidak ada dilewati).
+- **Backup otomatis**: `start-siuba-offline.bat` membuat backup setiap kali dijalankan bila backup terakhir lebih dari
+  20 jam lalu. Bila server memakai cron / Task Scheduler (`php artisan schedule:run`), backup harian juga berjalan pukul 01:30.
+- Admin kini boleh membuat & mengunduh backup (hak akses baru `system.backup`); pemulihan tetap hanya Super Admin.
+- Perbaikan `system:audit-integrity`.
+
+## Langkah setelah update
+
+```bash
+php artisan db:seed --class=RolePermissionSeeder --force
+php artisan permission:cache-reset
+php artisan optimize:clear
+php artisan system:backup --notes="Backup pertama"
+```
+
+**Penting:** backup tersimpan di komputer yang sama dengan database. Unduh backup secara berkala (mis. seminggu sekali)
+dari Maintenance Hub → Backup Database, lalu simpan di flashdisk atau Google Drive.
