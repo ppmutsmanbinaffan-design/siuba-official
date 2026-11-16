@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\StaffAttendanceApiController;
 use App\Http\Controllers\Api\AuthApiController;
 use App\Http\Controllers\Api\DataImportApiController;
 use App\Http\Controllers\Api\DeviceManagementApiController;
+use App\Http\Controllers\Api\CommunityApiController;
 use App\Http\Controllers\Api\DomainManagementApiController;
 use App\Http\Controllers\Api\IotDeviceApiController;
 use App\Http\Controllers\Api\LandingCmsApiController;
@@ -122,6 +123,32 @@ Route::prefix('v1')->group(function () {
             Route::post('/absences', [StaffAttendanceApiController::class, 'storeAbsence'])->middleware('permission:staff.attendance');
             Route::post('/absences/{absence}/approve', [StaffAttendanceApiController::class, 'approveAbsence'])->middleware('permission:staff.edit|staff.deactivate');
             Route::post('/absences/{absence}/reject', [StaffAttendanceApiController::class, 'rejectAbsence'])->middleware('permission:staff.edit|staff.deactivate');
+        });
+
+        // Ekstrakurikuler, halaqah, piket, dan event khusus
+        Route::prefix('community')->group(function () {
+            Route::get('/master', [CommunityApiController::class, 'master'])
+                ->middleware('permission:extracurriculars.view|halaqah.view|duty_roster.view|events.view|trainer.attendance|attendance.sessions.view');
+
+            Route::middleware('permission:extracurriculars.manage')->group(function () {
+                Route::post('/extracurriculars', [CommunityApiController::class, 'storeEkskul']);
+                Route::put('/extracurriculars/{ekskul}', [CommunityApiController::class, 'updateEkskul']);
+                Route::post('/extracurriculars/{ekskul}/members', [CommunityApiController::class, 'addEkskulMember']);
+                Route::delete('/extracurricular-members/{member}', [CommunityApiController::class, 'removeEkskulMember']);
+            });
+
+            Route::put('/halaqahs', [CommunityApiController::class, 'syncHalaqahs'])->middleware('permission:halaqah.manage');
+            Route::put('/duty-rosters', [CommunityApiController::class, 'syncDutyRosters'])->middleware('permission:duty_roster.manage');
+
+            Route::middleware('permission:events.manage')->group(function () {
+                Route::post('/events', [CommunityApiController::class, 'storeEvent']);
+                Route::post('/events/{event}/status', [CommunityApiController::class, 'updateEventStatus']);
+                Route::post('/events/{event}/sessions', [CommunityApiController::class, 'storeEventSession']);
+                Route::post('/events/{event}/registrations', [CommunityApiController::class, 'storeRegistration']);
+                Route::post('/event-registrations/{registration}/status', [CommunityApiController::class, 'updateRegistrationStatus']);
+                Route::post('/events/{event}/rules', [CommunityApiController::class, 'storeRule']);
+                Route::delete('/event-rules/{rule}', [CommunityApiController::class, 'deleteRule']);
+            });
         });
 
         // KBM: mapel, guru, jam pelajaran, penugasan, jadwal, kalender, guru pengganti

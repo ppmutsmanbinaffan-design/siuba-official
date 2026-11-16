@@ -301,3 +301,52 @@ Data KBM lama di browser tidak bisa dimigrasikan (memang tidak pernah tersimpan)
 
 Presensi melatih (ekskul) & ekstrakurikuler, asrama/halaqah/piket/rutinitas, event, dan tombol
 "Login sebagai pengguna ini" di Manajemen Akses.
+
+---
+
+# Update 8: Tahap 5 — Ekskul, halaqah, piket, event di server + perbaikan akses
+
+## Latar belakang
+
+Data ekstrakurikuler, halaqah, jadwal piket, dan event khusus sebelumnya hanya ada di memori browser
+(hilang saat halaman dimuat ulang, tidak terlihat dari perangkat lain).
+
+## Yang berubah
+
+- API baru `GET /api/v1/community/master` + penyimpanan:
+  - **Ekstrakurikuler**: tambah ekskul, tambah/keluarkan anggota. Kuota dicek di server; bila penuh santri
+    otomatis masuk daftar tunggu.
+  - **Halaqah**: setiap perubahan di halaman Halaqah (buat halaqah, tambah/keluarkan santri) otomatis
+    disimpan ke server. Halaqah yang dihapus = dinonaktifkan.
+  - **Jadwal piket**: setiap perubahan di halaman Piket otomatis disimpan. Pilihan kegiatan piket memakai
+    daftar kegiatan dari server.
+  - **Event khusus**: buat event, ubah status, tambah sesi, pendaftaran santri (kuota → daftar tunggu),
+    dan rule peserta. Menambah sesi event langsung membuat **sesi absensinya** dengan peserta = pendaftar
+    yang disetujui; pendaftar yang disetujui belakangan ikut dimasukkan ke sesi yang belum ditutup.
+- Hak akses baru: `extracurriculars.manage`, `halaqah.manage`, `duty_roster.manage`
+  (admin & kesantrian semua; kepala asrama halaqah + piket; musyrif piket). Pengubahan event tetap `events.manage`.
+- **Menu Pengaturan Sistem** (`system.settings`) kini hanya untuk super-admin & admin. Sebelumnya hampir
+  semua role (guru, operator, pelatih, panitia PSB, dll.) bisa membuka pengaturan server, identitas lembaga,
+  dan kebijakan scanner.
+- **Tombol "Login" / "Coba Role Ini" di Manajemen Akses dihapus.** Tombol itu menimpa token login asli dengan
+  token palsu sehingga semua data gagal dimuat dan identitas pengguna menjadi rancu. Untuk mencoba akun lain:
+  keluar, lalu masuk dengan username akun tersebut.
+- Perbaikan bug generator sesi event yang gagal bila kategori kegiatan ber-id 1 tidak ada.
+- Tanggal bawaan form event kini hari ini.
+
+## Langkah setelah update (WAJIB jalankan seeder hak akses)
+
+```bash
+php artisan migrate --force
+php artisan db:seed --class=RolePermissionSeeder --force
+php artisan permission:cache-reset
+php artisan optimize:clear
+```
+
+Catatan: seeder menyetel ulang hak akses role bawaan ke nilai standar. Bila Anda pernah mengubah hak akses
+role lewat database, periksa kembali setelah menjalankannya.
+
+## Belum termasuk (tahap 6)
+
+Master kegiatan & jadwal rutin (shalat, dll.), kalender waktu shalat, presensi pembina ekskul,
+dan kelompok santri khusus — masih tersimpan di browser.

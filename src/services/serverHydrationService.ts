@@ -34,6 +34,20 @@ export interface AcademicMaster {
   substitutions: any[];
 }
 
+export interface CommunityMaster {
+  activities: any[];
+  extracurriculars: any[];
+  extracurricular_members: any[];
+  halaqahs: any[];
+  halaqah_members: any[];
+  duty_rosters: any[];
+  events: any[];
+  event_sessions: any[];
+  event_registrations: any[];
+  event_organizers: any[];
+  participant_rules: any[];
+}
+
 export interface ServerSnapshot {
   students?: Student[];
   classrooms?: Classroom[];
@@ -49,6 +63,7 @@ export interface ServerSnapshot {
   staffDaily?: StaffAttendanceRecord[];
   staffAbsences?: StaffAbsenceRequest[];
   academic?: AcademicMaster;
+  community?: CommunityMaster;
   errors: string[];
 }
 
@@ -95,21 +110,22 @@ export async function loadServerSnapshot(options: { attendanceOnly?: boolean } =
       attempt('Izin santri', async () => ((await apiClient.get<StudentExcusal[]>('/student-excusals')) as any).data as StudentExcusal[], errors),
       attempt('Presensi SDM', async () => ((await apiClient.get<StaffAttendanceRecord[]>('/staff-attendance/daily')) as any).data as StaffAttendanceRecord[], errors),
       attempt('Izin SDM', async () => ((await apiClient.get<StaffAbsenceRequest[]>('/staff-attendance/absences')) as any).data as StaffAbsenceRequest[], errors),
+      attempt('Ekskul/Halaqah/Event', async () => ((await apiClient.get<CommunityMaster>('/community/master')) as any).data as CommunityMaster, errors),
     ] as const);
 
   if (options.attendanceOnly) {
-    const [attendance, devices, [academic, excusals, staffDaily, staffAbsences]] = await Promise.all([
+    const [attendance, devices, [academic, excusals, staffDaily, staffAbsences, community]] = await Promise.all([
       attempt('Absensi', async () => ((await apiClient.get<any>('/attendance/snapshot')) as any).data, errors),
       attempt('Perangkat', async () => ((await apiClient.get<AttendanceDevice[]>('/attendance/devices')) as any).data as AttendanceDevice[], errors),
       dailyExtras(),
     ]);
     return {
       sessions: attendance?.sessions, participants: attendance?.participants, records: attendance?.records, devices,
-      excusals, staffDaily, staffAbsences, academic, errors,
+      excusals, staffDaily, staffAbsences, academic, community, errors,
     };
   }
 
-  const [[academic, excusals, staffDaily, staffAbsences], students, classrooms, dormitories, dormitoryRooms, attendance, devices, staff, users] = await Promise.all([
+  const [[academic, excusals, staffDaily, staffAbsences, community], students, classrooms, dormitories, dormitoryRooms, attendance, devices, staff, users] = await Promise.all([
     dailyExtras(),
     attempt('Santri', fetchAllStudents, errors),
     attempt('Kelas', async () => ((await apiClient.get<Classroom[]>('/classrooms')) as any).data as Classroom[], errors),
@@ -139,6 +155,7 @@ export async function loadServerSnapshot(options: { attendanceOnly?: boolean } =
     staffDaily,
     staffAbsences,
     academic,
+    community,
     errors,
   };
 }

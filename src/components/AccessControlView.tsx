@@ -1092,22 +1092,11 @@ export const AccessControlView: React.FC<Props> = ({
 
                           <td className="p-4 text-right">
                             <div className="flex items-center justify-end gap-1.5">
-                              {/* Switch / Test Login */}
-                              <button
-                                onClick={() => {
-                                  onSelectUser(user);
-                                  onShowToast(`Beralih ke akun "${user.name}" (@${user.username}).`, 'success');
-                                }}
-                                className={`px-2.5 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1 transition-all cursor-pointer ${
-                                  isCurrent
-                                    ? 'bg-[#1F5C45] text-white shadow-2xs'
-                                    : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-200'
-                                }`}
-                                title="Login & Gunakan Akun Ini"
-                              >
-                                <LogIn className="w-3.5 h-3.5" />
-                                <span className="hidden sm:inline">{isCurrent ? 'Aktif' : 'Login'}</span>
-                              </button>
+                              {isCurrent && (
+                                <span className="px-2.5 py-1.5 rounded-xl font-bold text-xs bg-[#1F5C45] text-white" title="Akun yang sedang Anda pakai">
+                                  Akun Anda
+                                </span>
+                              )}
 
                               {/* Edit Password Button */}
                               <button
@@ -1262,19 +1251,6 @@ export const AccessControlView: React.FC<Props> = ({
                       <span>Kustomisasi Hak Akses</span>
                     </button>
 
-                    {assignedUsers.length > 0 && (
-                      <button
-                        onClick={() => {
-                          const firstUser = assignedUsers[0];
-                          onSelectUser(firstUser);
-                          onShowToast(`Beralih login ke akun role ${role.label} (${firstUser.name}).`, 'success');
-                        }}
-                        className="px-3.5 py-2 bg-[#1F5C45] hover:bg-[#12372A] text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer active:scale-95 flex items-center gap-1.5"
-                      >
-                        <LogIn className="w-3.5 h-3.5" />
-                        <span>Coba Role Ini</span>
-                      </button>
-                    )}
                   </div>
                 </div>
               );

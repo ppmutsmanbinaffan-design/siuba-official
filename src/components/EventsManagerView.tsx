@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { todayLocalDate } from '../utils/today';
 import { 
   Calendar, 
   Clock, 
@@ -148,17 +149,17 @@ export const EventsManagerView: React.FC<EventsManagerViewProps> = ({
   const [newName, setNewName] = useState('');
   const [newDesc, setNewDesc] = useState('');
   const [newType, setNewType] = useState<EventType>('seminar');
-  const [newStartAt, setNewStartAt] = useState('2026-08-25 08:00');
-  const [newEndAt, setNewEndAt] = useState('2026-08-25 12:00');
+  const [newStartAt, setNewStartAt] = useState(`${todayLocalDate()} 08:00`);
+  const [newEndAt, setNewEndAt] = useState(`${todayLocalDate()} 12:00`);
   const [newLocation, setNewLocation] = useState('Aula Utama Pesantren');
   const [newCapacity, setNewCapacity] = useState<number>(100);
 
   // New Session Form State
   const [sessionName, setSessionName] = useState('');
-  const [sessionStartAt, setSessionStartAt] = useState('2026-08-25 08:00');
+  const [sessionStartAt, setSessionStartAt] = useState(`${todayLocalDate()} 08:00`);
   const [sessionPresentUntil, setSessionPresentUntil] = useState('08:15');
   const [sessionLateUntil, setSessionLateUntil] = useState('08:30');
-  const [sessionEndAt, setSessionEndAt] = useState('2026-08-25 10:00');
+  const [sessionEndAt, setSessionEndAt] = useState(`${todayLocalDate()} 10:00`);
 
   // New Rule Form State
   const [ruleType, setRuleType] = useState<ActivityParticipantRuleType>('classroom');

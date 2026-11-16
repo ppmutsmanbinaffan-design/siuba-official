@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { TopHeader } from './components/TopHeader';
 import { LoginPage, AuthLoadingScreen, GuestRoute, ProtectedRoute, Forbidden403, NotFound404 } from './components/auth';
@@ -326,6 +326,9 @@ export function App() {
   const [eventRegistrations, setEventRegistrations] = useState<EventRegistration[]>(INITIAL_EVENT_REGISTRATIONS);
   const [eventOrganizers, setEventOrganizers] = useState<EventOrganizer[]>(INITIAL_EVENT_ORGANIZERS);
   const [participantRules, setParticipantRules] = useState<ActivityParticipantRule[]>(INITIAL_ACTIVITY_PARTICIPANT_RULES);
+  const [serverActivities, setServerActivities] = useState<Activity[]>([]);
+  const halaqahDirty = useRef(false);
+  const dutyDirty = useRef(false);
   const [walkInAuditLogs, setWalkInAuditLogs] = useState<WalkInAuditLog[]>(INITIAL_WALK_IN_AUDIT_LOGS);
 
   // ===================================================================
@@ -356,6 +359,22 @@ export function App() {
       setAcademicCalendarEvents(a.calendar_events);
       setAcademicSessionContexts(a.session_contexts);
       setAcademicSubstitutions(a.substitutions);
+    }
+    if (snap.community) {
+      const c = snap.community;
+      setServerActivities(c.activities);
+      setExtracurriculars(c.extracurriculars);
+      setExtracurricularMembers(c.extracurricular_members);
+      if (!halaqahDirty.current) {
+        setHalaqahs(c.halaqahs);
+        setHalaqahMembers(c.halaqah_members);
+      }
+      if (!dutyDirty.current) setDutyRosters(c.duty_rosters);
+      setSpecialEvents(c.events);
+      setEventSessions(c.event_sessions);
+      setEventRegistrations(c.event_registrations);
+      setEventOrganizers(c.event_organizers);
+      setParticipantRules(c.participant_rules);
     }
     if (snap.users && snap.users.length > 0) {
       // Password tidak pernah disimpan / ditampilkan di browser
@@ -470,104 +489,27 @@ export function App() {
   }, []);
 
   // Sprint 8 Handlers
-  const handleAddEvent = (evt: Partial<SpecialEvent>) => {
-    const newId = specialEvents.length ? Math.max(...specialEvents.map((e) => e.id)) + 1 : 1;
-    const newEvent: SpecialEvent = {
-      id: newId,
-      code: evt.code || `EVT-${newId}`,
-      name: evt.name || 'Event Baru',
-      description: evt.description || '',
-      event_type: evt.event_type || 'seminar',
-      start_at: evt.start_at || '2026-08-25 08:00',
-      end_at: evt.end_at || '2026-08-25 12:00',
-      location: evt.location || 'Aula Utama',
-      capacity: evt.capacity,
-      participant_mode: evt.participant_mode || 'registration',
-      attendance_enabled: true,
-      allow_manual: true,
-      allow_qr: true,
-      allow_rfid: true,
-      status: evt.status || 'published',
-      finalization_policy: 'required',
-      activity_id: evt.activity_id || 10,
-      created_by: evt.created_by || currentUser.name,
-      created_at: new Date().toISOString().slice(0, 10),
-    };
-    setSpecialEvents((prev) => [newEvent, ...prev]);
-    showToast(`Event "${newEvent.name}" berhasil dibuat.`, 'success');
-  };
-
-  const handleUpdateEventStatus = (eventId: number, status: SpecialEvent['status']) => {
-    setSpecialEvents((prev) =>
-      prev.map((e) => (e.id === eventId ? { ...e, status } : e))
-    );
-    showToast(`Status event berhasil diperbarui menjadi ${status.toUpperCase()}.`, 'info');
-  };
-
-  const handleAddEventSession = (session: Partial<EventSession>) => {
-    const newId = eventSessions.length ? Math.max(...eventSessions.map((s) => s.id)) + 1 : 1;
-    const newSession: EventSession = {
-      id: newId,
-      event_id: session.event_id || 1,
-      name: session.name || 'Sesi Baru',
-      start_at: session.start_at || '2026-08-25 08:00',
-      present_until: session.present_until || '08:15',
-      late_until: session.late_until || '08:30',
-      end_at: session.end_at || '2026-08-25 10:00',
-      attendance_required: true,
-      sort_order: session.sort_order || 1,
-    };
-    setEventSessions((prev) => [...prev, newSession]);
-    showToast(`Sesi "${newSession.name}" berhasil ditambahkan.`, 'success');
-  };
-
-  const handleAddEventRegistration = (reg: Partial<EventRegistration>) => {
-    const newId = eventRegistrations.length ? Math.max(...eventRegistrations.map((r) => r.id)) + 1 : 1;
-    const newReg: EventRegistration = {
-      id: newId,
-      event_id: reg.event_id || 1,
-      student_id: reg.student_id || 1,
-      student_name: reg.student_name || 'Santri',
-      student_number: reg.student_number || 'UBA260001',
-      classroom_name: reg.classroom_name || '-',
-      status: reg.status || 'approved',
-      registered_at: reg.registered_at || new Date().toISOString().slice(0, 10),
-      registration_source: reg.registration_source || 'student_registration',
-      approved_by: reg.approved_by,
-      approved_at: reg.approved_at,
-    };
-    setEventRegistrations((prev) => [...prev, newReg]);
-    showToast(`Santri "${newReg.student_name}" berhasil terdaftar di event.`, 'success');
-  };
-
-  const handleUpdateRegistrationStatus = (registrationId: number, status: EventRegistration['status']) => {
-    setEventRegistrations((prev) =>
-      prev.map((r) => (r.id === registrationId ? { ...r, status } : r))
-    );
-    showToast(`Status registrasi berhasil diubah menjadi ${status.toUpperCase()}.`, 'info');
-  };
-
+  // ===== Event khusus: disimpan di server =====
+  const handleAddEvent = (evt: Partial<SpecialEvent>) =>
+    kbmCall(() => apiClient.post('/community/events', evt), `Event "${evt.name || ''}" berhasil dibuat.`);
+  const handleUpdateEventStatus = (eventId: number, status: SpecialEvent['status']) =>
+    kbmCall(() => apiClient.post(`/community/events/${eventId}/status`, { status }), 'Status event diperbarui.');
+  const handleAddEventSession = (session: Partial<EventSession>) =>
+    kbmCall(() => apiClient.post(`/community/events/${session.event_id}/sessions`, session), `Sesi "${session.name || ''}" ditambahkan.`);
+  const handleAddEventRegistration = (reg: Partial<EventRegistration>) =>
+    kbmCall(() => apiClient.post(`/community/events/${reg.event_id}/registrations`, { student_id: reg.student_id, status: reg.status, notes: reg.notes }), 'Santri terdaftar di event.');
+  const handleUpdateRegistrationStatus = (registrationId: number, status: EventRegistration['status']) =>
+    kbmCall(() => apiClient.post(`/community/event-registrations/${registrationId}/status`, { status }), 'Status registrasi diperbarui.');
   const handleAddParticipantRule = (rule: Partial<ActivityParticipantRule>) => {
-    const newId = participantRules.length ? Math.max(...participantRules.map((r) => r.id)) + 1 : 1;
-    const newRule: ActivityParticipantRule = {
-      id: newId,
-      activity_id: rule.activity_id || 10,
-      activity_name: rule.activity_name || 'Kegiatan',
-      rule_type: rule.rule_type || 'classroom',
-      rule_operator: rule.rule_operator || 'include',
-      rule_value: rule.rule_value || 'VII A',
-      rule_description: rule.rule_description || '',
-      is_active: true,
-      created_by: rule.created_by || currentUser.name,
-    };
-    setParticipantRules((prev) => [...prev, newRule]);
-    showToast(`Rule peserta "${newRule.rule_operator.toUpperCase()} ${newRule.rule_type}" berhasil ditambahkan.`, 'success');
+    const ev = specialEvents.find((e) => e.activity_id === rule.activity_id || e.name === rule.activity_name);
+    if (!ev) {
+      showToast('Event untuk rule ini tidak ditemukan. Muat ulang halaman lalu coba lagi.', 'error');
+      return;
+    }
+    return kbmCall(() => apiClient.post(`/community/events/${ev.id}/rules`, rule), 'Rule peserta ditambahkan.');
   };
-
-  const handleRemoveParticipantRule = (ruleId: number) => {
-    setParticipantRules((prev) => prev.filter((r) => r.id !== ruleId));
-    showToast('Rule peserta berhasil dihapus.', 'info');
-  };
+  const handleRemoveParticipantRule = (ruleId: number) =>
+    kbmCall(() => apiClient.delete(`/community/event-rules/${ruleId}`), 'Rule peserta dihapus.');
 
   const handleCreateEventDispensations = (updatedExcusals: StudentExcusal[]) => {
     setExcusals(updatedExcusals);
@@ -740,9 +682,50 @@ export function App() {
     );
   };
 
-  const handleSelectUser = (user: User) => {
-    setCurrentUser(user);
-    authService.setAuthenticatedUser(user, `token_${user.id}`, true);
+  // ===== Halaqah & piket: tampilan mengubah daftar lengkap, lalu disinkronkan ke server =====
+  const updateHalaqahs = (next: Halaqah[]) => { halaqahDirty.current = true; setHalaqahs(next); };
+  const updateHalaqahMembers = (next: HalaqahMember[]) => { halaqahDirty.current = true; setHalaqahMembers(next); };
+  const updateDutyRosters = (next: DutyRoster[]) => { dutyDirty.current = true; setDutyRosters(next); };
+
+  useEffect(() => {
+    if (!halaqahDirty.current) return;
+    const t = setTimeout(async () => {
+      try {
+        await apiClient.put('/community/halaqahs', { halaqahs, members: halaqahMembers });
+        halaqahDirty.current = false;
+        await refreshServerData(true);
+      } catch (err: any) {
+        halaqahDirty.current = false;
+        const fieldMsg = err?.fieldErrors ? (Object.values(err.fieldErrors).flat()[0] as string | undefined) : undefined;
+        showToast(isOfflineError(err) ? 'Server offline: perubahan halaqah belum tersimpan.' : fieldMsg || err?.message || 'Gagal menyimpan halaqah.', 'error');
+        await refreshServerData(true);
+      }
+    }, 700);
+    return () => clearTimeout(t);
+  }, [halaqahs, halaqahMembers]);
+
+  useEffect(() => {
+    if (!dutyDirty.current) return;
+    const t = setTimeout(async () => {
+      try {
+        const payload = dutyRosters.map((d) => ({ activity_id: d.activity_id, date: d.date, student_id: d.student_id, role: d.role, is_active: d.is_active }));
+        await apiClient.put('/community/duty-rosters', { rosters: payload });
+        dutyDirty.current = false;
+        await refreshServerData(true);
+      } catch (err: any) {
+        dutyDirty.current = false;
+        const fieldMsg = err?.fieldErrors ? (Object.values(err.fieldErrors).flat()[0] as string | undefined) : undefined;
+        showToast(isOfflineError(err) ? 'Server offline: jadwal piket belum tersimpan.' : fieldMsg || err?.message || 'Gagal menyimpan jadwal piket.', 'error');
+        await refreshServerData(true);
+      }
+    }, 700);
+    return () => clearTimeout(t);
+  }, [dutyRosters]);
+
+  // Berpindah akun tanpa login sungguhan dinonaktifkan: dulu menimpa token asli dengan token palsu
+  // sehingga semua panggilan API gagal dan identitas pengguna menjadi rancu.
+  const handleSelectUser = (_user: User) => {
+    showToast('Untuk memakai akun lain, keluar lalu masuk dengan username akun tersebut.', 'info');
   };
 
   const handleGenerateAcademicSessions = async (dateStr: string) => {
@@ -1211,38 +1194,13 @@ export function App() {
   };
 
   // Extracurriculars Handlers
-  const handleAddExtracurricular = (ekskul: Partial<Extracurricular>) => {
-    const newEks: Extracurricular = {
-      id: Date.now(),
-      code: ekskul.code || `EKS-${Math.random().toString(36).substring(2, 6).toUpperCase()}`,
-      name: ekskul.name || 'Ekstrakurikuler Baru',
-      description: ekskul.description || '',
-      coach_name: ekskul.coach_name || 'Pembina Umum',
-      location: ekskul.location || 'Area Pesantren',
-      is_active: true,
-    };
-    setExtracurriculars((prev) => [...prev, newEks]);
-    showToast(`Ekstrakurikuler '${newEks.name}' berhasil ditambahkan.`, 'success');
-  };
-
-  const handleAddExtracurricularMember = (member: Partial<ExtracurricularMember>) => {
-    const newMem: ExtracurricularMember = {
-      id: Date.now(),
-      extracurricular_id: member.extracurricular_id || 1,
-      student_id: member.student_id || 1,
-      membership_status: member.membership_status || 'active',
-      registration_source: member.registration_source || 'admin_assignment',
-      joined_at: '2026-08-23',
-      is_active: true,
-    };
-    setExtracurricularMembers((prev) => [...prev, newMem]);
-    showToast('Anggota ekstrakurikuler berhasil ditambahkan.', 'success');
-  };
-
-  const handleRemoveExtracurricularMember = (memberId: number) => {
-    setExtracurricularMembers((prev) => prev.filter((m) => m.id !== memberId));
-    showToast('Anggota ekstrakurikuler dinonaktifkan.', 'success');
-  };
+  // ===== Ekstrakurikuler: disimpan di server =====
+  const handleAddExtracurricular = (ekskul: Partial<Extracurricular>) =>
+    kbmCall(() => apiClient.post('/community/extracurriculars', ekskul), `Ekstrakurikuler '${ekskul.name || ''}' ditambahkan.`);
+  const handleAddExtracurricularMember = (member: Partial<ExtracurricularMember>) =>
+    kbmCall(() => apiClient.post(`/community/extracurriculars/${member.extracurricular_id}/members`, member), 'Anggota ekstrakurikuler ditambahkan.');
+  const handleRemoveExtracurricularMember = (memberId: number) =>
+    kbmCall(() => apiClient.delete(`/community/extracurricular-members/${memberId}`), 'Anggota ekstrakurikuler dinonaktifkan.');
 
   // Student Group Handlers
   const handleAddStudentGroup = (grp: Partial<StudentGroup>) => {
@@ -2019,7 +1977,7 @@ export function App() {
               eventSessions={eventSessions}
               eventRegistrations={eventRegistrations}
               eventOrganizers={eventOrganizers}
-              activities={activities}
+              activities={serverActivities.length ? serverActivities : activities}
               students={students}
               classrooms={classrooms}
               dormitories={dormitories}
@@ -2604,19 +2562,19 @@ export function App() {
               halaqahMembers={halaqahMembers}
               students={students}
               users={users}
-              onUpdateHalaqahs={setHalaqahs}
-              onUpdateHalaqahMembers={setHalaqahMembers}
+              onUpdateHalaqahs={updateHalaqahs}
+              onUpdateHalaqahMembers={updateHalaqahMembers}
               onShowToast={showToast}
             />
           )}
 
           {activeTab === 'duty-roster-manager' && (
             <DutyRosterManagerView
-              activities={activities}
+              activities={serverActivities.length ? serverActivities : activities}
               dutyRosters={dutyRosters}
               students={students}
               currentUser={currentUser}
-              onUpdateDutyRosters={setDutyRosters}
+              onUpdateDutyRosters={updateDutyRosters}
               onShowToast={showToast}
             />
           )}

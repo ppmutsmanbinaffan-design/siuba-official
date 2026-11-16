@@ -118,7 +118,6 @@ export const ROLE_PERMISSIONS: Readonly<Record<string, readonly string[]>> = {
     'attendance.view',
     'kbm.monitoring',
     'dormitory.view',
-    'system.settings',
   ],
   'kepala-sekolah': [
     'dashboard.view',
@@ -137,7 +136,6 @@ export const ROLE_PERMISSIONS: Readonly<Record<string, readonly string[]>> = {
     'attendance.view',
     'reports.view',
     'reports.export',
-    'system.settings',
   ],
   'kepala-asrama': [
     'dashboard.view',
@@ -154,7 +152,6 @@ export const ROLE_PERMISSIONS: Readonly<Record<string, readonly string[]>> = {
     'duty_roster.view',
     'attendance.excuses',
     'reports.view',
-    'system.settings',
   ],
   guru: [
     'dashboard.view',
@@ -165,7 +162,6 @@ export const ROLE_PERMISSIONS: Readonly<Record<string, readonly string[]>> = {
     'students.view',
     'attendance.view',
     'staff.attendance',
-    'system.settings',
   ],
   teacher: [
     'dashboard.view',
@@ -176,7 +172,6 @@ export const ROLE_PERMISSIONS: Readonly<Record<string, readonly string[]>> = {
     'students.view',
     'attendance.view',
     'staff.attendance',
-    'system.settings',
   ],
   musyrif: [
     'dashboard.view',
@@ -191,14 +186,12 @@ export const ROLE_PERMISSIONS: Readonly<Record<string, readonly string[]>> = {
     'halaqah.view',
     'duty_roster.view',
     'attendance.excuses',
-    'system.settings',
   ],
   pelatih: [
     'dashboard.view',
     'trainer.attendance',
     'students.view',
     'extracurriculars.view',
-    'system.settings',
   ],
   'petugas-absensi': [
     'dashboard.view',
@@ -209,7 +202,6 @@ export const ROLE_PERMISSIONS: Readonly<Record<string, readonly string[]>> = {
     'attendance.rfid',
     'prayer.monitoring',
     'students.view',
-    'system.settings',
   ],
   'petugas-masjid': [
     'dashboard.view',
@@ -219,7 +211,6 @@ export const ROLE_PERMISSIONS: Readonly<Record<string, readonly string[]>> = {
     'attendance.monitoring',
     'prayer.monitoring',
     'students.view',
-    'system.settings',
   ],
   operator: [
     'dashboard.view',
@@ -234,7 +225,6 @@ export const ROLE_PERMISSIONS: Readonly<Record<string, readonly string[]>> = {
     'attendance.rfid',
     'qr-print.view',
     'devices.view',
-    'system.settings',
   ],
   kesantrian: [
     'dashboard.view',
@@ -253,7 +243,6 @@ export const ROLE_PERMISSIONS: Readonly<Record<string, readonly string[]>> = {
     'attendance.excuses',
     'reports.view',
     'reports.export',
-    'system.settings',
   ],
   academic: [
     'dashboard.view',
@@ -267,7 +256,6 @@ export const ROLE_PERMISSIONS: Readonly<Record<string, readonly string[]>> = {
     'kbm.master',
     'kbm.reports',
     'reports.view',
-    'system.settings',
   ],
   'panitia-psb': [
     'dashboard.view',
@@ -280,7 +268,6 @@ export const ROLE_PERMISSIONS: Readonly<Record<string, readonly string[]>> = {
     'ppdb.manage',
     'ppdb.verify',
     'ppdb.export',
-    'system.settings',
   ],
   panitia_psb: [
     'dashboard.view',
@@ -293,7 +280,6 @@ export const ROLE_PERMISSIONS: Readonly<Record<string, readonly string[]>> = {
     'ppdb.manage',
     'ppdb.verify',
     'ppdb.export',
-    'system.settings',
   ],
   'panitia-ppdb': [
     'dashboard.view',
@@ -306,7 +292,6 @@ export const ROLE_PERMISSIONS: Readonly<Record<string, readonly string[]>> = {
     'ppdb.manage',
     'ppdb.verify',
     'ppdb.export',
-    'system.settings',
   ],
   panitia_ppdb: [
     'dashboard.view',
@@ -319,7 +304,6 @@ export const ROLE_PERMISSIONS: Readonly<Record<string, readonly string[]>> = {
     'ppdb.manage',
     'ppdb.verify',
     'ppdb.export',
-    'system.settings',
   ],
 };
 
