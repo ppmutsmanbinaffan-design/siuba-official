@@ -46,6 +46,8 @@ export interface CommunityMaster {
   event_registrations: any[];
   event_organizers: any[];
   participant_rules: any[];
+  student_groups?: any[];
+  student_group_members?: any[];
 }
 
 export interface RoutineMaster {

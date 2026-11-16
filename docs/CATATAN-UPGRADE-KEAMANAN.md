@@ -401,3 +401,44 @@ Peserta jenis "kelompok khusus" dan "individual" belum didukung di server — se
 ## Belum termasuk (tahap 7)
 
 Presensi pembina ekskul (halaman Presensi Pembina) dan kelompok santri khusus masih tersimpan di browser.
+
+---
+
+# Update 10: Tahap 7 — Presensi pembina ekskul & kelompok santri di server + perbaikan khusus MySQL
+
+## Latar belakang
+
+Halaman **Presensi Pembina Ekskul** (`/sdm/pelatih`) sepenuhnya berjalan di browser, dan jadwal latihannya
+**tertanam di kode** (mis. "Senin = ekskul nomor 1 dan 2"), sehingga sesi latihan tidak mencerminkan ekskul
+yang sebenarnya. Kelompok santri khusus juga hanya tersimpan di browser.
+
+## Yang berubah
+
+- **Jadwal latihan mingguan** per ekskul (tab Penugasan → Jadwal Latihan Mingguan). Tombol **Generate Sesi**
+  membuat sesi latihan dari jadwal ini (aman diulang, melewati hari libur di kalender akademik).
+- **Penugasan pelatih** (utama/asisten/pembina) dan **pelatih pengganti (inval)** tersimpan di server; pengganti
+  langsung diterapkan ke sesi pada tanggal itu dan bisa dibatalkan.
+- **Presensi melatih**: tap kartu RFID / QR / nomor induk SDM — tap pertama = mulai melatih (terlambat bila lewat
+  15 menit), tap kedua = selesai. Tercatat sebagai presensi SDM jenis *training*.
+- **Jurnal latihan**, **finalisasi** (sesi tanpa presensi pelatih → alpa), ringkasan, dan **rekonsiliasi**
+  dihitung di server.
+- **Kelompok santri khusus**: buat kelompok, tambah/keluarkan anggota (halaman Ekstrakurikuler & Kelompok Khusus).
+  Kegiatan dengan peserta "kelompok khusus" kini benar-benar memakai anggota kelompok itu.
+- Tanggal bawaan halaman pembina = tanggal lokal (sebelumnya memakai UTC sehingga sebelum pukul 07:00 WIB
+  menampilkan tanggal kemarin).
+
+## Perbaikan yang hanya muncul di MySQL/MariaDB (seluruh test kini juga dijalankan di MariaDB)
+
+- **Absensi santri bisa gagal tersimpan** ("Terjadi kesalahan sistem") bila santri tap pada sesi yang sudah
+  sangat lama terbuka: menit terlambat melebihi batas kolom database. Nilainya kini dibatasi.
+- Presensi manual SDM tanpa jam masuk mengirim nilai kosong ke kolom yang wajib terisi — diperbaiki.
+
+## Langkah setelah update
+
+```bash
+php artisan migrate --force          # menambah 6 tabel baru (data lama aman)
+php artisan optimize:clear
+```
+
+Data presensi pembina lama di browser berisi jadwal contoh, jadi tidak dimigrasikan. Isi jadwal latihan dan
+penugasan pelatih sekali di tab Penugasan. Kelompok santri lama di browser perlu dibuat ulang.

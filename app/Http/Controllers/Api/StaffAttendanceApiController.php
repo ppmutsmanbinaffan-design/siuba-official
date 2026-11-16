@@ -145,7 +145,7 @@ class StaffAttendanceApiController extends Controller
             'check_in_method' => $in ? 'manual' : null,
             'check_out_at' => $out,
             'check_out_method' => $out ? 'manual' : null,
-            'late_minutes' => $in ? $late : null,
+            'late_minutes' => $in ? min(65535, $late) : 0,
             'early_leave_minutes' => $out ? $early : null,
             'scheduled_start_at' => !empty($sch['scheduled_start_at']) ? $at($sch['scheduled_start_at']) : null,
             'scheduled_end_at' => !empty($sch['scheduled_end_at']) ? $at($sch['scheduled_end_at']) : null,

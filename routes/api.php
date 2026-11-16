@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\DataImportApiController;
 use App\Http\Controllers\Api\DeviceManagementApiController;
 use App\Http\Controllers\Api\CommunityApiController;
 use App\Http\Controllers\Api\RoutineApiController;
+use App\Http\Controllers\Api\TrainerApiController;
 use App\Http\Controllers\Api\DomainManagementApiController;
 use App\Http\Controllers\Api\IotDeviceApiController;
 use App\Http\Controllers\Api\LandingCmsApiController;
@@ -136,6 +137,24 @@ Route::prefix('v1')->group(function () {
         Route::post('/routine-schedules/generate', [RoutineApiController::class, 'generate'])->middleware('permission:attendance.sessions.create|routine_schedule.manage');
         Route::post('/attendance/sessions', [RoutineApiController::class, 'storeSession'])->middleware('permission:attendance.sessions.create');
 
+        // Presensi pembina / pelatih ekstrakurikuler
+        Route::prefix('trainer')->group(function () {
+            Route::get('/overview', [TrainerApiController::class, 'overview'])
+                ->middleware('permission:trainer.attendance|extracurriculars.view|extracurriculars.manage|staff.attendance|staff.reports');
+            Route::post('/scan', [TrainerApiController::class, 'scan'])->middleware('permission:trainer.attendance|staff.attendance|extracurriculars.manage');
+            Route::post('/sessions/{session}/journal', [TrainerApiController::class, 'journal'])->middleware('permission:trainer.attendance|extracurriculars.manage');
+            Route::middleware('permission:extracurriculars.manage|staff.edit')->group(function () {
+                Route::post('/generate', [TrainerApiController::class, 'generate']);
+                Route::post('/finalize', [TrainerApiController::class, 'finalize']);
+                Route::post('/schedules', [TrainerApiController::class, 'storeSchedule']);
+                Route::delete('/schedules/{schedule}', [TrainerApiController::class, 'deleteSchedule']);
+                Route::post('/assignments', [TrainerApiController::class, 'storeAssignment']);
+                Route::delete('/assignments/{assignment}', [TrainerApiController::class, 'deleteAssignment']);
+                Route::post('/substitutions', [TrainerApiController::class, 'storeSubstitution']);
+                Route::delete('/substitutions/{substitution}', [TrainerApiController::class, 'cancelSubstitution']);
+            });
+        });
+
         // Ekstrakurikuler, halaqah, piket, dan event khusus
         Route::prefix('community')->group(function () {
             Route::get('/master', [CommunityApiController::class, 'master'])
@@ -146,6 +165,9 @@ Route::prefix('v1')->group(function () {
                 Route::put('/extracurriculars/{ekskul}', [CommunityApiController::class, 'updateEkskul']);
                 Route::post('/extracurriculars/{ekskul}/members', [CommunityApiController::class, 'addEkskulMember']);
                 Route::delete('/extracurricular-members/{member}', [CommunityApiController::class, 'removeEkskulMember']);
+                Route::post('/student-groups', [CommunityApiController::class, 'storeGroup']);
+                Route::post('/student-groups/{group}/members', [CommunityApiController::class, 'addGroupMember']);
+                Route::delete('/student-group-members/{member}', [CommunityApiController::class, 'removeGroupMember']);
             });
 
             Route::put('/halaqahs', [CommunityApiController::class, 'syncHalaqahs'])->middleware('permission:halaqah.manage');

@@ -316,7 +316,8 @@ class AttendanceService
         }
 
         if ($checkInTime->greaterThan($session->present_until)) {
-            return (int) ceil($session->present_until->diffInMinutes($checkInTime));
+            // Kolom late_minutes = unsigned smallint; di MySQL nilai > 65535 membuat absensi gagal tersimpan
+            return (int) min(65535, ceil($session->present_until->diffInMinutes($checkInTime, true)));
         }
 
         return 0;

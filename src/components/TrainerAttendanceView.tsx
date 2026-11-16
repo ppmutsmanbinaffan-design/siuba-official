@@ -44,16 +44,9 @@ import {
   TrainingContextResolution,
   TrainingReconciliationItem
 } from '../types';
-import { StaffIdentityResolver } from '../services/staffIdentityResolver';
-import { StaffAttendanceService } from '../services/staffAttendanceService';
-import { TrainingSessionService } from '../services/trainingSessionService';
-import { ExtracurricularStaffAssignmentService } from '../services/extracurricularStaffAssignmentService';
-import { TrainerSubstitutionService } from '../services/trainerSubstitutionService';
-import { TrainingAttendanceContextResolver } from '../services/trainingAttendanceContextResolver';
-import { TrainingRealizationService } from '../services/trainingRealizationService';
-import { TrainingAttendanceMetricService } from '../services/trainingAttendanceMetricService';
+import { apiClient } from '../services/apiClient';
+import { todayLocalDate } from '../utils/today';
 import { AudioFeedbackService } from '../services/audioFeedbackService';
-import { TrainingJournalService } from '../services/trainingJournalService';
 import { PersonAvatar } from './common/PersonAvatar';
 
 interface TrainerAttendanceViewProps {
@@ -67,7 +60,7 @@ export const TrainerAttendanceView: React.FC<TrainerAttendanceViewProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<TabType>('MONITORING');
   const [isTabDropdownOpen, setIsTabDropdownOpen] = useState<boolean>(false);
-  const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().substring(0, 10));
+  const [selectedDate, setSelectedDate] = useState<string>(todayLocalDate());
   
   // Data States
   const [trainingSessions, setTrainingSessions] = useState<TrainingSession[]>([]);
@@ -109,36 +102,58 @@ export const TrainerAttendanceView: React.FC<TrainerAttendanceViewProps> = ({
   const [journalStudentCount, setJournalStudentCount] = useState<number>(20);
   const [journalNotes, setJournalNotes] = useState<string>('');
 
-  // Refresh All Data
-  const refreshData = () => {
-    setStaffList(StaffIdentityResolver.getStaffList());
-    setTrainingSessions(TrainingSessionService.getTrainingSessions(selectedDate));
-    setAssignments(ExtracurricularStaffAssignmentService.getAssignments());
-    setSubstitutions(TrainerSubstitutionService.getSubstitutions());
-    setAttendanceRecords(StaffAttendanceService.getRecords());
+  // ===== Data dari server (sebelumnya disimpan di browser dengan jadwal contoh tertanam) =====
+  const [summary, setSummary] = useState<any>({ total_sessions: 0, realized_sessions: 0, substituted_count: 0, realization_rate: 0, punctuality_rate: 0, present_count: 0, late_count: 0, absent_count: 0 });
+  const [reconciliationItems, setReconciliationItems] = useState<any[]>([]);
+  const [extracurriculars, setExtracurriculars] = useState<{ id: number; name: string }[]>([]);
+  const [trainingSchedules, setTrainingSchedules] = useState<any[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [newSchEkskulId, setNewSchEkskulId] = useState<number>(0);
+  const [newSchDay, setNewSchDay] = useState<number>(1);
+  const [newSchStart, setNewSchStart] = useState<string>('16:00');
+  const [newSchEnd, setNewSchEnd] = useState<string>('17:30');
+  const [newSchLocation, setNewSchLocation] = useState<string>('');
+
+  const apiError = (err: any, fallback: string) => {
+    const fieldMsg = err?.fieldErrors ? (Object.values(err.fieldErrors).flat()[0] as string | undefined) : undefined;
+    return fieldMsg || err?.message || fallback;
+  };
+
+  const refreshData = async () => {
+    try {
+      const res: any = await apiClient.get('/trainer/overview', { date: selectedDate });
+      const d = res?.data || {};
+      setStaffList(d.staff || []);
+      setTrainingSessions(d.sessions || []);
+      setAssignments(d.assignments || []);
+      setSubstitutions(d.substitutions || []);
+      setAttendanceRecords(d.records || []);
+      setSummary(d.summary || {});
+      setReconciliationItems(d.reconciliation || []);
+      setExtracurriculars((d.extracurriculars || []).map((e: any) => ({ id: e.id, name: e.name })));
+      setTrainingSchedules(d.schedules || []);
+      const firstEks = d.extracurriculars?.[0]?.id;
+      const firstStaff = d.staff?.[0]?.id;
+      if (firstEks) {
+        setAssignEkskulId((v) => (d.extracurriculars.some((e: any) => e.id === v) ? v : firstEks));
+        setSubEkskulId((v) => (d.extracurriculars.some((e: any) => e.id === v) ? v : firstEks));
+        setNewSchEkskulId((v) => (d.extracurriculars.some((e: any) => e.id === v) ? v : firstEks));
+      }
+      if (firstStaff) {
+        setAssignStaffId((v) => (d.staff.some((x: any) => x.id === v) ? v : firstStaff));
+        setSubOriginalStaffId((v) => (d.staff.some((x: any) => x.id === v) ? v : firstStaff));
+        setSubSubstituteStaffId((v) => (d.staff.some((x: any) => x.id === v) ? v : (d.staff[1]?.id ?? firstStaff)));
+      }
+      setLoadError(null);
+    } catch (err: any) {
+      setLoadError(apiError(err, 'Gagal memuat data presensi pembina dari server.'));
+    }
   };
 
   useEffect(() => {
-    refreshData();
+    void refreshData();
+    setSubDate(selectedDate);
   }, [selectedDate]);
-
-  // Daily Summary Metric
-  const summary = useMemo(() => {
-    return TrainingAttendanceMetricService.calculateSummary({ date: selectedDate });
-  }, [selectedDate, trainingSessions, attendanceRecords]);
-
-  // Reconciliation items
-  const reconciliationItems = useMemo(() => {
-    return TrainingRealizationService.getReconciliationList(selectedDate);
-  }, [selectedDate, trainingSessions, attendanceRecords]);
-
-  // Unique Extracurricular List
-  const extracurriculars = useMemo(() => {
-    const map = new Map<number, string>();
-    trainingSessions.forEach(s => map.set(s.extracurricular_id, s.extracurricular_name));
-    assignments.forEach(a => map.set(a.extracurricular_id, a.extracurricular_name || `Ekskul #${a.extracurricular_id}`));
-    return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
-  }, [trainingSessions, assignments]);
 
   // Filtered Sessions
   const filteredSessions = useMemo(() => {
@@ -156,176 +171,147 @@ export const TrainerAttendanceView: React.FC<TrainerAttendanceViewProps> = ({
     });
   }, [trainingSessions, filterEkskul, filterStatus, searchQuery]);
 
-  // Handle Generate Daily Sessions
-  const handleGenerateSessions = () => {
-    const result = TrainingSessionService.generateSessionsForDate({ 
-      date: selectedDate, 
-      operatorName: currentUser?.name || 'Pembina' 
-    });
-    alert(`Hasil Sinkronisasi Sesi Latihan:\n- Jadwal Terdeteksi: ${result.schedules_found}\n- Sesi Dibuat: ${result.sessions_created}\n- Sesi Sudah Ada: ${result.sessions_existing}\n- Substitusi Diterapkan: ${result.substitutions_applied}`);
-    refreshData();
+  // Buat sesi latihan dari jadwal latihan (server)
+  const handleGenerateSessions = async () => {
+    try {
+      const res: any = await apiClient.post('/trainer/generate', { date: selectedDate });
+      const r = res?.data || {};
+      alert(r.is_holiday
+        ? `Tanggal ${selectedDate} libur (${r.holiday_name}). Sesi latihan tidak dibuat.`
+        : `Hasil Sinkronisasi Sesi Latihan:\n- Jadwal Terdeteksi: ${r.schedules_found}\n- Sesi Dibuat: ${r.sessions_created}\n- Sesi Sudah Ada: ${r.sessions_existing}\n- Pengganti Diterapkan: ${r.substitutions_applied}` +
+          (r.schedules_found === 0 ? '\n\nBelum ada jadwal latihan untuk hari ini. Tambahkan di tab Penugasan → Jadwal Latihan.' : ''));
+    } catch (err: any) {
+      alert(`Gagal: ${apiError(err, 'tidak bisa membuat sesi latihan.')}`);
+    }
+    void refreshData();
   };
 
-  // Handle Fast Scan Terminal
-  const handleProcessScan = (method: 'qr' | 'rfid', overrideStaffId?: number) => {
-    let targetStaff: Staff | undefined;
-    if (overrideStaffId) {
-      targetStaff = staffList.find(s => s.id === overrideStaffId);
-    } else if (scannerInput.trim()) {
-      targetStaff = StaffIdentityResolver.resolveByIdentifier(scannerInput.trim()) || undefined;
-    }
-
-    if (!targetStaff) {
-      AudioFeedbackService.playError();
-      setScanFeedback({ success: false, message: 'Data staf/pelatih tidak ditemukan dengan identitas tersebut.' });
-      return;
-    }
-
-    // Determine target session
-    let targetSessionId = selectedSessionForScan;
-    if (!targetSessionId) {
-      // Find open or nearest session for this coach today
-      const todaySessions = trainingSessions.filter(s => s.status !== 'cancelled');
-      const coachSession = todaySessions.find(s => 
-        s.primary_staff_id === targetStaff!.id || 
-        s.actual_primary_staff_id === targetStaff!.id ||
-        assignments.some(a => a.extracurricular_id === s.extracurricular_id && a.staff_id === targetStaff!.id && a.is_active)
-      );
-      if (coachSession) {
-        targetSessionId = coachSession.id;
-      } else if (todaySessions.length > 0) {
-        targetSessionId = todaySessions[0].id;
-      }
-    }
-
-    if (!targetSessionId) {
-      AudioFeedbackService.playError();
-      setScanFeedback({ success: false, message: 'Tidak ada sesi latihan aktif yang cocok untuk presensi pelatih ini.' });
-      return;
-    }
-
+  // Presensi pelatih (RFID / QR / nomor induk / tombol cepat)
+  const handleProcessScan = async (method: 'qr' | 'rfid', overrideStaffId?: number) => {
+    if (!overrideStaffId && !scannerInput.trim()) return;
     setIsProcessingScan(true);
     setScanFeedback(null);
-
     try {
-      const res = StaffAttendanceService.recordTrainingAttendanceScan({
-        staffId: targetStaff.id,
-        sessionId: targetSessionId,
+      const res: any = await apiClient.post('/trainer/scan', {
+        identifier: overrideStaffId ? undefined : scannerInput.trim(),
+        staff_id: overrideStaffId,
+        session_id: selectedSessionForScan || undefined,
         method,
-        operatorName: currentUser?.name || 'Gate Terminal'
       });
-
-      if (res.success) {
-        AudioFeedbackService.playSuccess();
-        setScanFeedback({ success: true, message: res.message, mode: res.mode });
-        setScannerInput('');
-        refreshData();
-      } else {
-        AudioFeedbackService.playError();
-        setScanFeedback({ success: false, message: res.message });
-      }
-    } catch (e: any) {
+      AudioFeedbackService.playSuccess();
+      setScanFeedback({ success: true, message: res?.message || 'Presensi tercatat.', mode: res?.data?.mode });
+      setScannerInput('');
+      void refreshData();
+    } catch (err: any) {
       AudioFeedbackService.playError();
-      setScanFeedback({ success: false, message: `Error: ${e.message || e}` });
+      setScanFeedback({ success: false, message: apiError(err, 'Presensi gagal dicatat.') });
     } finally {
       setIsProcessingScan(false);
     }
   };
 
-  // Handle Save Staff Assignment
-  const handleSaveAssignment = (e: React.FormEvent) => {
+  const handleSaveAssignment = async (e: React.FormEvent) => {
     e.preventDefault();
-    const targetStaff = staffList.find(s => s.id === assignStaffId);
-    const targetEkskul = extracurriculars.find(e => e.id === assignEkskulId);
-
-    if (!targetStaff || !targetEkskul) {
-      alert('Pilih data staf dan ekstrakurikuler yang valid.');
-      return;
-    }
-
-    const res = ExtracurricularStaffAssignmentService.assignStaff({
-      extracurricularId: assignEkskulId,
-      extracurricularName: targetEkskul.name,
-      staffId: targetStaff.id,
-      role: assignRole,
-      startDate: '2026-07-01',
-      isPrimary: assignIsPrimary,
-      operatorName: currentUser?.name || 'Admin'
-    });
-
-    if (res.success) {
+    try {
+      await apiClient.post('/trainer/assignments', { extracurricular_id: assignEkskulId, staff_id: assignStaffId, role: assignRole, is_primary: assignIsPrimary });
       setShowAssignModal(false);
-      refreshData();
       alert('Penugasan pelatih ekstrakurikuler berhasil disimpan.');
-    } else {
-      alert(`Gagal: ${res.message}`);
+    } catch (err: any) {
+      alert(`Gagal: ${apiError(err, 'penugasan tidak tersimpan.')}`);
     }
+    void refreshData();
   };
 
-  // Handle Save Substitution
-  const handleSaveSubstitution = (e: React.FormEvent) => {
+  const handleRemoveAssignment = async (id: number) => {
+    if (!confirm('Nonaktifkan penugasan pelatih ini?')) return;
+    try {
+      await apiClient.delete(`/trainer/assignments/${id}`);
+    } catch (err: any) {
+      alert(`Gagal: ${apiError(err, 'penugasan tidak bisa dinonaktifkan.')}`);
+    }
+    void refreshData();
+  };
+
+  const handleSaveSubstitution = async (e: React.FormEvent) => {
     e.preventDefault();
-    const origStaff = staffList.find(s => s.id === subOriginalStaffId);
-    const subStaff = staffList.find(s => s.id === subSubstituteStaffId);
-    const targetEkskul = extracurriculars.find(e => e.id === subEkskulId);
-
-    if (!origStaff || !subStaff || !targetEkskul) {
-      alert('Pilih data staf asal, staf pengganti, dan ekstrakurikuler yang valid.');
-      return;
-    }
-
-    const res = TrainerSubstitutionService.assignSubstitution({
-      extracurricularId: subEkskulId,
-      extracurricularName: targetEkskul.name,
-      originalStaffId: origStaff.id,
-      substituteStaffId: subStaff.id,
-      date: subDate,
-      reason: subReason,
-      assignedBy: currentUser?.name || 'Pembina'
-    });
-
-    if (res.success) {
+    try {
+      await apiClient.post('/trainer/substitutions', {
+        extracurricular_id: subEkskulId, original_staff_id: subOriginalStaffId, substitute_staff_id: subSubstituteStaffId, date: subDate, reason: subReason,
+      });
       setShowSubModal(false);
-      refreshData();
-      alert('Penggantian pelatih (Inval/Substitusi) berhasil didaftarkan dan diaplikasikan ke sesi terkait.');
-    } else {
-      alert(`Gagal: ${res.message}`);
+      alert('Penggantian pelatih (inval) berhasil didaftarkan dan diterapkan ke sesi terkait.');
+    } catch (err: any) {
+      alert(`Gagal: ${apiError(err, 'penggantian tidak tersimpan.')}`);
     }
+    void refreshData();
   };
 
-  // Handle Save Journal
-  const handleSaveJournal = (e: React.FormEvent) => {
+  const handleCancelSubstitution = async (id: number) => {
+    if (!confirm('Batalkan penggantian pelatih ini?')) return;
+    try {
+      await apiClient.delete(`/trainer/substitutions/${id}`);
+    } catch (err: any) {
+      alert(`Gagal: ${apiError(err, 'penggantian tidak bisa dibatalkan.')}`);
+    }
+    void refreshData();
+  };
+
+  const handleAddSchedule = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await apiClient.post('/trainer/schedules', {
+        extracurricular_id: newSchEkskulId, day_of_week: newSchDay, start_time: newSchStart, end_time: newSchEnd, location: newSchLocation || undefined,
+      });
+      setNewSchLocation('');
+    } catch (err: any) {
+      alert(`Gagal: ${apiError(err, 'jadwal latihan tidak tersimpan.')}`);
+    }
+    void refreshData();
+  };
+
+  const handleDeleteSchedule = async (id: number) => {
+    if (!confirm('Hapus jadwal latihan ini? Sesi latihan yang sudah dibuat tetap tersimpan.')) return;
+    try {
+      await apiClient.delete(`/trainer/schedules/${id}`);
+    } catch (err: any) {
+      alert(`Gagal: ${apiError(err, 'jadwal latihan tidak bisa dihapus.')}`);
+    }
+    void refreshData();
+  };
+
+  const handleSaveJournal = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedSessionForJournal) return;
-
-    const res = TrainingRealizationService.submitRealization({
-      sessionId: selectedSessionForJournal.id,
-      topic: journalTopic,
-      studentPresentCount: Number(journalStudentCount),
-      activityNotes: journalNotes,
-      operatorName: currentUser?.name || 'Pelatih'
-    });
-
-    if (res.success) {
+    try {
+      await apiClient.post(`/trainer/sessions/${selectedSessionForJournal.id}/journal`, {
+        topic: journalTopic, student_present_count: Number(journalStudentCount), activity_notes: journalNotes,
+      });
       setShowJournalModal(false);
-      refreshData();
       alert('Jurnal latihan dan realisasi materi berhasil disimpan.');
-    } else {
-      alert(`Gagal: ${res.message}`);
+    } catch (err: any) {
+      alert(`Gagal: ${apiError(err, 'jurnal tidak tersimpan.')}`);
     }
+    void refreshData();
   };
 
-  // Handle Finalize Attendance
-  const handleFinalizeAttendance = () => {
-    if (confirm(`Apakah Anda yakin ingin memfinalisasi presensi pelatih/pembina untuk tanggal ${selectedDate}? Sesi yang belum terisi presensi akan otomatis ditandai Alpha.`)) {
-      const res = StaffAttendanceService.finalizeTrainingAttendance(selectedDate, currentUser?.name || 'Pembina Ekskul');
-      alert(res.message);
-      refreshData();
+  const handleFinalizeAttendance = async () => {
+    if (!confirm(`Apakah Anda yakin ingin memfinalisasi presensi pelatih/pembina untuk tanggal ${selectedDate}? Sesi yang belum terisi presensi akan otomatis ditandai Alpha.`)) return;
+    try {
+      const res: any = await apiClient.post('/trainer/finalize', { date: selectedDate });
+      alert(res?.message || 'Finalisasi selesai.');
+    } catch (err: any) {
+      alert(`Gagal: ${apiError(err, 'finalisasi gagal.')}`);
     }
+    void refreshData();
   };
+
+  const DAY_NAMES = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
 
   return (
     <div id="trainer-attendance-container" className="space-y-6 pb-12">
+      {loadError && (
+        <div className="p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold">{loadError}</div>
+      )}
       {/* Header Banner */}
       <div className="bg-gradient-to-br from-[#1F5C45] via-[#1A503C] to-[#12382A] text-white rounded-3xl p-6 shadow-md border border-[#164735]">
         <div>
@@ -794,6 +780,7 @@ export const TrainerAttendanceView: React.FC<TrainerAttendanceViewProps> = ({
                   <th className="py-3 px-4">Peran & Tanggung Jawab</th>
                   <th className="py-3 px-4">Status Penugasan</th>
                   <th className="py-3 px-4">Masa Berlaku</th>
+                  <th className="py-3 px-4 text-center">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-200">
@@ -828,12 +815,61 @@ export const TrainerAttendanceView: React.FC<TrainerAttendanceViewProps> = ({
                       </span>
                     </td>
                     <td className="py-3 px-4 font-mono text-zinc-500 text-[11px]">
-                      {a.start_date} s.d {a.end_date || 'Aktif'}
+                      {a.start_date || '-'} s.d {a.end_date || 'Aktif'}
+                    </td>
+                    <td className="py-3 px-4 text-center">
+                      {a.is_active && (
+                        <button onClick={() => handleRemoveAssignment(a.id)} className="text-[11px] font-bold text-rose-700 hover:underline cursor-pointer">
+                          Nonaktifkan
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}
+                {assignments.length === 0 && (
+                  <tr><td colSpan={7} className="py-8 text-center text-zinc-400">Belum ada penugasan pelatih.</td></tr>
+                )}
               </tbody>
             </table>
+          </div>
+
+          {/* Jadwal latihan mingguan: dasar pembuatan sesi latihan */}
+          <div className="bg-white p-4 rounded-2xl border border-zinc-200/80 shadow-sm space-y-3">
+            <div>
+              <h3 className="text-sm font-black text-zinc-900 flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-indigo-600" />
+                Jadwal Latihan Mingguan
+              </h3>
+              <p className="text-xs text-zinc-500 mt-0.5">
+                Sesi latihan harian dibuat dari jadwal ini lewat tombol Sinkronisasi Sesi.
+              </p>
+            </div>
+            <form onSubmit={handleAddSchedule} className="grid grid-cols-2 md:grid-cols-6 gap-2 text-xs">
+              <select value={newSchEkskulId} onChange={(e) => setNewSchEkskulId(Number(e.target.value))} className="md:col-span-2 bg-zinc-50 border border-zinc-300 rounded-xl px-3 py-2" aria-label="Ekstrakurikuler">
+                {extracurriculars.length === 0 && <option value={0}>Belum ada ekskul</option>}
+                {extracurriculars.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
+              </select>
+              <select value={newSchDay} onChange={(e) => setNewSchDay(Number(e.target.value))} className="bg-zinc-50 border border-zinc-300 rounded-xl px-3 py-2" aria-label="Hari">
+                {DAY_NAMES.map((d, i) => <option key={d} value={i}>{d}</option>)}
+              </select>
+              <input type="time" value={newSchStart} onChange={(e) => setNewSchStart(e.target.value)} className="bg-zinc-50 border border-zinc-300 rounded-xl px-3 py-2" aria-label="Jam mulai" />
+              <input type="time" value={newSchEnd} onChange={(e) => setNewSchEnd(e.target.value)} className="bg-zinc-50 border border-zinc-300 rounded-xl px-3 py-2" aria-label="Jam selesai" />
+              <button type="submit" disabled={!newSchEkskulId} className="px-3 py-2 bg-[#1F5C45] hover:bg-[#12372A] disabled:opacity-50 text-white rounded-xl font-bold cursor-pointer">
+                Tambah Jadwal
+              </button>
+              <input value={newSchLocation} onChange={(e) => setNewSchLocation(e.target.value)} placeholder="Lokasi (opsional)" className="col-span-2 md:col-span-6 bg-zinc-50 border border-zinc-300 rounded-xl px-3 py-2" />
+            </form>
+            <div className="divide-y divide-zinc-100 text-xs">
+              {trainingSchedules.length === 0 ? (
+                <div className="py-4 text-center text-zinc-400">Belum ada jadwal latihan.</div>
+              ) : trainingSchedules.map((sch) => (
+                <div key={sch.id} className="py-2 flex items-center justify-between gap-2">
+                  <span className="font-bold text-zinc-900">{sch.extracurricular_name}</span>
+                  <span className="text-zinc-600">{sch.day_name}, {sch.start_time}–{sch.end_time}{sch.location ? ` · ${sch.location}` : ''}</span>
+                  <button onClick={() => handleDeleteSchedule(sch.id)} className="text-[11px] font-bold text-rose-700 hover:underline cursor-pointer">Hapus</button>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       )}
@@ -902,8 +938,13 @@ export const TrainerAttendanceView: React.FC<TrainerAttendanceViewProps> = ({
                         <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
                           sub.status === 'active' ? 'bg-amber-100 text-amber-800' : 'bg-zinc-100 text-zinc-500'
                         }`}>
-                          {sub.status === 'active' ? 'Aktif Berlaku' : 'Selesai / Non-Aktif'}
+                          {sub.status === 'active' ? 'Aktif Berlaku' : 'Dibatalkan'}
                         </span>
+                        {sub.status === 'active' && (
+                          <button onClick={() => handleCancelSubstitution(sub.id)} className="ml-2 text-[11px] font-bold text-rose-700 hover:underline cursor-pointer">
+                            Batalkan
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))}

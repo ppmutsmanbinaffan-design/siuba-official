@@ -159,6 +159,13 @@ class ActivityParticipantResolver
                 }
                 return collect();
 
+            case 'custom_group':
+                if ($rule->source_id) {
+                    $studentIds = \App\Models\StudentGroupMember::where('student_group_id', $rule->source_id)->pluck('student_id');
+                    return $query->whereIn('id', $studentIds)->get();
+                }
+                return collect();
+
             case 'duty_roster':
                 $dateStr = $date->toDateString();
                 $studentIds = DutyRoster::where('activity_id', $rule->activity_id)

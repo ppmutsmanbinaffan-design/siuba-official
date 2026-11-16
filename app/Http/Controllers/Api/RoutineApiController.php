@@ -160,8 +160,8 @@ class RoutineApiController extends Controller
         if ($type === 'all_students' && !$gender) {
             return; // tanpa rule = semua santri aktif
         }
-        if (in_array($type, ['custom_group', 'individual'], true)) {
-            return; // belum didukung di server: jatuh ke semua santri (lihat catatan upgrade)
+        if ($type === 'individual') {
+            return; // peserta perorangan diatur per sesi; tanpa rule = semua santri aktif
         }
         ActivityParticipantRule::create([
             'activity_id' => $a->id,

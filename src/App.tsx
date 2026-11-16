@@ -388,6 +388,8 @@ export function App() {
       setEventRegistrations(c.event_registrations);
       setEventOrganizers(c.event_organizers);
       setParticipantRules(c.participant_rules);
+      if (c.student_groups) setStudentGroups(c.student_groups);
+      if (c.student_group_members) setStudentGroupMembers(c.student_group_members);
     }
     if (snap.users && snap.users.length > 0) {
       // Password tidak pernah disimpan / ditampilkan di browser
@@ -1235,34 +1237,13 @@ export function App() {
   const handleRemoveExtracurricularMember = (memberId: number) =>
     kbmCall(() => apiClient.delete(`/community/extracurricular-members/${memberId}`), 'Anggota ekstrakurikuler dinonaktifkan.');
 
-  // Student Group Handlers
-  const handleAddStudentGroup = (grp: Partial<StudentGroup>) => {
-    const newGrp: StudentGroup = {
-      id: Date.now(),
-      code: grp.code || `GRP-${Math.random().toString(36).substring(2, 6).toUpperCase()}`,
-      name: grp.name || 'Kelompok Santri Baru',
-      description: grp.description || '',
-      is_active: true,
-    };
-    setStudentGroups((prev) => [...prev, newGrp]);
-    showToast(`Kelompok '${newGrp.name}' berhasil dibuat.`, 'success');
-  };
-
-  const handleAddStudentGroupMember = (member: Partial<StudentGroupMember>) => {
-    const newMem: StudentGroupMember = {
-      id: Date.now(),
-      student_group_id: member.student_group_id || 1,
-      student_id: member.student_id || 1,
-      joined_at: '2026-08-23',
-    };
-    setStudentGroupMembers((prev) => [...prev, newMem]);
-    showToast('Santri berhasil didaftarkan ke kelompok.', 'success');
-  };
-
-  const handleRemoveStudentGroupMember = (memberId: number) => {
-    setStudentGroupMembers((prev) => prev.filter((m) => m.id !== memberId));
-    showToast('Santri dikeluarkan dari kelompok.', 'success');
-  };
+  // ===== Kelompok santri khusus: disimpan di server =====
+  const handleAddStudentGroup = (grp: Partial<StudentGroup>) =>
+    kbmCall(() => apiClient.post('/community/student-groups', grp), `Kelompok '${grp.name || ''}' berhasil dibuat.`);
+  const handleAddStudentGroupMember = (member: Partial<StudentGroupMember>) =>
+    kbmCall(() => apiClient.post(`/community/student-groups/${member.student_group_id}/members`, { student_id: member.student_id }), 'Santri berhasil didaftarkan ke kelompok.');
+  const handleRemoveStudentGroupMember = (memberId: number) =>
+    kbmCall(() => apiClient.delete(`/community/student-group-members/${memberId}`), 'Santri dikeluarkan dari kelompok.');
 
   // Classroom CRUD Handlers
   const handleAddClassroom = (classroomData: Partial<Classroom>) => {

@@ -17,6 +17,8 @@ use App\Models\Extracurricular;
 use App\Models\ExtracurricularMember;
 use App\Models\Halaqah;
 use App\Models\HalaqahMember;
+use App\Models\StudentGroup;
+use App\Models\StudentGroupMember;
 use App\Services\Event\EventSessionGenerator;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -51,6 +53,15 @@ class CommunityApiController extends Controller
             'event_registrations' => EventRegistration::with(['student.classroom', 'approver'])->get()->map(fn ($r) => $this->registration($r))->values(),
             'event_organizers' => EventOrganizer::with('user')->get()->map(fn ($o) => [
                 'id' => $o->id, 'event_id' => $o->event_id, 'user_id' => $o->user_id, 'user_name' => $o->user?->name, 'role' => $o->role, 'is_active' => (bool) $o->is_active,
+            ])->values(),
+            'student_groups' => StudentGroup::withCount('members')->orderBy('name')->get()->map(fn ($g) => [
+                'id' => $g->id, 'code' => $g->code, 'name' => $g->name, 'description' => $g->description ?? '',
+                'is_active' => (bool) $g->is_active, 'member_count' => (int) $g->members_count,
+            ])->values(),
+            'student_group_members' => StudentGroupMember::with('student')->get()->map(fn ($m) => [
+                'id' => $m->id, 'student_group_id' => $m->student_group_id, 'student_id' => $m->student_id,
+                'student_name' => $m->student?->name, 'student_number' => $m->student?->student_number,
+                'joined_at' => $m->joined_at?->toDateString() ?? '',
             ])->values(),
             'participant_rules' => ActivityParticipantRule::with(['activity', 'creator'])->whereIn('activity_id', $eventActivityIds)
                 ->get()->map(fn ($r) => $this->rule($r))->values(),
@@ -138,6 +149,38 @@ class CommunityApiController extends Controller
         $member->update(['membership_status' => 'removed', 'is_active' => false, 'left_at' => now()]);
 
         return response()->json(['success' => true, 'message' => 'Anggota ekstrakurikuler dinonaktifkan.']);
+    }
+
+    // ================================================================== Kelompok santri khusus
+
+    public function storeGroup(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'code' => 'nullable|string|max:32|unique:student_groups,code',
+            'name' => 'required|string|max:100',
+            'description' => 'nullable|string|max:2000',
+        ]);
+        $g = StudentGroup::create([
+            'code' => strtoupper($data['code'] ?? ('GRP-' . Str::upper(Str::random(4)))),
+            'name' => $data['name'], 'description' => $data['description'] ?? null, 'is_active' => true,
+        ]);
+
+        return response()->json(['success' => true, 'message' => "Kelompok '{$g->name}' berhasil dibuat.", 'data' => ['id' => $g->id, 'code' => $g->code]], 201);
+    }
+
+    public function addGroupMember(Request $request, StudentGroup $group): JsonResponse
+    {
+        $data = $request->validate(['student_id' => 'required|integer|exists:students,id']);
+        StudentGroupMember::firstOrCreate(['student_group_id' => $group->id, 'student_id' => $data['student_id']], ['joined_at' => today()]);
+
+        return response()->json(['success' => true, 'message' => 'Santri berhasil didaftarkan ke kelompok.'], 201);
+    }
+
+    public function removeGroupMember(StudentGroupMember $member): JsonResponse
+    {
+        $member->delete();
+
+        return response()->json(['success' => true, 'message' => 'Santri dikeluarkan dari kelompok.']);
     }
 
     // ================================================================== Halaqah (sinkron dari tampilan Halaqah Manager)
