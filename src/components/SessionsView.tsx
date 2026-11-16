@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { todayLocalDate } from '../utils/today';
 import { 
   Clock, 
   Plus, 
@@ -66,7 +67,7 @@ export const SessionsView: React.FC<SessionsViewProps> = ({
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedActivityId, setSelectedActivityId] = useState<number>(safeActivities[0]?.id || 1);
-  const [sessionDate, setSessionDate] = useState<string>('2026-08-23');
+  const [sessionDate, setSessionDate] = useState<string>(todayLocalDate());
   const [startTime, setStartTime] = useState<string>('04:15');
   const [presentUntil, setPresentUntil] = useState<string>('04:30');
   const [lateUntil, setLateUntil] = useState<string>('04:45');

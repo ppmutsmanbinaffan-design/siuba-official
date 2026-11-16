@@ -328,6 +328,7 @@ export function App() {
   const [participantRules, setParticipantRules] = useState<ActivityParticipantRule[]>(INITIAL_ACTIVITY_PARTICIPANT_RULES);
   const [serverActivities, setServerActivities] = useState<Activity[]>([]);
   const halaqahDirty = useRef(false);
+  const routineDirty = useRef(false);
   const dutyDirty = useRef(false);
   const [walkInAuditLogs, setWalkInAuditLogs] = useState<WalkInAuditLog[]>(INITIAL_WALK_IN_AUDIT_LOGS);
 
@@ -360,9 +361,21 @@ export function App() {
       setAcademicSessionContexts(a.session_contexts);
       setAcademicSubstitutions(a.substitutions);
     }
+    if (snap.routine) {
+      const r = snap.routine;
+      if (r.categories?.length) setCategories(r.categories);
+      setActivities(r.activities);
+      setServerActivities(r.activities);
+      if (!routineDirty.current) {
+        setRoutineSchedules(r.routine_schedules);
+        setRoutineOverrides(r.routine_overrides);
+        setPrayerCalendars(r.prayer_calendars);
+        setActivitySupervisors(r.supervisors);
+      }
+    }
     if (snap.community) {
       const c = snap.community;
-      setServerActivities(c.activities);
+      if (!snap.routine) setServerActivities(c.activities);
       setExtracurriculars(c.extracurriculars);
       setExtracurricularMembers(c.extracurricular_members);
       if (!halaqahDirty.current) {
@@ -722,6 +735,51 @@ export function App() {
     return () => clearTimeout(t);
   }, [dutyRosters]);
 
+  // ===== Jadwal rutin, pengecualian, kalender shalat, penanggung jawab: disinkronkan ke server =====
+  const markRoutine = <T,>(setter: (v: T) => void) => (next: T) => { routineDirty.current = true; setter(next); };
+  const updateRoutineSchedules = markRoutine(setRoutineSchedules);
+  const updateRoutineOverrides = markRoutine(setRoutineOverrides);
+  const updatePrayerCalendars = markRoutine(setPrayerCalendars);
+  const updateSupervisors = markRoutine(setActivitySupervisors);
+
+  useEffect(() => {
+    if (!routineDirty.current) return;
+    const t = setTimeout(async () => {
+      try {
+        await apiClient.put('/routine-schedules/sync', {
+          schedules: routineSchedules,
+          overrides: routineOverrides,
+          prayer_calendars: prayerCalendars,
+          supervisors: activitySupervisors,
+        });
+        routineDirty.current = false;
+        await refreshServerData(true);
+      } catch (err: any) {
+        routineDirty.current = false;
+        const fieldMsg = err?.fieldErrors ? (Object.values(err.fieldErrors).flat()[0] as string | undefined) : undefined;
+        showToast(isOfflineError(err) ? 'Server offline: jadwal rutin belum tersimpan.' : fieldMsg || err?.message || 'Gagal menyimpan jadwal rutin.', 'error');
+        await refreshServerData(true);
+      }
+    }, 700);
+    return () => clearTimeout(t);
+  }, [routineSchedules, routineOverrides, prayerCalendars, activitySupervisors]);
+
+  const handleGenerateRoutineSessions = async (dateStr: string) => {
+    try {
+      const res: any = await apiClient.post('/routine-schedules/generate', { date: dateStr });
+      const d = res?.data || {};
+      showToast(
+        d.created > 0
+          ? `Berhasil membuat ${d.created} sesi kegiatan rutin untuk tanggal ${dateStr}.`
+          : `Semua sesi kegiatan rutin untuk ${dateStr} sudah tersedia (${d.existing || 0} ada, 0 baru).`,
+        d.created > 0 ? 'success' : 'info'
+      );
+      await refreshServerData(true);
+    } catch (err: any) {
+      showToast(isOfflineError(err) ? 'Server offline: sesi rutin belum bisa dibuat.' : err?.message || 'Gagal membuat sesi rutin.', 'error');
+    }
+  };
+
   // Berpindah akun tanpa login sungguhan dinonaktifkan: dulu menimpa token asli dengan token palsu
   // sehingga semua panggilan API gagal dan identitas pengguna menjadi rancu.
   const handleSelectUser = (_user: User) => {
@@ -747,7 +805,19 @@ export function App() {
     }
   };
 
-  const [simulatedTime, setSimulatedTime] = useState<string>('2026-08-23 04:25:00');
+  // Jam aplikasi = jam perangkat (dulu tertanam 23 Agustus 2026 04:25). Bisa diubah manual untuk simulasi.
+  const nowLocalString = () => {
+    const d = new Date();
+    const p2 = (n: number) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())} ${p2(d.getHours())}:${p2(d.getMinutes())}:${p2(d.getSeconds())}`;
+  };
+  const [simulatedTime, setSimulatedTimeState] = useState<string>(nowLocalString);
+  const manualClock = useRef(false);
+  const setSimulatedTime = (v: string) => { manualClock.current = true; setSimulatedTimeState(v); };
+  useEffect(() => {
+    const t = setInterval(() => { if (!manualClock.current) setSimulatedTimeState(nowLocalString()); }, 30000);
+    return () => clearInterval(t);
+  }, []);
 
   // Toast notification state
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info'; id: number } | null>(null);
@@ -1003,46 +1073,9 @@ export function App() {
     }
   };
 
-  // Create Session (with Auto Snapshot of Session Participants)
-  const handleCreateSession = (sessionData: Partial<AttendanceSession>) => {
-    const newSessionId = Date.now();
-    const act = activities.find((a) => a.id === sessionData.activity_id) || activities[0];
-
-    const newSession: AttendanceSession = {
-      id: newSessionId,
-      activity_id: act.id,
-      activity_name: act.name,
-      activity_code: act.code,
-      session_code: sessionData.session_code || `ATT-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${act.code}-${Math.floor(100 + Math.random() * 900)}`,
-      session_date: sessionData.session_date || new Date().toISOString().slice(0, 10),
-      start_at: sessionData.start_at || `${new Date().toISOString().slice(0, 10)} ${act.default_start_time}:00`,
-      present_until: sessionData.present_until || `${new Date().toISOString().slice(0, 10)} ${act.default_present_until}:00`,
-      late_until: sessionData.late_until || `${new Date().toISOString().slice(0, 10)} ${act.default_late_until}:00`,
-      end_at: sessionData.end_at || `${new Date().toISOString().slice(0, 10)} ${act.default_end_time}:00`,
-      status: sessionData.status || 'draft',
-      location: sessionData.location || act.location,
-      participant_count: 0,
-      notes: sessionData.notes,
-    };
-
-    // Generate snapshot of eligible participants
-    const snapshot = ActivityParticipantService.generateSessionParticipantsSnapshot({
-      session: newSession,
-      activity: act,
-      students,
-      dormitoryRooms,
-      activityParticipants,
-      extracurricularMembers,
-      studentGroupMembers,
-    });
-
-    newSession.participant_count = snapshot.length;
-
-    setSessions((prev) => [newSession, ...prev]);
-    setSessionParticipants((prev) => [...prev, ...snapshot]);
-
-    showToast(`Sesi '${newSession.session_code}' berhasil dibuat dengan ${snapshot.length} santri peserta terdaftar snapshot.`, 'success');
-  };
+  // Buat sesi manual di server (peserta di-snapshot server sesuai aturan peserta kegiatan)
+  const handleCreateSession = (sessionData: Partial<AttendanceSession>) =>
+    kbmCall(() => apiClient.post('/attendance/sessions', sessionData), 'Sesi berhasil dibuat.');
 
   // Open Session
   const handleOpenSession = (sessionId: number) => {
@@ -1328,43 +1361,13 @@ export function App() {
   };
 
   // Activity Handlers
-  const handleAddActivity = (act: Partial<Activity>) => {
-    const newAct: Activity = {
-      id: Date.now(),
-      activity_category_id: act.activity_category_id || 1,
-      category_name: act.category_name || 'Shalat Berjamaah',
-      code: act.code || `ACT-${Math.random().toString(36).substring(2, 6).toUpperCase()}`,
-      name: act.name || 'Kegiatan Baru',
-      description: act.description || '',
-      participant_type: act.participant_type || 'all_students',
-      default_start_time: act.default_start_time || '04:15',
-      default_present_until: act.default_present_until || '04:30',
-      default_late_until: act.default_late_until || '04:45',
-      default_end_time: act.default_end_time || '05:00',
-      location: act.location || 'Masjid Utama Kampus 1',
-      attendance_enabled: true,
-      allow_manual: act.allow_manual !== undefined ? act.allow_manual : true,
-      allow_qr: act.allow_qr !== undefined ? act.allow_qr : true,
-      allow_rfid: act.allow_rfid !== undefined ? act.allow_rfid : true,
-      late_tolerance_minutes: act.late_tolerance_minutes || 15,
-      is_active: true,
-    };
-    setActivities((prev) => [...prev, newAct]);
-    showToast(`Kegiatan '${newAct.name}' berhasil didaftarkan.`, 'success');
-  };
-
-  const handleUpdateActivity = (actId: number, updateData: Partial<Activity>) => {
-    setActivities((prev) =>
-      prev.map((a) => (a.id === actId ? { ...a, ...updateData } : a))
-    );
-    showToast(`Kegiatan berhasil diperbarui.`, 'success');
-  };
-
-  const handleDeleteActivity = (actId: number) => {
-    const target = activities.find((a) => a.id === actId);
-    setActivities((prev) => prev.filter((a) => a.id !== actId));
-    showToast(`Kegiatan '${target?.name || ''}' berhasil dihapus.`, 'info');
-  };
+  // ===== Master kegiatan: disimpan di server =====
+  const handleAddActivity = (act: Partial<Activity>) =>
+    kbmCall(() => apiClient.post('/activities', act), `Kegiatan '${act.name || ''}' berhasil didaftarkan.`);
+  const handleUpdateActivity = (actId: number, updateData: Partial<Activity>) =>
+    kbmCall(() => apiClient.put(`/activities/${actId}`, updateData), 'Kegiatan berhasil diperbarui.');
+  const handleDeleteActivity = (actId: number) =>
+    kbmCall(() => apiClient.delete(`/activities/${actId}`), 'Kegiatan dihapus.');
 
   // Lesson Periods CRUD Handlers
   const handleAddLessonPeriod = (periodData: Partial<LessonPeriod>) =>
@@ -1375,16 +1378,13 @@ export function App() {
     kbmCall(() => apiClient.delete(`/academic/lesson-periods/${periodId}`), 'Jam Pelajaran berhasil dihapus.');
 
   const handleToggleActivityMethod = (activityId: number, method: 'manual' | 'qr' | 'rfid') => {
-    setActivities((prev) =>
-      prev.map((a) => {
-        if (a.id === activityId) {
-          const key = method === 'manual' ? 'allow_manual' : method === 'qr' ? 'allow_qr' : 'allow_rfid';
-          const nextVal = !a[key];
-          showToast(`Izin metode ${method.toUpperCase()} pada '${a.name}' diubah menjadi ${nextVal ? 'AKTIF' : 'NONAKTIF'}.`, 'success');
-          return { ...a, [key]: nextVal };
-        }
-        return a;
-      })
+    const act = activities.find((a) => a.id === activityId);
+    if (!act) return;
+    const key = method === 'manual' ? 'allow_manual' : method === 'qr' ? 'allow_qr' : 'allow_rfid';
+    const nextVal = !act[key];
+    return kbmCall(
+      () => apiClient.put(`/activities/${activityId}`, { [key]: nextVal }),
+      `Izin metode ${method.toUpperCase()} pada '${act.name}' diubah menjadi ${nextVal ? 'AKTIF' : 'NONAKTIF'}.`
     );
   };
 
@@ -2532,6 +2532,7 @@ export function App() {
               onOpenSession={(sId) => handleUpdateSessionStatus(sId, 'open')}
               onCloseSession={(sId) => handleUpdateSessionStatus(sId, 'closed')}
               onShowToast={showToast}
+              onGenerateSessions={handleGenerateRoutineSessions}
             />
           )}
 
@@ -2587,10 +2588,10 @@ export function App() {
               prayerCalendars={prayerCalendars}
               activitySupervisors={activitySupervisors}
               users={users}
-              onUpdateRoutineSchedules={setRoutineSchedules}
-              onUpdateRoutineOverrides={setRoutineOverrides}
-              onUpdatePrayerCalendars={setPrayerCalendars}
-              onUpdateSupervisors={setActivitySupervisors}
+              onUpdateRoutineSchedules={updateRoutineSchedules}
+              onUpdateRoutineOverrides={updateRoutineOverrides}
+              onUpdatePrayerCalendars={updatePrayerCalendars}
+              onUpdateSupervisors={updateSupervisors}
               onShowToast={showToast}
             />
           )}

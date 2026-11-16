@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { todayLocalDate } from '../utils/today';
 import { 
   Activity, 
   ActivityCategory, 
@@ -84,8 +85,8 @@ export const ReportCenterView: React.FC<Props> = ({
 
   const [activeReportTab, setActiveReportTab] = useState<string>('daily');
   const [selectedDatePreset, setSelectedDatePreset] = useState<string>('today');
-  const [customStartDate, setCustomStartDate] = useState<string>('2026-08-16');
-  const [customEndDate, setCustomEndDate] = useState<string>('2026-08-23');
+  const [customStartDate, setCustomStartDate] = useState<string>(() => { const d = new Date(); d.setDate(d.getDate() - 7); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; });
+  const [customEndDate, setCustomEndDate] = useState<string>(todayLocalDate());
 
   const [selectedClassFilter, setSelectedClassFilter] = useState<number | 'all'>('all');
   const [selectedDormFilter, setSelectedDormFilter] = useState<string | number | 'all'>('all');

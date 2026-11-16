@@ -83,6 +83,7 @@ class RolePermissionSeeder extends Seeder
             'halaqah.manage',
             'duty_roster.manage',
             'extracurriculars.manage',
+            'routine_schedule.manage',
 
             // Events
             'events.view',
@@ -138,11 +139,11 @@ class RolePermissionSeeder extends Seeder
             'super-admin' => $permissions,
 
             'admin' => [
-                'halaqah.manage', 'duty_roster.manage', 'extracurriculars.manage',
+                'routine_schedule.manage', 'halaqah.manage', 'duty_roster.manage', 'extracurriculars.manage',
                 'dashboard.view',
                 'dashboard.executive',
                 'students.view', 'students.create', 'students.update', 'students.edit', 'students.deactivate', 'students.cards',
-                'activities.view', 'activities.create', 'activities.update',
+                'activities.view', 'activities.create', 'activities.update', 'activities.delete',
                 'classrooms.view', 'dormitories.view', 'extracurriculars.view',
                 'attendance.view', 'attendance.create', 'attendance.update', 'attendance.scan', 'attendance.manual', 'attendance.qr', 'attendance.rfid', 'attendance.monitoring', 'attendance.excuses', 'attendance.history',
                 'attendance.sessions.view', 'attendance.sessions.create', 'attendance.sessions.open', 'attendance.sessions.close',
@@ -184,7 +185,7 @@ class RolePermissionSeeder extends Seeder
             ],
 
             'kepala-asrama' => [
-                'halaqah.manage', 'duty_roster.manage',
+                'routine_schedule.manage', 'halaqah.manage', 'duty_roster.manage',
                 'dashboard.view',
                 'students.view',
                 'attendance.view', 'attendance.scan', 'attendance.manual', 'attendance.monitoring', 'attendance.excuses',
@@ -271,7 +272,7 @@ class RolePermissionSeeder extends Seeder
             ],
 
             'kesantrian' => [
-                'halaqah.manage', 'duty_roster.manage', 'extracurriculars.manage',
+                'routine_schedule.manage', 'halaqah.manage', 'duty_roster.manage', 'extracurriculars.manage',
                 'dashboard.view',
                 'students.view', 'students.create', 'students.edit', 'students.deactivate', 'students.cards',
                 'staff.view',

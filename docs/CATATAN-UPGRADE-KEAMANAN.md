@@ -350,3 +350,54 @@ role lewat database, periksa kembali setelah menjalankannya.
 
 Master kegiatan & jadwal rutin (shalat, dll.), kalender waktu shalat, presensi pembina ekskul,
 dan kelompok santri khusus — masih tersimpan di browser.
+
+---
+
+# Update 9: Tahap 6 — Master kegiatan, jadwal rutin, sesi manual di server + jam aplikasi asli
+
+## Latar belakang
+
+Master kegiatan (shalat, apel, dll.), jadwal rutin, pengecualian jadwal, kalender waktu shalat, dan
+penanggung jawab kegiatan masih tersimpan di browser. Akibatnya "Generate Sesi Rutin" dan "Buat Sesi"
+hanya membuat sesi di browser itu saja — tidak bisa dipakai alat RFID, HP lain, maupun laporan server.
+Selain itu jam aplikasi **tertanam pada 23 Agustus 2026 pukul 04:25**, sehingga Timeline Rutin dan
+beberapa halaman selalu menampilkan tanggal itu.
+
+## Yang berubah
+
+- **Master kegiatan** (`/kegiatan`): tambah, ubah, hapus, dan izin metode (manual/QR/RFID) tersimpan di
+  server. Jam bawaan dan target peserta (semua santri / kelas / asrama / kamar / halaqah / ekskul + putra/putri)
+  ikut tersimpan dan dipakai saat membuat sesi. Kegiatan yang sudah punya riwayat absensi hanya dinonaktifkan.
+- **Jadwal rutin** (`/rutin/jadwal`): jadwal (harian / mingguan / hari tertentu, masa berlaku, lokasi, peserta),
+  pengecualian (libur/ganti jam), kalender waktu shalat, dan penanggung jawab otomatis tersimpan ke server.
+- **Generate Sesi Rutin** di Timeline Rutin kini dibuat oleh server (aman diulang, mengikuti pengecualian,
+  jadwal lewat tengah malam ditangani).
+- **Buat Sesi manual** (`/absensi/sesi`) kini membuat sesi di server dengan snapshot peserta.
+- **Jam aplikasi = jam komputer/HP** (diperbarui tiap 30 detik). Tanggal bawaan di halaman Sesi,
+  Laporan, dan Laporan Akademik juga hari ini.
+- Perbaikan bug: aturan peserta "asrama" di server sebelumnya error (kolom `dormitory_id` tidak ada di
+  tabel santri) — kini dicari lewat kamar santri.
+- Hak akses baru `routine_schedule.manage` (admin, kesantrian, kepala asrama). Admin kini juga punya
+  `activities.delete`. Tombol generate sesi rutin di server tidak lagi bisa dipakai role yang hanya
+  berhak melihat.
+
+## Langkah setelah update
+
+```bash
+php artisan migrate --force          # menambah kolom kegiatan/jadwal + tabel kalender shalat (data lama aman)
+php artisan db:seed --class=RolePermissionSeeder --force
+php artisan permission:cache-reset
+php artisan optimize:clear
+```
+
+Kegiatan lama yang dibuat di browser bisa dipindahkan lewat `/migrasi-data.html` (jam bawaan & target
+peserta perlu dicek ulang di menu Kegiatan setelah migrasi). Jadwal rutin lama di browser perlu
+dimasukkan ulang di menu Jadwal Rutin.
+
+## Catatan
+
+Peserta jenis "kelompok khusus" dan "individual" belum didukung di server — sementara dianggap semua santri.
+
+## Belum termasuk (tahap 7)
+
+Presensi pembina ekskul (halaman Presensi Pembina) dan kelompok santri khusus masih tersimpan di browser.

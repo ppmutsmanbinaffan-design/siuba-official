@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { todayLocalDate } from '../utils/today';
 import { 
   AcademicSessionContext, 
   AttendanceRecord, 
@@ -60,7 +61,7 @@ export const AcademicReportsView: React.FC<Props> = ({
   const safeRecords = records || [];
   const safeLessonPeriods = lessonPeriods || [];
 
-  const [selectedDate, setSelectedDate] = useState<string>('2026-08-24');
+  const [selectedDate, setSelectedDate] = useState<string>(todayLocalDate());
   const [selectedClassroom, setSelectedClassroom] = useState<number>(safeClassrooms[0]?.id || 1);
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'perfect' | 'excused' | 'absent'>('all');

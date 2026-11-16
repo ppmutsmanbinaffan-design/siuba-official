@@ -74,11 +74,34 @@ class ActivityParticipantResolver
     }
 
     /**
+     * Peserta untuk satu target langsung (dipakai jadwal rutin / sesi manual yang punya target sendiri).
+     * $gender: 'L' / 'P' / null.
+     */
+    public function resolveTarget(Activity $activity, string $type, ?int $targetId, ?string $gender, ?Carbon $date = null): array
+    {
+        $rule = new ActivityParticipantRule([
+            'activity_id' => $activity->id,
+            'rule_type' => $type,
+            'rule_operator' => 'include',
+            'source_id' => $targetId,
+            'rule_value' => array_filter(['gender' => $gender]),
+        ]);
+        $rule->activity_id = $activity->id;
+
+        return $this->resolveStudentsByRule($rule, $date ?? now('Asia/Jakarta'))
+            ->map(fn ($s) => ['student_id' => $s->id, 'student' => $s, 'sources' => [$type], 'primary_source' => $type, 'primary_source_id' => $targetId])
+            ->values()->all();
+    }
+
+    /**
      * Resolves students matching a specific rule definition.
      */
     protected function resolveStudentsByRule(ActivityParticipantRule $rule, Carbon $date): Collection
     {
         $query = Student::where('is_active', true);
+        if (is_array($rule->rule_value) && !empty($rule->rule_value['gender'])) {
+            $query->where('gender', $rule->rule_value['gender']);
+        }
 
         switch ($rule->rule_type) {
             case 'all_students':
@@ -106,7 +129,8 @@ class ActivityParticipantResolver
 
             case 'dormitory':
                 if ($rule->source_id) {
-                    $query->where('dormitory_id', $rule->source_id);
+                    // santri tidak punya kolom dormitory_id; asrama ditentukan lewat kamarnya
+                    $query->whereHas('dormitoryRoom', fn ($q) => $q->where('dormitory_id', $rule->source_id));
                 }
                 return $query->get();
 
@@ -168,8 +192,9 @@ class ActivityParticipantResolver
     protected function resolveFallbackDefault(Activity $activity): array
     {
         $query = Student::where('is_active', true);
-        if ($activity->gender) {
-            $query->where('gender', $activity->gender);
+        $gender = ['male' => 'L', 'female' => 'P', 'L' => 'L', 'P' => 'P'][$activity->participant_gender ?? ''] ?? null;
+        if ($gender) {
+            $query->where('gender', $gender);
         }
 
         $students = $query->get();

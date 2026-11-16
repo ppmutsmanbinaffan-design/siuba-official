@@ -58,6 +58,8 @@ interface TodayTimelineViewProps {
   onOpenSession: (sessionId: number) => void;
   onCloseSession: (sessionId: number) => void;
   onShowToast: (msg: string, type?: 'success' | 'error' | 'info') => void;
+  /** Bila tersedia, sesi rutin dibuat di server (bukan hanya di browser). */
+  onGenerateSessions?: (date: string) => void | Promise<void>;
 }
 
 export const TodayTimelineView: React.FC<TodayTimelineViewProps> = ({
@@ -81,6 +83,7 @@ export const TodayTimelineView: React.FC<TodayTimelineViewProps> = ({
   onOpenSession,
   onCloseSession,
   onShowToast,
+  onGenerateSessions,
 }) => {
   const currentDateStr = simulatedTime.slice(0, 10);
   const [selectedDate, setSelectedDate] = useState<string>(currentDateStr);
@@ -109,6 +112,10 @@ export const TodayTimelineView: React.FC<TodayTimelineViewProps> = ({
 
   // Handle Idempotent Session Generation
   const handleGenerateTodaySessions = () => {
+    if (onGenerateSessions) {
+      void onGenerateSessions(selectedDate);
+      return;
+    }
     const { result, newSessions, newParticipants } = RoutineSessionGenerator.generateRoutineSessionsForDate({
       date: selectedDate,
       routineSchedules,

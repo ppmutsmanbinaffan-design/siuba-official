@@ -26,13 +26,13 @@ class RoutineSessionGenerator
         $dateStr = $date->toDateString();
         $dayOfWeek = $date->dayOfWeek; // 0=Sunday, 1=Monday, ..., 6=Saturday
 
+        // Frekuensi harian / mingguan / hari terpilih + masa berlaku dicek di model
         $schedules = ActivitySchedule::with('activity')
             ->where('is_active', true)
-            ->where(function ($q) use ($dayOfWeek) {
-                $q->whereNull('day_of_week')
-                  ->orWhere('day_of_week', $dayOfWeek);
-            })
-            ->get();
+            ->where('auto_generate_session', true)
+            ->get()
+            ->filter(fn (ActivitySchedule $s) => $s->appliesOn($date->copy()))
+            ->values();
 
         $created = 0;
         $existing = 0;
@@ -67,7 +67,7 @@ class RoutineSessionGenerator
                 $presentUntilTime = $override?->new_present_until ?? $schedule->present_until;
                 $lateUntilTime = $override?->new_late_until ?? $schedule->late_until;
                 $endTime = $override?->new_end_time ?? $schedule->end_time;
-                $location = $override?->new_location ?? $schedule->activity->location ?? 'Masjid Utama';
+                $location = $override?->new_location ?? $schedule->location ?? $schedule->activity->location ?? 'Masjid Utama';
 
                 // Handle cross-midnight (e.g. 23:30 -> 00:30)
                 $startAt = Carbon::parse("{$dateStr} {$startTime}", 'Asia/Jakarta');
@@ -87,6 +87,7 @@ class RoutineSessionGenerator
 
                 $session = AttendanceSession::create([
                     'activity_id' => $activity->id,
+                    'activity_schedule_id' => $schedule->id,
                     'session_code' => $sessionCode,
                     'session_date' => $dateStr,
                     'start_at' => $startAt,
@@ -98,7 +99,11 @@ class RoutineSessionGenerator
                 ]);
 
                 // Snapshot dynamic participants
-                $resolved = $this->participantResolver->resolve($activity, Carbon::parse($dateStr, 'Asia/Jakarta'));
+                $day = Carbon::parse($dateStr, 'Asia/Jakarta');
+                $gender = ['male' => 'L', 'female' => 'P'][$schedule->participant_gender ?? ''] ?? null;
+                $resolved = $schedule->participant_type && ($schedule->participant_type !== 'all_students' || $gender)
+                    ? $this->participantResolver->resolveTarget($activity, $schedule->participant_type, $schedule->participant_target_id, $gender, $day)
+                    : $this->participantResolver->resolve($activity, $day);
                 foreach ($resolved as $item) {
                     AttendanceSessionParticipant::create([
                         'attendance_session_id' => $session->id,

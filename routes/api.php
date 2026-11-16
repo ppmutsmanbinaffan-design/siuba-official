@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\AuthApiController;
 use App\Http\Controllers\Api\DataImportApiController;
 use App\Http\Controllers\Api\DeviceManagementApiController;
 use App\Http\Controllers\Api\CommunityApiController;
+use App\Http\Controllers\Api\RoutineApiController;
 use App\Http\Controllers\Api\DomainManagementApiController;
 use App\Http\Controllers\Api\IotDeviceApiController;
 use App\Http\Controllers\Api\LandingCmsApiController;
@@ -124,6 +125,16 @@ Route::prefix('v1')->group(function () {
             Route::post('/absences/{absence}/approve', [StaffAttendanceApiController::class, 'approveAbsence'])->middleware('permission:staff.edit|staff.deactivate');
             Route::post('/absences/{absence}/reject', [StaffAttendanceApiController::class, 'rejectAbsence'])->middleware('permission:staff.edit|staff.deactivate');
         });
+
+        // Master kegiatan, jadwal rutin, kalender shalat, penanggung jawab, generate sesi rutin
+        Route::get('/routine-master', [RoutineApiController::class, 'master'])
+            ->middleware('permission:activities.view|routine.view|routine_schedule.view|attendance.view|attendance.sessions.view');
+        Route::post('/activities', [RoutineApiController::class, 'storeActivity'])->middleware('permission:activities.create');
+        Route::put('/activities/{activity}', [RoutineApiController::class, 'updateActivity'])->middleware('permission:activities.update');
+        Route::delete('/activities/{activity}', [RoutineApiController::class, 'deleteActivity'])->middleware('permission:activities.delete');
+        Route::put('/routine-schedules/sync', [RoutineApiController::class, 'sync'])->middleware('permission:routine_schedule.manage');
+        Route::post('/routine-schedules/generate', [RoutineApiController::class, 'generate'])->middleware('permission:attendance.sessions.create|routine_schedule.manage');
+        Route::post('/attendance/sessions', [RoutineApiController::class, 'storeSession'])->middleware('permission:attendance.sessions.create');
 
         // Ekstrakurikuler, halaqah, piket, dan event khusus
         Route::prefix('community')->group(function () {
@@ -273,7 +284,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/overview', [DomainManagementApiController::class, 'routineIndex'])
                 ->middleware('permission:routine.view|dormitory.view|prayer.view');
             Route::post('/generate-sessions', [DomainManagementApiController::class, 'generateRoutineSessions'])
-                ->middleware('permission:routine.view|attendance.sessions.create');
+                ->middleware('permission:attendance.sessions.create|routine_schedule.manage');
         });
 
         // Extracurriculars & Events (Sprint 8)
