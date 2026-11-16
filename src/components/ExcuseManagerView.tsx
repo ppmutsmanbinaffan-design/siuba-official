@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { todayLocalDate } from '../utils/today';
 import { 
   CheckCircle, 
   Clock, 
@@ -119,7 +120,7 @@ export const ExcuseManagerView: React.FC<ExcuseManagerViewProps> = ({
         currentUser.permissions.includes('attendance.excuses')));
 
   // Filter Excusals
-  const todayStr = '2026-08-23';
+  const todayStr = todayLocalDate();
   const filteredExcusals = safeExcusals.filter((excuse) => {
     if (!excuse) return false;
     // Tab filter

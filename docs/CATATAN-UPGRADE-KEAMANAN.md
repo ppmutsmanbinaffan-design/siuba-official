@@ -552,3 +552,15 @@ php artisan migrate --force          # tabel app_settings
 php artisan optimize:clear
 ```
 Lalu buka **Pengaturan → Profil Lembaga & Waktu**, lengkapi identitas lembaga, dan tekan Simpan.
+
+---
+
+# Update 14: Tahap 11 — Laporan KBM & Dashboard SDM memakai data server
+
+- **Laporan Akademik KBM** (`/kbm/laporan`): data tanggal yang dipilih kini diambil langsung dari server. Sebelumnya
+  tanggal lebih lama dari 14 hari terakhir tampil kosong. Pilihan kelas otomatis menyesuaikan saat data kelas selesai dimuat.
+- **Dashboard SDM** (`/sdm/dashboard`): ringkasan kehadiran SDM, mengajar, dan melatih kini dihitung dari data server
+  tanggal itu. Sebelumnya dihitung dari data browser — yang kosong atau berisi **data contoh bawaan**.
+- Halaman **Izin Santri**: hitungan "izin hari ini" memakai tanggal hari ini (sebelumnya tertanam 23 Agustus 2026).
+
+Tidak ada migrasi baru; cukup `php artisan optimize:clear`.

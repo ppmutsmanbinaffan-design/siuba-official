@@ -1,4 +1,6 @@
 import React, { useState, useMemo } from 'react';
+import { useServerStaffReportData } from '../../reports/useServerStaffReportData';
+import { todayLocalDate } from '../../../utils/today';
 import { getInstitution, useInstitution, institutionContactLine } from '../../../services/institutionService';
 import { 
   Calendar, 
@@ -82,9 +84,9 @@ export const IntegratedDashboardPage: React.FC<Props> = ({
   onNavigateTab,
   onShowToast,
 }) => {
-  const [selectedDate, setSelectedDate] = useState<string>(
-    () => new Date().toISOString().substring(0, 10)
-  );
+  const [selectedDate, setSelectedDate] = useState<string>(() => todayLocalDate());
+  // Ringkasan SDM/mengajar/melatih dihitung dari data server tanggal ini (dulu dari data browser / data contoh)
+  const { version: staffDataVersion } = useServerStaffReportData(selectedDate, selectedDate);
   const [activeDomain, setActiveDomain] = useState<DashboardActiveDomain>('all');
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -96,7 +98,7 @@ export const IntegratedDashboardPage: React.FC<Props> = ({
   // 1. Fetch Staff Integrated Metrics (Daily, Teaching, Training, Operational Lists)
   const staffDashboardData = useMemo(() => {
     return StaffAnalyticsQueryService.getIntegratedDashboardData(selectedDate, currentUser);
-  }, [selectedDate, currentUser]);
+  }, [selectedDate, currentUser, staffDataVersion]);
 
   // 2. Fetch Student Authoritative Metrics for Selected Date
   const studentMetrics = useMemo(() => {
