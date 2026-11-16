@@ -674,3 +674,26 @@ Perbaikan:
 php artisan optimize:clear
 ```
 Tidak ada migrasi baru. Setelah update, muat ulang browser (Ctrl+F5).
+
+---
+
+# Update 18 — Tahap 15: Import santri & SDM langsung dari Excel (.xlsx)
+
+- Import Santri dan Import Guru/SDM kini menerima **file Excel .xlsx** (sheet pertama dibaca), selain CSV/TXT.
+  Tanpa paket tambahan — cukup ekstensi PHP `zip` (aktif bawaan di XAMPP).
+- Tombol **Template Excel (.xlsx)**: semua sel berformat Teks, jadi NIS, NISN, No HP, dan UID RFID yang diawali
+  angka 0 tidak berubah saat diisi di Excel. Template CSV tetap tersedia.
+- Pembacaan Excel menangani: angka panjang (No HP 62812… tidak jadi 6,28E+12), tanggal Excel (jadi `YYYY-MM-DD`),
+  sel kosong di tengah baris, teks multi-baris di dalam sel, dan baris kosong.
+- CSV lama ber-encoding Windows (huruf seperti é) otomatis dikonversi ke UTF-8.
+- Pesan jelas untuk file `.xls` lama (simpan ulang sebagai .xlsx/CSV), file rusak, dan file >10 MB.
+- Dialog import kini menampilkan pesannya sendiri (sebelumnya pesan seperti "template diunduh" atau
+  "format salah" tidak pernah tampil karena tidak tersambung ke halaman).
+
+## Langkah setelah update
+
+```bash
+php artisan optimize:clear
+```
+Tidak ada migrasi baru. Bila muncul pesan "Ekstensi PHP zip belum aktif": buka XAMPP → Config → PHP (php.ini),
+hapus tanda `;` di depan `extension=zip`, lalu restart Apache.

@@ -439,6 +439,35 @@ class StudentImportService
      */
     public function generateTemplateCsv(): string
     {
+        [$headers, $sampleRows] = $this->templateData();
+
+        $output = fopen('php://temp', 'r+');
+        fputcsv($output, $headers);
+        foreach ($sampleRows as $row) {
+            fputcsv($output, $row);
+        }
+        rewind($output);
+        $csv = stream_get_contents($output);
+        fclose($output);
+
+        return $csv;
+    }
+
+    /**
+     * Template Excel (.xlsx) — semua sel berformat teks agar NIS/No HP tidak kehilangan angka 0 di depan.
+     */
+    public function generateTemplateXlsx(): string
+    {
+        [$headers, $sampleRows] = $this->templateData();
+
+        return \App\Support\Spreadsheet\SimpleXlsx::write($headers, $sampleRows);
+    }
+
+    /**
+     * @return array{0: array<int,string>, 1: array<int,array<int,string>>}
+     */
+    public function templateData(): array
+    {
         $headers = [
             'NIS',
             'NISN',
@@ -503,15 +532,6 @@ class StudentImportService
             ],
         ];
 
-        $output = fopen('php://temp', 'r+');
-        fputcsv($output, $headers);
-        foreach ($sampleRows as $row) {
-            fputcsv($output, $row);
-        }
-        rewind($output);
-        $csv = stream_get_contents($output);
-        fclose($output);
-
-        return $csv;
+        return [$headers, $sampleRows];
     }
 }
