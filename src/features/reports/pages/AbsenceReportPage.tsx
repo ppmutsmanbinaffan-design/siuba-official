@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { getInstitution, useInstitution, institutionContactLine } from '../../../services/institutionService';
 import { useServerStaffReportData } from '../useServerStaffReportData';
 import { 
   CalendarDays, 
@@ -200,7 +201,7 @@ export const AbsenceReportPage: React.FC<Props> = ({
           <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
           <head><meta charset="utf-8"/><title>Laporan Pengajuan Izin dan Cuti</title></head>
           <body>
-            <h2>Pondok Pesantren Utsman Bin Affan</h2>
+            <h2>{getInstitution().name}</h2>
             <h3>Laporan Pengajuan Izin, Sakit, Cuti & Dinas Luar</h3>
             <p>Periode: ${dateFrom} s/d ${dateTo}</p>
             <table border="1">${thead}<tbody>${tbody}</tbody></table>

@@ -21,7 +21,7 @@ import {
   CardOrientation 
 } from '../../../types';
 import { 
-  StudentCardTemplateService, 
+  StudentCardTemplateService, syncCardTemplatesFromServer,
   DEFAULT_CARD_TEMPLATES, 
   CR80_SPECS 
 } from '../../../services/studentCardTemplateService';
@@ -75,6 +75,11 @@ export const StudentCardHubPage: React.FC<StudentCardHubPageProps> = ({
   // Load Templates from Service
   useEffect(() => {
     loadTemplates();
+    // Desain kartu disimpan di server: ambil versi terbaru lalu tampilkan ulang
+    void syncCardTemplatesFromServer().then((changed) => { if (changed) loadTemplates(); });
+    const onSyncError = (e: Event) => onShowToast?.((e as CustomEvent).detail, 'error');
+    window.addEventListener('siuba:card-templates-sync-error', onSyncError);
+    return () => window.removeEventListener('siuba:card-templates-sync-error', onSyncError);
   }, []);
 
   const loadTemplates = () => {

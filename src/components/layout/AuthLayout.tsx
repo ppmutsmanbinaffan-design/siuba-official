@@ -1,4 +1,5 @@
 import React from 'react';
+import { getInstitution, useInstitution, institutionContactLine } from '../../services/institutionService';
 import { CheckCircle2, ShieldCheck, QrCode, CreditCard, Sparkles } from 'lucide-react';
 
 export interface AuthLayoutProps {
@@ -6,6 +7,7 @@ export interface AuthLayoutProps {
 }
 
 export const AuthLayout: React.FC<AuthLayoutProps> = ({ children }) => {
+  const institution = useInstitution();
   return (
     <div className="min-h-screen w-full bg-[#F7F8F7] text-zinc-900 flex flex-col justify-center items-center p-3.5 sm:p-6 lg:p-8 relative selection:bg-[#C9A227] selection:text-white">
       <div className="w-full max-w-4xl bg-white border border-zinc-200 rounded-3xl shadow-xl overflow-hidden grid grid-cols-1 lg:grid-cols-12 relative z-10">
@@ -22,7 +24,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({ children }) => {
               <div>
                 <h1 className="text-xl font-black text-white tracking-tight">SIUBA</h1>
                 <p className="text-[11px] text-[#EADAA2] font-bold uppercase tracking-wider">
-                  Utsman Bin Affan
+                  {institution.short_name}
                 </p>
               </div>
             </div>
@@ -71,7 +73,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({ children }) => {
 
       {/* Footer copyright */}
       <p className="mt-6 text-center text-xs text-zinc-500 font-medium">
-        &copy; {new Date().getFullYear()} Pesantren Tahfidz Utsman Bin Affan. All rights reserved.
+        &copy; {new Date().getFullYear()} {institution.name}. All rights reserved.
       </p>
     </div>
   );

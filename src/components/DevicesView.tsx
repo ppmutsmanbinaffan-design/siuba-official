@@ -283,11 +283,12 @@ export const DevicesView: React.FC<Props> = ({
 #define WIFI_PASSWORD   "PesantrenUtsman2026"
 
 // Local Laravel Attendance Server Gateway
-#define SERVER_BASE_URL "http://192.168.1.10:8000"
-#define ATTENDANCE_PATH "/api/v1/device/rfid/attendance"
-#define HEARTBEAT_PATH  "/api/v1/device/heartbeat"
+#define SERVER_BASE_URL "${window.location.origin}"
+#define ATTENDANCE_PATH "/api/v1/iot/rfid-tap"   // POST JSON {"uid":"...","device_id":DEVICE_CODE}
+#define HEARTBEAT_PATH  "/api/v1/iot/ping"
 
 // Device Authentication Credentials
+// Kirim header  X-DEVICE-TOKEN: DEVICE_SECRET  (atau X-GLOBAL-KEY: <NEXABSEN_GLOBAL_KEY>)
 #define DEVICE_CODE     "${device.device_code}"
 #define DEVICE_SECRET   "${secret}"
 

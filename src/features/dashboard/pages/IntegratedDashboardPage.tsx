@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { getInstitution, useInstitution, institutionContactLine } from '../../../services/institutionService';
 import { 
   Calendar, 
   RefreshCw, 
@@ -276,7 +277,7 @@ export const IntegratedDashboardPage: React.FC<Props> = ({
             </span>
           </div>
           <p className="text-xs sm:text-sm text-emerald-100/90">
-            Ringkasan operasional kegiatan dan presensi Pondok Pesantren Utsman Bin Affan.
+            Ringkasan operasional kegiatan dan presensi {getInstitution().name}.
           </p>
         </div>
 

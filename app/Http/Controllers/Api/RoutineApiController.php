@@ -127,6 +127,10 @@ class RoutineApiController extends Controller
             'late_tolerance_minutes', 'is_active', 'default_start_time', 'default_present_until', 'default_late_until', 'default_end_time']));
         $attrs = array_filter($attrs, fn ($x) => $x !== null);
 
+        if ($creating && !isset($attrs['late_tolerance_minutes'])) {
+            // Toleransi terlambat bawaan dari Pengaturan Sistem → Aturan Absensi
+            $attrs['late_tolerance_minutes'] = (int) (\App\Models\AppSetting::get('attendance')['late_tolerance_minutes'] ?? 15);
+        }
         if ($creating || array_key_exists('code', $v)) {
             $attrs['code'] = strtoupper($v['code'] ?? ('KEG-' . Str::upper(Str::random(5))));
         }

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { getInstitution, useInstitution, institutionContactLine } from '../services/institutionService';
 import { 
   GraduationCap, 
   Home, 
@@ -869,7 +870,7 @@ export const ClassroomsDormitoriesView: React.FC<Props> = ({
                         <h3 className="text-lg font-black text-slate-900">{dorm.name}</h3>
                       </div>
                       <p className="text-xs text-slate-500 mt-1">
-                        Gedung asrama santri mukim Pesantren Utsman Bin Affan
+                        Gedung asrama santri mukim {getInstitution().name}
                       </p>
                     </div>
 

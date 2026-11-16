@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { getInstitution, useInstitution, institutionContactLine } from '../services/institutionService';
 import { 
   CalendarDays, 
   Plus, 
@@ -235,7 +236,7 @@ export const ActivitiesView: React.FC<ActivitiesViewProps> = ({
       code: formData.code.trim().toUpperCase(),
       name: formData.name.trim(),
       description: formData.description.trim(),
-      location: formData.location.trim() || 'Pesantren Utsman Bin Affan',
+      location: formData.location.trim() || getInstitution().name,
       participant_type: formData.participant_type,
       participant_gender: formData.participant_gender,
       classroom_id: formData.participant_type === 'classroom' ? Number(formData.classroom_id) : null,

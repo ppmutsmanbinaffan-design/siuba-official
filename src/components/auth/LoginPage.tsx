@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { getInstitution, useInstitution, institutionContactLine } from '../../services/institutionService';
 import { Eye, EyeOff, Lock, User, ArrowRight, AlertCircle } from 'lucide-react';
 import { User as UserType } from '../../types';
 import { Button } from '../ui/Button';
@@ -17,6 +18,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   isLoading = false,
   errorMessage: propErrorMessage = null,
 }) => {
+  const institution = useInstitution();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -67,7 +69,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
           <div>
             <h1 className="text-base font-extrabold text-zinc-900 leading-tight">SIUBA</h1>
             <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">
-              Sistem Informasi Utsman Bin Affan
+              {institution.short_name ? `Sistem Informasi ${institution.short_name}` : 'Sistem Informasi Pesantren'}
             </p>
           </div>
         </div>

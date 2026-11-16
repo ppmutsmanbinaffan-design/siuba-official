@@ -513,3 +513,42 @@ Hak akses baru `classrooms.manage` (admin, kesantrian, akademik). Asrama & kamar
 php artisan optimize:clear
 ```
 (tidak ada migrasi baru)
+
+---
+
+# Update 13: Tahap 10 — Pengaturan lembaga & desain kartu di server, halaman Pengaturan jujur
+
+## Latar belakang
+
+- Halaman **Pengaturan Sistem** hanya menyimpan ke browser, dan isinya **tidak dipakai di mana pun**: nama lembaga
+  di kop laporan, menu, dan halaman login tertanam di kode (dengan beberapa versi nama berbeda).
+- Beberapa tombol hanya **simulasi**: "Uji Ping" menampilkan angka acak, "Bersihkan Cache" tidak melakukan apa-apa,
+  dan **"Export .ENV" membuat file .env berisi nilai karangan** — berbahaya bila dipakai menimpa .env asli.
+- **Desain kartu santri** hanya tersimpan di browser yang membuatnya.
+- Semua error HTTP API (alamat tidak ada, metode salah, data terlalu besar) dilaporkan sebagai **500 "kesalahan
+  internal"** dan dicatat di log error.
+
+## Yang berubah
+
+- Tabel baru `app_settings`. **Identitas lembaga** (yayasan, nama, nama singkat, slogan, alamat, telepon, email,
+  pimpinan, kota, tahun ajaran) dan **aturan absensi** tersimpan di server dan berlaku di semua perangkat.
+  Nama/alamat dipakai di halaman login, menu, dashboard, dan **kop semua laporan**.
+- Toleransi terlambat di Pengaturan menjadi nilai bawaan untuk kegiatan baru.
+- Tab Server, Database, dan Environment kini menampilkan **keadaan server sebenarnya** (baca saja: versi PHP/Laravel,
+  database, cache, mode, URL, IP server, status kunci IoT). Tombol Export .ENV dihapus.
+- Uji koneksi mengukur respons server sungguhan; Bersihkan Cache benar-benar menjalankan pembersihan cache server
+  (atau cache browser untuk "PWA Storage Buffer").
+- **Desain kartu santri** tersimpan di server (otomatis saat diubah). Desain yang sudah ada di browser dikirim ke
+  server saat halaman Kartu Santri pertama kali dibuka.
+- Error HTTP API kini memakai kode yang benar (404, 405, 413, …) dengan pesan berbahasa Indonesia.
+- Konfigurasi firmware di halaman Perangkat kini menunjuk alamat server ini dan endpoint yang benar
+  (`/api/v1/iot/rfid-tap`, header `X-DEVICE-TOKEN`). Teks kredensial yang disalin dari Manajemen Akses memakai
+  alamat server ini (dulu tertanam 192.168.1.10:8000).
+
+## Langkah setelah update
+
+```bash
+php artisan migrate --force          # tabel app_settings
+php artisan optimize:clear
+```
+Lalu buka **Pengaturan → Profil Lembaga & Waktu**, lengkapi identitas lembaga, dan tekan Simpan.

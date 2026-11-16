@@ -1,4 +1,5 @@
 import React from 'react';
+import { getInstitution, useInstitution, institutionContactLine } from '../../../services/institutionService';
 import { Printer, X } from 'lucide-react';
 
 interface ColumnDef {
@@ -63,13 +64,13 @@ export const ReportPrintView: React.FC<Props> = ({
         {/* Letterhead (KOP SURAT) */}
         <div className="text-center border-b-2 border-zinc-900 pb-4">
           <h2 className="text-sm font-semibold tracking-widest uppercase text-zinc-600">
-            Yayasan Pendidikan Islam Utsman Bin Affan
+            {getInstitution().foundation_name}
           </h2>
           <h1 className="text-xl font-black uppercase tracking-tight text-zinc-900 mt-0.5">
-            Pondok Pesantren Utsman Bin Affan
+            {getInstitution().name}
           </h1>
           <p className="text-xs text-zinc-600 mt-1">
-            Sistem Informasi Unit & Bimbingan Akademik (SIUBA) Terpadu &bull; Laporan Presensi Otentik
+            {institutionContactLine() || 'Sistem Informasi Unit & Bimbingan Akademik (SIUBA) Terpadu'}
           </p>
         </div>
 

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { getInstitution, useInstitution, institutionContactLine } from '../services/institutionService';
 import { todayLocalDate } from '../utils/today';
 import { 
   Calendar, 
@@ -564,7 +565,7 @@ export const EventsManagerView: React.FC<EventsManagerViewProps> = ({
                     {getStatusBadge(selectedEvent.status)}
                   </div>
                   <h2 className="text-xl font-black text-slate-900 tracking-tight">{selectedEvent.name}</h2>
-                  <p className="text-xs text-slate-500 mt-1 leading-relaxed">{selectedEvent.description || 'Kegiatan resmi santri Pesantren Utsman Bin Affan.'}</p>
+                  <p className="text-xs text-slate-500 mt-1 leading-relaxed">{selectedEvent.description || `Kegiatan resmi santri ${getInstitution().name}.`}</p>
                 </div>
 
                 <div className="flex items-center gap-2 shrink-0">

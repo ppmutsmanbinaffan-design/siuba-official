@@ -423,7 +423,7 @@ export const AccessControlView: React.FC<Props> = ({
   const handleCopyCredentials = (user: User, passToCopy?: string) => {
     const pass = passToCopy || user.password || 'password';
     const assignedRoles = Array.isArray(user.roles) && user.roles.length > 0 ? user.roles.join(', ') : user.role;
-    const text = `*Kredensial Login SIUBA Pesantren*\nNama: ${user.name}\nUsername: ${user.username}\nPassword: ${pass}\nRole: ${assignedRoles}\nLink: http://192.168.1.10:8000`;
+    const text = `*Kredensial Login SIUBA Pesantren*\nNama: ${user.name}\nUsername: ${user.username}\nPassword: ${pass}\nRole: ${assignedRoles}\nLink: ${window.location.origin}`;
     navigator.clipboard.writeText(text);
     setCopiedId(user.id);
     setTimeout(() => setCopiedId(null), 2500);
@@ -1831,7 +1831,7 @@ export const AccessControlView: React.FC<Props> = ({
                   </button>
                 </div>
                 <div className="p-2.5 bg-white rounded-xl border border-slate-200 font-mono text-[11px] text-slate-700 whitespace-pre-wrap leading-relaxed select-all">
-                  {`Nama: ${passwordModalUser.name}\nUsername: ${passwordModalUser.username}\nPassword: ${passwordNewInput || passwordModalUser.password || 'password'}\nRole: ${passwordModalUser.role}\nLink SIUBA: http://192.168.1.10:8000`}
+                  {`Nama: ${passwordModalUser.name}\nUsername: ${passwordModalUser.username}\nPassword: ${passwordNewInput || passwordModalUser.password || 'password'}\nRole: ${passwordModalUser.role}\nLink SIUBA: ${window.location.origin}`}
                 </div>
               </div>
 

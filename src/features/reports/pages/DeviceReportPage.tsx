@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { getInstitution, useInstitution, institutionContactLine } from '../../../services/institutionService';
 import { 
   Radio, 
   Search, 
@@ -600,7 +601,7 @@ export const DeviceReportPage: React.FC<Props> = ({
           isOpen={isPrintOpen}
           onClose={() => setIsPrintOpen(false)}
           reportTitle="Laporan Infrastruktur & Status Perangkat Presensi"
-          subtitle={`Pesantren Utsman Bin Affan • Dicetak pada: ${new Date().toLocaleDateString('id-ID')}`}
+          subtitle={`${getInstitution().name} • Dicetak pada: ${new Date().toLocaleDateString('id-ID')}`}
           tableHeaders={
             subView === 'devices' 
               ? ['Kode', 'Nama Mesin', 'Tipe', 'Lokasi', 'IP Address', 'Status', 'Last Ping']

@@ -91,6 +91,25 @@ return Application::configure(basePath: dirname(__DIR__))
             }
         });
 
+        // Error HTTP biasa (rute tidak ada, metode salah, abort(403/404), upload terlalu besar) tetap memakai
+        // kode statusnya — sebelumnya semuanya tertangkap di bawah dan dilaporkan sebagai 500 "kesalahan internal".
+        $exceptions->render(function (\Symfony\Component\HttpKernel\Exception\HttpExceptionInterface $e, \Illuminate\Http\Request $request) {
+            if ($request->is('api/*') || $request->expectsJson()) {
+                $status = $e->getStatusCode();
+                [$code, $message] = match ($status) {
+                    403 => ['FORBIDDEN', $e->getMessage() ?: 'Anda tidak memiliki hak akses untuk tindakan ini.'],
+                    404 => ['NOT_FOUND', 'Alamat atau data yang diminta tidak ditemukan.'],
+                    405 => ['METHOD_NOT_ALLOWED', 'Metode permintaan tidak didukung untuk alamat ini.'],
+                    413 => ['PAYLOAD_TOO_LARGE', 'Data yang dikirim terlalu besar.'],
+                    419 => ['SESSION_EXPIRED', 'Sesi kedaluwarsa. Muat ulang halaman lalu coba lagi.'],
+                    503 => ['SERVICE_UNAVAILABLE', 'Server sedang dalam perawatan. Coba lagi beberapa saat lagi.'],
+                    default => ['HTTP_ERROR', $e->getMessage() ?: 'Permintaan tidak dapat diproses.'],
+                };
+
+                return \App\Http\Responses\ApiResponse::error($code, $message, null, $status);
+            }
+        });
+
         $exceptions->render(function (\Throwable $e, \Illuminate\Http\Request $request) {
             if ($request->is('api/*') || $request->expectsJson()) {
                 \Illuminate\Support\Facades\Log::error('API Unhandled Exception', [

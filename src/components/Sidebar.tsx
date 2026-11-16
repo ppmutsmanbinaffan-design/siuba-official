@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { getInstitution, useInstitution, institutionContactLine } from '../services/institutionService';
 import { 
   Building2,
   Wifi,
@@ -154,7 +155,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <span className="font-extrabold tracking-wider text-base text-white">SIUBA</span>
               </div>
               <p className="text-xs text-emerald-200/70 font-medium line-clamp-1">
-                Pesantren Utsman Bin Affan
+                {getInstitution().name}
               </p>
             </div>
           </div>
@@ -177,7 +178,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
             </span>
             <div>
-              <p className="font-semibold text-[11px] text-white">LAN Server 192.168.1.10</p>
+              <p className="font-semibold text-[11px] text-white">Server {window.location.host}</p>
               <p className="text-[10px] text-emerald-300/60">Offline-First Terhubung</p>
             </div>
           </div>

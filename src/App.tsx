@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { loadInstitution } from './services/institutionService';
 import { Sidebar } from './components/Sidebar';
 import { TopHeader } from './components/TopHeader';
 import { LoginPage, AuthLoadingScreen, GuestRoute, ProtectedRoute, Forbidden403, NotFound404 } from './components/auth';
@@ -410,6 +411,7 @@ export function App() {
 
   /** Muat ulang data dari server setelah perubahan (absensi/KBM saja agar cepat). */
   const refreshServerData = async (attendanceOnly = true) => {
+    if (!attendanceOnly) void loadInstitution(true); // identitas lembaga untuk menu/kop laporan
     try {
       applyServerSnapshot(await loadServerSnapshot({ attendanceOnly }));
     } catch (e) {

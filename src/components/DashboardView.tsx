@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { getInstitution, useInstitution, institutionContactLine } from '../services/institutionService';
 import { 
   Users, 
   Calendar, 
@@ -119,11 +120,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               SISTEM OPERASIONAL SIUBA
             </span>
             <span className="text-emerald-100 bg-white/15 px-3 py-0.5 rounded-full text-xs font-mono border border-white/20">
-              Minggu, 23 Agustus 2026
+              {new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
             </span>
           </div>
           <h2 className="text-2xl lg:text-3xl font-black tracking-tight text-white">
-            Pondok Pesantren Modern Utsman Bin Affan
+            {getInstitution().name}
           </h2>
           <p className="text-xs sm:text-sm text-emerald-100/90 max-w-2xl leading-relaxed">
             Sistem Absensi Santri Pesantren Terintegrasi (SIUBA). Dirancang dengan arsitektur <em>Fast, Simple, Mobile-Friendly, Safe & Auditable</em> untuk pencatatan kehadiran santri secara akurat dan presisi.

@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\DataImportApiController;
 use App\Http\Controllers\Api\DeviceManagementApiController;
 use App\Http\Controllers\Api\CommunityApiController;
 use App\Http\Controllers\Api\RoutineApiController;
+use App\Http\Controllers\Api\AppSettingsApiController;
 use App\Http\Controllers\Api\ReportDatasetApiController;
 use App\Http\Controllers\Api\TrainerApiController;
 use App\Http\Controllers\Api\DomainManagementApiController;
@@ -137,6 +138,16 @@ Route::prefix('v1')->group(function () {
         Route::put('/routine-schedules/sync', [RoutineApiController::class, 'sync'])->middleware('permission:routine_schedule.manage');
         Route::post('/routine-schedules/generate', [RoutineApiController::class, 'generate'])->middleware('permission:attendance.sessions.create|routine_schedule.manage');
         Route::post('/attendance/sessions', [RoutineApiController::class, 'storeSession'])->middleware('permission:attendance.sessions.create');
+
+        // Pengaturan sistem (identitas lembaga, aturan absensi, desain kartu, info server)
+        Route::get('/settings', [AppSettingsApiController::class, 'index']);
+        Route::get('/settings/card-templates', [AppSettingsApiController::class, 'cardTemplates']);
+        Route::put('/settings/card-templates', [AppSettingsApiController::class, 'saveCardTemplates'])->middleware('permission:students.cards|system.settings');
+        Route::middleware('permission:system.settings')->group(function () {
+            Route::get('/settings/system-info', [AppSettingsApiController::class, 'systemInfo']);
+            Route::post('/settings/clear-cache', [AppSettingsApiController::class, 'clearCache']);
+            Route::put('/settings/{key}', [AppSettingsApiController::class, 'update'])->where('key', 'institution|attendance');
+        });
 
         // Data laporan SDM (harian, mengajar, melatih, izin) untuk rentang tanggal
         Route::get('/reports/staff-dataset', [ReportDatasetApiController::class, 'staff'])
@@ -356,6 +367,7 @@ Route::prefix('v1')->group(function () {
     Route::prefix('cms')->group(function () {
         // --- Publik (tanpa login) ---
         Route::get('/landing', [LandingCmsApiController::class, 'getPublicData']);
+        Route::get('/institution', [AppSettingsApiController::class, 'publicInstitution']);
         Route::post('/psb/register', [LandingCmsApiController::class, 'submitPpdbRegistration'])->middleware('throttle:5,1');
         Route::post('/ppdb/register', [LandingCmsApiController::class, 'submitPpdbRegistration'])->middleware('throttle:5,1');
         Route::get('/psb/check', [LandingCmsApiController::class, 'checkPpdbStatus'])->middleware('throttle:10,1');
