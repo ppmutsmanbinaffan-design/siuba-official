@@ -367,8 +367,14 @@ Route::prefix('v1')->group(function () {
     });
 
     // System Maintenance & Database Reset (Super Admin only + exact phrase verification)
+    Route::prefix('maintenance')->middleware(['auth:sanctum', 'permission:system.backup|system.maintenance'])->group(function () {
+        Route::get('/overview', [MaintenanceApiController::class, 'overview']);
+        Route::get('/logs', [MaintenanceApiController::class, 'logs']);
+        Route::post('/integrity', [MaintenanceApiController::class, 'integrity']);
+    });
     Route::prefix('maintenance')->middleware(['auth:sanctum', 'role:super-admin'])->group(function () {
-        Route::post('/reset', [MaintenanceApiController::class, 'reset']);
+        Route::get('/reset-modes', [MaintenanceApiController::class, 'resetModes']);
+        Route::post('/reset', [MaintenanceApiController::class, 'reset'])->middleware('throttle:5,1');
     });
 
     // =========================================================================

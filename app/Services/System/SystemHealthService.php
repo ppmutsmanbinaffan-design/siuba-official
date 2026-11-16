@@ -30,8 +30,9 @@ class SystemHealthService
 
         // 1. Database Check
         try {
-            DB::connection()->getPdo();
-            $dbResponseTime = 2.4; // ms
+            $t0 = microtime(true);
+            DB::select('select 1');
+            $dbResponseTime = round((microtime(true) - $t0) * 1000, 1); // ms
             $checks['database'] = [
                 'status' => 'healthy',
                 'label' => 'Database Connection (MySQL/MariaDB)',
@@ -80,23 +81,29 @@ class SystemHealthService
         if ($diskStatus === 'critical') $status = 'critical';
         elseif ($diskStatus === 'warning' && $status === 'healthy') $status = 'warning';
 
-        // 4. Scheduler Heartbeat Check
-        $lastHeartbeat = Cache::get(self::CACHE_KEY_HEARTBEAT, now()->subSeconds(45)->toISOString());
-        $diffSeconds = max(0, now()->diffInSeconds(\Carbon\Carbon::parse($lastHeartbeat)));
-        $schedulerStatus = $diffSeconds <= 180 ? 'healthy' : ($diffSeconds <= 600 ? 'warning' : 'critical');
+        // 4. Scheduler Heartbeat Check (direkam tiap menit oleh jadwal di routes/console.php)
+        $lastHeartbeat = Cache::get(self::CACHE_KEY_HEARTBEAT);
+        if ($lastHeartbeat) {
+            $diffSeconds = (int) abs(now()->diffInSeconds(\Carbon\Carbon::parse($lastHeartbeat)));
+            $schedulerStatus = $diffSeconds <= 180 ? 'healthy' : 'warning';
+            $message = "Heartbeat terakhir {$diffSeconds} detik lalu.";
+        } else {
+            // Tidak wajib: di XAMPP backup otomatis tetap berjalan lewat start-siuba-offline.bat
+            $schedulerStatus = 'info';
+            $message = 'Penjadwal (php artisan schedule:run) belum berjalan. Opsional — dibutuhkan untuk backup harian 01:30 dan pembersihan log otomatis.';
+        }
         $checks['scheduler'] = [
             'status' => $schedulerStatus,
             'label' => 'Scheduler Cron Heartbeat',
-            'message' => "Heartbeat terakhir {$diffSeconds} detik lalu.",
+            'message' => $message,
             'last_heartbeat' => $lastHeartbeat,
         ];
-        if ($schedulerStatus === 'critical') $status = 'critical';
-        elseif ($schedulerStatus === 'warning' && $status === 'healthy') $status = 'warning';
+        if ($schedulerStatus === 'warning' && $status === 'healthy') $status = 'warning';
 
         // 5. Backup Freshness Check
         $latestBackup = SystemBackup::where('status', 'verified')->orderByDesc('created_at')->first();
         if ($latestBackup) {
-            $hoursSinceBackup = now()->diffInHours($latestBackup->created_at);
+            $hoursSinceBackup = round(abs(now()->diffInMinutes($latestBackup->created_at)) / 60, 1);
             $backupStatus = $hoursSinceBackup <= 24 ? 'healthy' : 'warning';
             $checks['backup_freshness'] = [
                 'status' => $backupStatus,
@@ -115,8 +122,9 @@ class SystemHealthService
         }
 
         // 6. Device Health
-        $onlineDevices = AttendanceDevice::where('status', 'online')->count();
-        $totalDevices = AttendanceDevice::count();
+        // "Online" = aktif dan mengirim ping/tap dalam 10 menit terakhir (tabel perangkat tidak punya kolom status)
+        $onlineDevices = AttendanceDevice::where('is_active', true)->where('last_seen_at', '>=', now()->subMinutes(10))->count();
+        $totalDevices = AttendanceDevice::where('is_active', true)->count();
         $checks['devices'] = [
             'status' => 'healthy',
             'label' => 'Attendance Hardware Network',

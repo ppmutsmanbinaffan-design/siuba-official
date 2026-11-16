@@ -21,4 +21,10 @@ return [
 
     // Jeda minimal (menit) antara check-in dan check-out, agar tap ganda tidak langsung tercatat pulang
     'staff_min_minutes_before_checkout' => (int) env('SIUBA_STAFF_MIN_CHECKOUT_MINUTES', 30),
+
+    /*
+    | Izinkan reset database dari Maintenance Hub (tetap butuh Super Admin, kata sandi, frasa konfirmasi,
+    | dan backup otomatis). Setelah aplikasi dipakai sungguhan, sebaiknya set SIUBA_ALLOW_DATABASE_RESET=false.
+    */
+    'allow_database_reset' => env('SIUBA_ALLOW_DATABASE_RESET', true),
 ];

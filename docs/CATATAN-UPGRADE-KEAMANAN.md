@@ -603,3 +603,48 @@ php artisan system:backup --notes="Backup pertama"
 
 **Penting:** backup tersimpan di komputer yang sama dengan database. Unduh backup secara berkala (mis. seminggu sekali)
 dari Maintenance Hub → Backup Database, lalu simpan di flashdisk atau Google Drive.
+
+---
+
+# Update 16: Tahap 13 — Maintenance Hub memakai server (status, integritas, log, reset)
+
+## Latar belakang
+
+Selain Backup (tahap 12), tab lain di Maintenance Hub juga hanya bekerja pada data browser:
+- **Status Sistem** menghitung jumlah data dan "ukuran database" dari data yang dimuat browser.
+- **Pemeriksaan Integritas** memeriksa data browser, bukan database.
+- **Log Maintenance** hanya berisi catatan di browser.
+- **Reset Database** hanya mengosongkan tampilan browser — database server tidak tersentuh, padahal wizard
+  menyatakan berhasil. Sakelar "Guard Settings" juga hanya mengubah nilai di browser.
+
+Ditemukan juga bug yang hanya muncul di MySQL/MariaDB: laporan kesehatan sistem (`php artisan system:health`) selalu
+error karena mencari kolom `status` yang tidak ada di tabel perangkat. Status penjadwal selalu tampil "sehat"
+walaupun penjadwal tidak pernah berjalan.
+
+## Yang berubah
+
+- **Status Sistem**: jumlah data per tabel, ukuran database sebenarnya, backup terakhir, dan hasil pemeriksaan
+  integritas terakhir — semuanya dari server.
+- **Pemeriksaan Integritas** dijalankan di server terhadap database (hasil terakhir disimpan).
+- **Log Maintenance** dari audit log server (backup, pemulihan, reset, pemeriksaan integritas, dll.).
+- **Reset Database** benar-benar dijalankan di server (hanya Super Admin):
+  - wajib kata sandi akun yang login + frasa `RESET DATABASE SIUBA`; backup otomatis dibuat dulu;
+  - *Mode A (Operasional)*: menghapus semua transaksi (presensi santri & SDM, sesi, KBM, latihan, izin, piket, log
+    perangkat) — data master tetap;
+  - *Mode B (Master)*: Mode A + santri, kelas, asrama, kegiatan, ekskul, halaqah, SDM — akun, hak akses, pengaturan,
+    dan CMS tetap;
+  - *Mode C (Pabrik)*: semua tabel dibuat ulang + data awal (akun ikut kembali ke akun bawaan);
+  - penghapusan dalam satu transaksi (gagal = dibatalkan); dibatasi 5 percobaan/menit.
+- Izin reset diatur di `.env`: `SIUBA_ALLOW_DATABASE_RESET=true/false` (**set `false` setelah aplikasi dipakai sungguhan**).
+- Laporan kesehatan: perangkat "online" = aktif & terhubung dalam 10 menit terakhir; status penjadwal jujur
+  (penjadwal opsional di XAMPP); "backup terakhir … jam lalu" tidak lagi bernilai negatif.
+
+## Langkah setelah update
+
+```bash
+php artisan optimize:clear
+```
+Tambahkan ke `.env` setelah data asli mulai dipakai:
+```
+SIUBA_ALLOW_DATABASE_RESET=false
+```

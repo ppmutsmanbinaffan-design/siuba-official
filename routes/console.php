@@ -140,3 +140,6 @@ Schedule::command('model:prune', ['--model' => [\App\Models\AttendanceDeviceLog:
 // Backup database harian (bila server memakai cron / Task Scheduler). Di XAMPP, start-siuba-offline.bat juga
 // membuat backup saat aplikasi dinyalakan bila backup terakhir lebih dari 20 jam lalu.
 Schedule::command('system:backup', ['--notes' => 'Backup harian terjadwal', '--if-older-than' => 20])->dailyAt('01:30');
+
+// Tanda penjadwal hidup (ditampilkan di Maintenance Hub → Status)
+Schedule::call(fn () => \App\Services\System\SystemHealthService::recordSchedulerHeartbeat())->everyMinute()->name('siuba-heartbeat')->withoutOverlapping();
