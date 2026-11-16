@@ -70,6 +70,17 @@ class IotDeviceApiController extends Controller
             ]);
         }
 
+        // 2b. Mode alat: perawatan = tolak semua tap; pendaftaran kartu = hanya simpan UID untuk halaman registrasi RFID
+        if (($device->mode ?? 'attendance') === 'maintenance') {
+            return $this->lcd(false, 'DEVICE_MAINTENANCE', 'Alat Perawatan', 423, ['device' => $device->device_code]);
+        }
+        if (($device->mode ?? 'attendance') === 'enrollment') {
+            Cache::put('last_scanned_rfid', ['uid' => $normalizedUid, 'device' => $device->device_code, 'tapped_at' => now()->format('H:i:s') . ' WIB'], 600);
+            AttendanceDeviceLog::record($device, $device->device_code, 'ENROLLMENT_SCAN', 'info', "Kartu {$normalizedUid} dibaca untuk pendaftaran.", ['uid' => $normalizedUid], $request->ip());
+
+            return response()->json(['success' => true, 'code' => 'ENROLLMENT_SCAN', 'message' => 'UID Terbaca', 'rfid_uid' => $normalizedUid, 'device' => $device->device_code], 200);
+        }
+
         // 3. Kartu master teknisi (hanya jika NEXABSEN_MASTER_ADMIN_UID diisi)
         $masterAdminUid = Student::normalizeRfidUid((string) config('services.nexabsen.master_admin_uid', ''));
         if ($masterAdminUid && hash_equals($masterAdminUid, $normalizedUid)) {
@@ -112,7 +123,7 @@ class IotDeviceApiController extends Controller
         $checkInTime = $this->resolveCheckInTime($request->input('tapped_at') ?? ($jsonData['tapped_at'] ?? null));
 
         // 6. Pilih sesi yang tepat untuk santri ini
-        $session = $this->resolveSession($request, $student, $checkInTime);
+        $session = $this->resolveSession($request, $student, $checkInTime, $device);
         if (!$session) {
             AttendanceDeviceLog::record($device, $device->device_code, 'NO_ACTIVE_SESSION', 'warning',
                 "Tap {$student->name} ditolak: tidak ada sesi terbuka.", ['uid' => $normalizedUid, 'student_id' => $student->id], $request->ip());
@@ -193,8 +204,16 @@ class IotDeviceApiController extends Controller
      *  c. sesi OPEN hari ini lainnya (agar AttendanceService memberi alasan penolakan yang jelas)
      *  d. jika hari ini belum ada sesi sama sekali -> sesi "Presensi Harian" otomatis (bisa dimatikan)
      */
-    private function resolveSession(Request $request, Student $student, Carbon $checkInTime): ?AttendanceSession
+    private function resolveSession(Request $request, Student $student, Carbon $checkInTime, ?\App\Models\AttendanceDevice $device = null): ?AttendanceSession
     {
+        // Alat yang dikunci ke satu sesi (dari halaman Perangkat) memakai sesi itu selama masih terbuka
+        if ($device?->current_session_id) {
+            $locked = AttendanceSession::with('activity')->whereKey($device->current_session_id)->where('status', SessionStatus::OPEN)->first();
+            if ($locked) {
+                return $locked;
+            }
+        }
+
         if ($request->filled('session_id')) {
             return AttendanceSession::with('activity')
                 ->whereKey((int) $request->input('session_id'))

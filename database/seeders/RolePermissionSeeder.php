@@ -35,6 +35,7 @@ class RolePermissionSeeder extends Seeder
             'activities.update',
             'activities.delete',
             'classrooms.view',
+            'classrooms.manage',
             'dormitories.view',
             'extracurriculars.view',
 
@@ -139,7 +140,7 @@ class RolePermissionSeeder extends Seeder
             'super-admin' => $permissions,
 
             'admin' => [
-                'routine_schedule.manage', 'halaqah.manage', 'duty_roster.manage', 'extracurriculars.manage',
+                'classrooms.manage', 'routine_schedule.manage', 'halaqah.manage', 'duty_roster.manage', 'extracurriculars.manage',
                 'dashboard.view',
                 'dashboard.executive',
                 'students.view', 'students.create', 'students.update', 'students.edit', 'students.deactivate', 'students.cards',
@@ -272,7 +273,7 @@ class RolePermissionSeeder extends Seeder
             ],
 
             'kesantrian' => [
-                'routine_schedule.manage', 'halaqah.manage', 'duty_roster.manage', 'extracurriculars.manage',
+                'classrooms.manage', 'routine_schedule.manage', 'halaqah.manage', 'duty_roster.manage', 'extracurriculars.manage',
                 'dashboard.view',
                 'students.view', 'students.create', 'students.edit', 'students.deactivate', 'students.cards',
                 'staff.view',
@@ -282,7 +283,7 @@ class RolePermissionSeeder extends Seeder
             ],
 
             'academic' => [
-                'dashboard.view',
+                'classrooms.manage', 'dashboard.view',
                 'students.view', 'students.create', 'students.edit',
                 'staff.view',
                 'kbm.teacher_dashboard', 'kbm.monitoring', 'kbm.timetable', 'kbm.master', 'kbm.reports',

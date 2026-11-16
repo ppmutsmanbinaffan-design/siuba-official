@@ -25,6 +25,11 @@ class VerifyIotKey
             ], 503);
         }
 
+        // Alternatif: token per alat (didaftarkan dari halaman Perangkat), dikirim lewat header X-DEVICE-TOKEN
+        if (($providedKey === '' || !hash_equals($configuredKey, $providedKey)) && $this->validDeviceToken($request)) {
+            return $next($request);
+        }
+
         if ($providedKey === '' || !hash_equals($configuredKey, $providedKey)) {
             \App\Models\AttendanceDeviceLog::record(
                 null,
@@ -39,5 +44,22 @@ class VerifyIotKey
         }
 
         return $next($request);
+    }
+
+    private function validDeviceToken(Request $request): bool
+    {
+        $token = (string) ($request->header('X-DEVICE-TOKEN') ?? '');
+        if (strlen($token) < 24) {
+            return false;
+        }
+        $json = json_decode($request->getContent(), true);
+        $code = (string) ($request->input('device_id') ?? $request->input('device_code')
+            ?? (is_array($json) ? ($json['device_id'] ?? $json['device_code'] ?? '') : ''));
+        if ($code === '') {
+            return false;
+        }
+        $hash = \App\Models\AttendanceDevice::where('device_code', $code)->where('is_active', true)->value('api_token_hash');
+
+        return $hash !== null && hash_equals($hash, hash('sha256', $token));
     }
 }

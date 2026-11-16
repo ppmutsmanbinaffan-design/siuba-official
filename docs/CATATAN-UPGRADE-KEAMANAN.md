@@ -442,3 +442,45 @@ php artisan optimize:clear
 
 Data presensi pembina lama di browser berisi jadwal contoh, jadi tidak dimigrasikan. Isi jadwal latihan dan
 penugasan pelatih sekali di tab Penugasan. Kelompok santri lama di browser perlu dibuat ulang.
+
+---
+
+# Update 11: Tahap 8 — Kelas, asrama, kamar, perangkat di server + seeder aman diulang
+
+## Latar belakang
+
+Halaman **Kelas & Asrama** dan **Perangkat** ternyata masih hanya mengubah tampilan di browser: kelas, gedung
+asrama, kamar, dan perangkat RFID yang ditambah/diubah/dihapus di sana tidak pernah tersimpan ke database, dan
+kembali seperti semula setelah halaman dimuat ulang.
+
+## Yang berubah
+
+- **Kelas**: tambah/ubah/hapus tersimpan di server. Nama wali kelas dicocokkan ke akun pengguna dengan nama yang
+  sama. Kelas yang dipakai jadwal/riwayat KBM hanya **dinonaktifkan** (bila dihapus, jadwal & riwayat KBM ikut
+  terhapus).
+- **Gedung asrama & kamar**: tersimpan di server. Asrama yang masih dihuni santri tidak bisa dihapus; menghapus
+  kamar membuat santrinya tanpa kamar.
+- **Perangkat**:
+  - Tambah perangkat dari aplikasi = langsung terdaftar & aktif (masuk whitelist).
+  - **Token perangkat** yang ditampilkan saat menambah / "rotate secret" kini benar-benar berlaku: alat boleh
+    mengirim header `X-DEVICE-TOKEN: <token>` sebagai pengganti kunci global. Token bisa diganti kapan saja dan
+    token lama langsung tidak berlaku. Firmware lama dengan `X-GLOBAL-KEY` tetap berjalan.
+  - **Mode alat** tersimpan dan dipatuhi server: *attendance* (normal), *enrollment* (tap hanya membaca UID untuk
+    halaman Registrasi RFID, tidak mencatat absensi), *maintenance* (semua tap ditolak).
+  - **Kunci alat ke satu sesi**: selama sesi itu terbuka, semua tap dari alat tersebut dicatat ke sesi itu.
+- Tombol **Reset Data** di Pengaturan kini hanya memuat ulang data dari server (dulu mengganti tampilan dengan data
+  contoh).
+- Halaman **Simulator QR/RFID** diberi tanda jelas bahwa hasilnya tidak disimpan.
+- **Seeder akun bawaan aman dijalankan ulang**: `php artisan db:seed` tidak lagi mengembalikan password, nama, dan
+  role akun bawaan yang sudah ada. Nama akun contoh `pimpinan.pondok` diganti "Pimpinan Pondok (contoh)".
+
+## Langkah setelah update
+
+```bash
+php artisan migrate --force          # menambah kolom mode & sesi pada tabel perangkat
+php artisan db:seed --class=RolePermissionSeeder --force
+php artisan permission:cache-reset
+php artisan optimize:clear
+```
+
+Hak akses baru `classrooms.manage` (admin, kesantrian, akademik). Asrama & kamar memakai `dormitory.manage`.

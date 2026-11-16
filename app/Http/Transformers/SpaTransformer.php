@@ -265,6 +265,9 @@ class SpaTransformer
             'is_online' => $online,
             'status' => !$d->is_active ? 'pending_or_disabled' : ($online ? 'online' : 'offline'),
             'tap_count_today' => $tapsToday,
+            'mode' => $d->mode ?? 'attendance',
+            'current_session_id' => $d->current_session_id,
+            'has_device_token' => (bool) $d->api_token_hash,
             'created_at' => $d->created_at?->toIso8601String(),
             'updated_at' => $d->updated_at?->toIso8601String(),
         ];

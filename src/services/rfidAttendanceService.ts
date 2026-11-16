@@ -34,12 +34,10 @@ export class RfidAttendanceService {
    * Format: sec_live_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
    */
   static generateDeviceSecret(): string {
-    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
-    let rand = '';
-    for (let i = 0; i < 32; i++) {
-      rand += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return `sec_live_${rand}`;
+    // Token alat dipakai sungguhan oleh server (X-DEVICE-TOKEN): gunakan generator acak kriptografis
+    const bytes = new Uint8Array(24);
+    crypto.getRandomValues(bytes);
+    return `sec_live_${Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('')}`;
   }
 
   /**

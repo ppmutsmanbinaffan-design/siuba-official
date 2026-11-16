@@ -215,6 +215,19 @@ Route::prefix('v1')->group(function () {
         Route::get('/classrooms', [MasterDataApiController::class, 'classrooms']);
         Route::get('/dormitories', [MasterDataApiController::class, 'dormitories']);
         Route::get('/dormitory-rooms', [MasterDataApiController::class, 'dormitoryRooms']);
+        Route::middleware('permission:classrooms.manage')->group(function () {
+            Route::post('/classrooms', [MasterDataApiController::class, 'storeClassroom']);
+            Route::put('/classrooms/{classroom}', [MasterDataApiController::class, 'updateClassroom']);
+            Route::delete('/classrooms/{classroom}', [MasterDataApiController::class, 'deleteClassroom']);
+        });
+        Route::middleware('permission:dormitory.manage')->group(function () {
+            Route::post('/dormitories', [MasterDataApiController::class, 'storeDormitory']);
+            Route::put('/dormitories/{dormitory}', [MasterDataApiController::class, 'updateDormitory']);
+            Route::delete('/dormitories/{dormitory}', [MasterDataApiController::class, 'deleteDormitory']);
+            Route::post('/dormitory-rooms', [MasterDataApiController::class, 'storeRoom']);
+            Route::put('/dormitory-rooms/{room}', [MasterDataApiController::class, 'updateRoom']);
+            Route::delete('/dormitory-rooms/{room}', [MasterDataApiController::class, 'deleteRoom']);
+        });
 
         // Sesi absensi (aplikasi React)
         Route::prefix('attendance')->group(function () {
@@ -389,7 +402,9 @@ Route::prefix('v1')->group(function () {
     // Whitelist perangkat RFID (aktivasi / nonaktifkan alat) - wajib login admin perangkat
     Route::prefix('devices')->middleware(['auth:sanctum'])->group(function () {
         Route::get('/', [DeviceManagementApiController::class, 'index'])->middleware('permission:devices.view|devices.manage');
+        Route::post('/', [DeviceManagementApiController::class, 'store'])->middleware('permission:devices.create|devices.manage');
         Route::patch('/{device}', [DeviceManagementApiController::class, 'update'])->middleware('permission:devices.manage|devices.update');
+        Route::post('/{device}/token', [DeviceManagementApiController::class, 'rotateToken'])->middleware('permission:devices.manage|devices.update');
     });
 
     // Registrasi kartu RFID (dipakai halaman /registrasi-rfid) - wajib login admin

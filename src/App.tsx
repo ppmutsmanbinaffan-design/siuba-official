@@ -833,54 +833,35 @@ export function App() {
   };
 
   // Reset demo data
+  // Dulu mengembalikan tampilan ke data contoh; kini cukup memuat ulang semua data dari server.
   const handleResetData = () => {
-    setStudents(INITIAL_STUDENTS);
-    setActivities(INITIAL_ACTIVITIES);
-    setSessions(INITIAL_SESSIONS);
-    setRecords(INITIAL_RECORDS);
-    setDevices(INITIAL_DEVICES);
-    setDeviceLogs(INITIAL_DEVICE_LOGS);
-    setExtracurriculars(INITIAL_EXTRACURRICULARS);
-    setExtracurricularMembers(INITIAL_EXTRACURRICULAR_MEMBERS);
-    setStudentGroups(INITIAL_STUDENT_GROUPS);
-    setStudentGroupMembers(INITIAL_STUDENT_GROUP_MEMBERS);
-    setClassHistories(INITIAL_CLASS_HISTORIES);
-    setRoomHistories(INITIAL_ROOM_HISTORIES);
-    setSessionParticipants(INITIAL_SESSION_PARTICIPANTS);
-    setActivityParticipants(INITIAL_ACTIVITY_PARTICIPANTS);
-    setExcusals(INITIAL_STUDENT_EXCUSALS);
-    setRecordHistories(INITIAL_RECORD_HISTORIES);
-    showToast('Data database simulasi berhasil direset ke initial seed Sprint 5.', 'success');
+    void refreshServerData(false);
+    showToast('Data dimuat ulang dari server.', 'info');
   };
 
-  // Device Management Handlers (Sprint 5)
-  const handleAddDevice = (newDev: AttendanceDevice, plainSecret: string) => {
-    setDevices((prev) => [...prev, newDev]);
-    const log: AttendanceDeviceLog = {
-      id: Date.now(),
-      attendance_device_id: newDev.id,
-      device_code: newDev.device_code,
-      event_type: 'FIRMWARE_BOOT',
-      level: 'info',
-      message: `Perangkat baru '${newDev.device_name}' didaftarkan oleh ${currentUser.name} (IP: ${newDev.ip_address}).`,
-      created_at: newDev.created_at || new Date().toISOString().slice(0, 19).replace('T', ' '),
-    };
-    setDeviceLogs((prev) => [log, ...prev]);
-  };
+  // ===== Perangkat: disimpan di server =====
+  // Token alat dibuat di browser, server hanya menyimpan hash-nya; dipakai alat lewat header X-DEVICE-TOKEN.
+  const handleAddDevice = (newDev: AttendanceDevice, plainSecret: string) =>
+    kbmCall(() => apiClient.post('/devices', {
+      device_code: newDev.device_code, device_name: newDev.device_name, device_type: newDev.device_type,
+      location: newDev.location, device_token: plainSecret,
+    }), `Perangkat ${newDev.device_code} berhasil didaftarkan.`);
 
   const handleUpdateDevice = (updatedDev: AttendanceDevice) => {
     setDevices((prev) => prev.map((d) => (d.id === updatedDev.id ? updatedDev : d)));
+    return kbmCall(() => apiClient.patch(`/devices/${updatedDev.id}`, {
+      device_name: updatedDev.device_name, location: updatedDev.location, is_active: updatedDev.is_active,
+      mode: updatedDev.mode || 'attendance', current_session_id: updatedDev.current_session_id ?? null,
+    }), `Perangkat ${updatedDev.device_code} diperbarui.`);
   };
 
   const handleRotateDeviceSecret = (deviceId: number) => {
-    const { newPlainSecret, updatedDevice, deviceLog } = RfidAttendanceService.rotateDeviceSecret({
-      deviceId,
-      devices,
-      operator: currentUser,
-    });
-    setDevices((prev) => prev.map((d) => (d.id === deviceId ? updatedDevice : d)));
-    setDeviceLogs((prev) => [deviceLog, ...prev]);
-    return { newSecret: newPlainSecret, updatedDevice };
+    const device = devices.find((d) => d.id === deviceId) as AttendanceDevice;
+    const bytes = new Uint8Array(24);
+    crypto.getRandomValues(bytes);
+    const newSecret = 'dev_' + Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+    void kbmCall(() => apiClient.post(`/devices/${deviceId}/token`, { device_token: newSecret }), `Token perangkat ${device?.device_code || ''} diperbarui.`);
+    return { newSecret, updatedDevice: { ...device, updated_at: new Date().toISOString() } };
   };
 
   // Record Attendance Handler (Engine Invocation with Session Participant Snapshot Verification)
@@ -1245,101 +1226,40 @@ export function App() {
   const handleRemoveStudentGroupMember = (memberId: number) =>
     kbmCall(() => apiClient.delete(`/community/student-group-members/${memberId}`), 'Santri dikeluarkan dari kelompok.');
 
-  // Classroom CRUD Handlers
-  const handleAddClassroom = (classroomData: Partial<Classroom>) => {
-    const newClassroom: Classroom = {
-      id: Date.now(),
-      code: classroomData.code || `CLS-${classroomData.grade_level || 7}-${classroomData.name || 'NEW'}`,
-      name: classroomData.name || 'Kelas Baru',
-      grade_level: classroomData.grade_level || 7,
-      academic_year: classroomData.academic_year || '2025/2026',
-      homeroom_teacher: classroomData.homeroom_teacher || 'Ustadz Pengampu',
-      capacity: classroomData.capacity || 30,
-      student_count: 0,
-      is_active: true,
-    };
-    setClassrooms((prev) => [...prev, newClassroom]);
-    showToast(`Kelas '${newClassroom.name}' (Tingkat ${newClassroom.grade_level}) berhasil ditambahkan.`, 'success');
+  // ===== Kelas, gedung asrama, kamar: disimpan di server (setelah berubah, data master dimuat ulang penuh) =====
+  const masterCall = async (fn: () => Promise<any>, successMsg: string) => {
+    try {
+      const res: any = await fn();
+      showToast(res?.message || successMsg, 'success');
+      await refreshServerData(false);
+      return res;
+    } catch (err: any) {
+      const fieldMsg = err?.fieldErrors ? (Object.values(err.fieldErrors).flat()[0] as string | undefined) : undefined;
+      showToast(isOfflineError(err) ? 'Server offline: perubahan belum bisa disimpan.' : fieldMsg || err?.message || 'Gagal menyimpan.', 'error');
+      return null;
+    }
   };
 
-  const handleUpdateClassroom = (classroomId: number, updateData: Partial<Classroom>) => {
-    setClassrooms((prev) =>
-      prev.map((c) => (c.id === classroomId ? { ...c, ...updateData } : c))
-    );
-    showToast(`Data kelas berhasil diperbarui.`, 'success');
-  };
+  const handleAddClassroom = (classroomData: Partial<Classroom>) =>
+    masterCall(() => apiClient.post('/classrooms', classroomData), `Kelas '${classroomData.name || ''}' berhasil ditambahkan.`);
+  const handleUpdateClassroom = (classroomId: number, updateData: Partial<Classroom>) =>
+    masterCall(() => apiClient.put(`/classrooms/${classroomId}`, updateData), 'Data kelas berhasil diperbarui.');
+  const handleDeleteClassroom = (classroomId: number) =>
+    masterCall(() => apiClient.delete(`/classrooms/${classroomId}`), 'Kelas dihapus.');
 
-  const handleDeleteClassroom = (classroomId: number) => {
-    const target = classrooms.find((c) => c.id === classroomId);
-    setClassrooms((prev) => prev.filter((c) => c.id !== classroomId));
-    setStudents((prev) =>
-      prev.map((s) => (s.classroom_id === classroomId ? { ...s, classroom_id: null, classroom_name: undefined } : s))
-    );
-    showToast(`Kelas '${target?.name || ''}' berhasil dihapus.`, 'info');
-  };
+  const handleAddDormitory = (dormData: Partial<Dormitory>) =>
+    masterCall(() => apiClient.post('/dormitories', dormData), `Gedung asrama '${dormData.name || ''}' berhasil ditambahkan.`);
+  const handleUpdateDormitory = (dormId: number, updateData: Partial<Dormitory>) =>
+    masterCall(() => apiClient.put(`/dormitories/${dormId}`, updateData), 'Data gedung asrama berhasil diperbarui.');
+  const handleDeleteDormitory = (dormId: number) =>
+    masterCall(() => apiClient.delete(`/dormitories/${dormId}`), 'Gedung asrama dihapus.');
 
-  // Dormitory & Room CRUD Handlers
-  const handleAddDormitory = (dormData: Partial<Dormitory>) => {
-    const newDorm: Dormitory = {
-      id: Date.now(),
-      name: dormData.name || 'Gedung Asrama Baru',
-      gender: dormData.gender || 'L',
-      is_active: true,
-    };
-    setDormitories((prev) => [...prev, newDorm]);
-    showToast(`Gedung asrama '${newDorm.name}' berhasil ditambahkan.`, 'success');
-  };
-
-  const handleUpdateDormitory = (dormId: number, updateData: Partial<Dormitory>) => {
-    setDormitories((prev) =>
-      prev.map((d) => (d.id === dormId ? { ...d, ...updateData } : d))
-    );
-    showToast(`Data gedung asrama berhasil diperbarui.`, 'success');
-  };
-
-  const handleDeleteDormitory = (dormId: number) => {
-    const target = dormitories.find((d) => d.id === dormId);
-    setDormitories((prev) => prev.filter((d) => d.id !== dormId));
-    // Also remove associated rooms and unassign students
-    const roomIdsToDelete = dormitoryRooms.filter((r) => r.dormitory_id === dormId).map((r) => r.id);
-    setDormitoryRooms((prev) => prev.filter((r) => r.dormitory_id !== dormId));
-    setStudents((prev) =>
-      prev.map((s) => (s.dormitory_room_id && roomIdsToDelete.includes(s.dormitory_room_id) ? { ...s, dormitory_room_id: null, dormitory_room_name: undefined } : s))
-    );
-    showToast(`Gedung asrama '${target?.name || ''}' dan kamarnya berhasil dihapus.`, 'info');
-  };
-
-  const handleAddDormitoryRoom = (roomData: Partial<DormitoryRoom>) => {
-    const dorm = dormitories.find((d) => d.id === roomData.dormitory_id);
-    const newRoom: DormitoryRoom = {
-      id: Date.now(),
-      dormitory_id: roomData.dormitory_id || 1,
-      dormitory_name: dorm?.name || roomData.dormitory_name || 'Asrama',
-      code: roomData.code || `RM-${Math.random().toString(36).substring(2, 6).toUpperCase()}`,
-      name: roomData.name || 'Kamar Baru',
-      capacity: roomData.capacity || 8,
-      supervisor: roomData.supervisor || 'Ustadz Pembina',
-      is_active: true,
-    };
-    setDormitoryRooms((prev) => [...prev, newRoom]);
-    showToast(`Kamar '${newRoom.name}' berhasil ditambahkan ke ${newRoom.dormitory_name}.`, 'success');
-  };
-
-  const handleUpdateDormitoryRoom = (roomId: number, updateData: Partial<DormitoryRoom>) => {
-    setDormitoryRooms((prev) =>
-      prev.map((r) => (r.id === roomId ? { ...r, ...updateData } : r))
-    );
-    showToast(`Data kamar berhasil diperbarui.`, 'success');
-  };
-
-  const handleDeleteDormitoryRoom = (roomId: number) => {
-    const target = dormitoryRooms.find((r) => r.id === roomId);
-    setDormitoryRooms((prev) => prev.filter((r) => r.id !== roomId));
-    setStudents((prev) =>
-      prev.map((s) => (s.dormitory_room_id === roomId ? { ...s, dormitory_room_id: null, dormitory_room_name: undefined } : s))
-    );
-    showToast(`Kamar '${target?.name || ''}' berhasil dihapus.`, 'info');
-  };
+  const handleAddDormitoryRoom = (roomData: Partial<DormitoryRoom>) =>
+    masterCall(() => apiClient.post('/dormitory-rooms', roomData), `Kamar '${roomData.name || ''}' berhasil ditambahkan.`);
+  const handleUpdateDormitoryRoom = (roomId: number, updateData: Partial<DormitoryRoom>) =>
+    masterCall(() => apiClient.put(`/dormitory-rooms/${roomId}`, updateData), 'Data kamar berhasil diperbarui.');
+  const handleDeleteDormitoryRoom = (roomId: number) =>
+    masterCall(() => apiClient.delete(`/dormitory-rooms/${roomId}`), 'Kamar dihapus.');
 
   // Activity Handlers
   // ===== Master kegiatan: disimpan di server =====
@@ -2057,30 +1977,40 @@ export function App() {
           )}
 
           {activeTab === 'scanner-simulator' && (
-            <InteractiveScannerSimulator
-              sessions={sessions}
-              students={students}
-              activities={activities}
-              devices={devices}
-              records={records}
-              currentUser={currentUser}
-              sessionParticipants={sessionParticipants}
-              onRecordAttendance={handleRecordAttendance}
-            />
+            <>
+              <div className="mb-4 p-3 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-semibold">
+                Mode simulasi: hasil di halaman ini hanya untuk latihan/uji coba dan <b>tidak disimpan ke server</b>. Untuk absensi sungguhan gunakan Scan QR, Absensi Manual, atau alat RFID.
+              </div>
+                          <InteractiveScannerSimulator
+                sessions={sessions}
+                students={students}
+                activities={activities}
+                devices={devices}
+                records={records}
+                currentUser={currentUser}
+                sessionParticipants={sessionParticipants}
+                onRecordAttendance={handleRecordAttendance}
+              />
+            </>
           )}
 
           {activeTab === 'rfid-simulator' && (
-            <RfidSimulatorView
-              sessions={sessions}
-              students={students}
-              activities={activities}
-              devices={devices}
-              records={records}
-              sessionParticipants={sessionParticipants}
-              currentUser={currentUser}
-              onRecordAttendance={handleRecordAttendance}
-              onShowToast={showToast}
-            />
+            <>
+              <div className="mb-4 p-3 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-semibold">
+                Mode simulasi: hasil di halaman ini hanya untuk latihan/uji coba dan <b>tidak disimpan ke server</b>. Untuk absensi sungguhan gunakan Scan QR, Absensi Manual, atau alat RFID.
+              </div>
+                          <RfidSimulatorView
+                sessions={sessions}
+                students={students}
+                activities={activities}
+                devices={devices}
+                records={records}
+                sessionParticipants={sessionParticipants}
+                currentUser={currentUser}
+                onRecordAttendance={handleRecordAttendance}
+                onShowToast={showToast}
+              />
+            </>
           )}
 
           {activeTab === 'history' && (

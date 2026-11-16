@@ -43,6 +43,9 @@ class DeviceManagementApiController extends Controller
             'is_active' => 'sometimes|boolean',
             'device_name' => 'sometimes|string|max:100',
             'location' => 'sometimes|nullable|string|max:100',
+            'device_type' => ['sometimes', \Illuminate\Validation\Rule::in(['manual', 'qr_scanner', 'rfid_reader', 'kiosk'])],
+            'mode' => 'sometimes|in:attendance,enrollment,maintenance',
+            'current_session_id' => 'sometimes|nullable|integer|exists:attendance_sessions,id',
         ]);
 
         $device->update($data);
@@ -95,5 +98,48 @@ class DeviceManagementApiController extends Controller
             ->get();
 
         return response()->json(['success' => true, 'data' => $logs->map(fn ($l) => SpaTransformer::deviceLog($l))->values()]);
+    }
+
+    /**
+     * Daftarkan alat dari aplikasi (langsung aktif = masuk whitelist).
+     * Token alat opsional: bila dikirim, disimpan sebagai hash dan bisa dipakai alat lewat header X-DEVICE-TOKEN
+     * (kunci global X-GLOBAL-KEY tetap berlaku untuk firmware lama).
+     */
+    public function store(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'device_code' => 'required|string|max:50|regex:/^[A-Za-z0-9._-]+$/|unique:attendance_devices,device_code',
+            'device_name' => 'required|string|max:100',
+            'device_type' => ['nullable', \Illuminate\Validation\Rule::in(['manual', 'qr_scanner', 'rfid_reader', 'kiosk'])],
+            'location' => 'nullable|string|max:100',
+            'device_token' => 'nullable|string|min:24|max:200',
+        ], [
+            'device_code.unique' => 'Kode perangkat sudah dipakai.',
+            'device_code.regex' => 'Kode perangkat hanya boleh huruf, angka, titik, garis bawah, dan tanda minus.',
+        ]);
+        $device = AttendanceDevice::create([
+            'device_code' => strtoupper($data['device_code']),
+            'device_name' => $data['device_name'],
+            'device_type' => $data['device_type'] ?? 'rfid_reader',
+            'location' => $data['location'] ?? null,
+            'api_token_hash' => !empty($data['device_token']) ? hash('sha256', $data['device_token']) : null,
+            'is_active' => true,
+            'mode' => 'attendance',
+        ]);
+        \App\Models\AttendanceDeviceLog::record($device, $device->device_code, 'DEVICE_REGISTERED', 'info',
+            "Perangkat '{$device->device_name}' didaftarkan oleh " . ($request->user()?->name ?? 'admin') . '.', [], $request->ip());
+
+        return response()->json(['success' => true, 'message' => "Perangkat {$device->device_code} berhasil didaftarkan.", 'data' => SpaTransformer::device($device)], 201);
+    }
+
+    /** Ganti token alat (token lama langsung tidak berlaku). */
+    public function rotateToken(Request $request, AttendanceDevice $device): JsonResponse
+    {
+        $data = $request->validate(['device_token' => 'required|string|min:24|max:200']);
+        $device->update(['api_token_hash' => hash('sha256', $data['device_token'])]);
+        \App\Models\AttendanceDeviceLog::record($device, $device->device_code, 'TOKEN_ROTATED', 'warning',
+            'Token perangkat diganti oleh ' . ($request->user()?->name ?? 'admin') . '.', [], $request->ip());
+
+        return response()->json(['success' => true, 'message' => "Token perangkat {$device->device_code} diperbarui."]);
     }
 }
