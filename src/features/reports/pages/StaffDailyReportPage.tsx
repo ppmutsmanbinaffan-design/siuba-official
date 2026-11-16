@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { useServerStaffReportData } from '../useServerStaffReportData';
 import { 
   Briefcase, 
   Search, 
@@ -56,6 +57,7 @@ export const StaffDailyReportPage: React.FC<Props> = ({
   const [subView, setSubView] = useState<StaffReportSubView>('daily_list');
   const [dateFrom, setDateFrom] = useState<string>(initialFilters.date_from || firstDayOfMonth);
   const [dateTo, setDateTo] = useState<string>(initialFilters.date_to || todayStr);
+  const { version: serverDataVersion, loading: serverDataLoading, error: serverDataError } = useServerStaffReportData(dateFrom, dateTo, onShowToast);
   const [selectedStaffId, setSelectedStaffId] = useState<string>(initialFilters.staff_id || 'ALL');
   const [selectedStaffType, setSelectedStaffType] = useState<string>(initialFilters.staff_type || 'ALL');
   const [selectedStatus, setSelectedStatus] = useState<string>(initialFilters.attendance_status || 'ALL');
@@ -70,16 +72,17 @@ export const StaffDailyReportPage: React.FC<Props> = ({
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
 
-  const staffList = useMemo(() => StaffIdentityResolver.getStaffList().filter((s) => s.is_active), []);
+  const staffList = useMemo(() => StaffIdentityResolver.getStaffList().filter((s) => s.is_active), [serverDataVersion]);
 
   const queryFilters: StaffAnalyticsFilters = useMemo(() => ({
     date_from: dateFrom,
+    _server_version: serverDataVersion,
     date_to: dateTo,
     staff_id: selectedStaffId,
     staff_type: selectedStaffType as any,
     attendance_status: selectedStatus as any,
     attendance_method: selectedMethod as any,
-  }), [dateFrom, dateTo, selectedStaffId, selectedStaffType, selectedStatus, selectedMethod]);
+  }), [dateFrom, dateTo, serverDataVersion, selectedStaffId, selectedStaffType, selectedStatus, selectedMethod]);
 
   // 1. Fetch Daily Operational List
   const dailyData = useMemo(() => {
@@ -348,6 +351,11 @@ export const StaffDailyReportPage: React.FC<Props> = ({
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6" id="staff-daily-report-page">
+      {(serverDataLoading || serverDataError) && (
+        <div className={`mb-3 p-2.5 rounded-xl text-xs font-semibold border ${serverDataError ? 'bg-rose-50 border-rose-200 text-rose-800' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
+          {serverDataError || 'Memuat data laporan dari server…'}
+        </div>
+      )}
       <ReportHeader
         categoryName="B. Presensi Harian SDM"
         title="Laporan Presensi Staf & Pegawai"

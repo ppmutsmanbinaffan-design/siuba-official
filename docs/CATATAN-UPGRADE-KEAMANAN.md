@@ -484,3 +484,32 @@ php artisan optimize:clear
 ```
 
 Hak akses baru `classrooms.manage` (admin, kesantrian, akademik). Asrama & kamar memakai `dormitory.manage`.
+
+---
+
+# Update 12: Tahap 9 — Laporan memakai data server
+
+## Latar belakang
+
+- **Laporan SDM** (Kehadiran SDM Harian, Mengajar KBM, Melatih Ekskul, Izin SDM) membaca data dari penyimpanan
+  browser, bukan dari server. Bila browser belum pernah menyimpan apa pun, laporan menampilkan **data contoh bawaan**
+  (mis. "Pak Joko Santoso") seolah-olah data sungguhan.
+- **Laporan Absensi Santri** hanya menghitung dari 14 hari terakhir yang dimuat aplikasi, sehingga rekap bulanan
+  atau periode yang lebih lama **diam-diam tidak lengkap**.
+
+## Yang berubah
+
+- Endpoint baru `GET /api/v1/reports/staff-dataset?from=&to=` (maks. 93 hari): data SDM, presensi harian/mengajar/
+  melatih, izin SDM, sesi mengajar KBM, sesi latihan ekskul, penugasan pelatih.
+  Guru/pelatih yang tidak punya hak laporan SDM hanya menerima datanya sendiri.
+- Keempat laporan SDM memuat data server setiap kali periode diubah (ada tanda "Memuat data laporan dari server…").
+- Laporan Absensi Santri mengambil data absensi untuk periode yang dipilih langsung dari server
+  (`/api/v1/attendance/snapshot`, kini maks. 93 hari).
+- Laporan Perangkat menampilkan mode, lokasi, dan waktu terakhir terhubung yang sebelumnya kosong.
+
+## Langkah setelah update
+
+```bash
+php artisan optimize:clear
+```
+(tidak ada migrasi baru)

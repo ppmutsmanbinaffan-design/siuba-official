@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\DataImportApiController;
 use App\Http\Controllers\Api\DeviceManagementApiController;
 use App\Http\Controllers\Api\CommunityApiController;
 use App\Http\Controllers\Api\RoutineApiController;
+use App\Http\Controllers\Api\ReportDatasetApiController;
 use App\Http\Controllers\Api\TrainerApiController;
 use App\Http\Controllers\Api\DomainManagementApiController;
 use App\Http\Controllers\Api\IotDeviceApiController;
@@ -136,6 +137,10 @@ Route::prefix('v1')->group(function () {
         Route::put('/routine-schedules/sync', [RoutineApiController::class, 'sync'])->middleware('permission:routine_schedule.manage');
         Route::post('/routine-schedules/generate', [RoutineApiController::class, 'generate'])->middleware('permission:attendance.sessions.create|routine_schedule.manage');
         Route::post('/attendance/sessions', [RoutineApiController::class, 'storeSession'])->middleware('permission:attendance.sessions.create');
+
+        // Data laporan SDM (harian, mengajar, melatih, izin) untuk rentang tanggal
+        Route::get('/reports/staff-dataset', [ReportDatasetApiController::class, 'staff'])
+            ->middleware('permission:staff.reports|kbm.reports|reports.view|trainer.attendance');
 
         // Presensi pembina / pelatih ekstrakurikuler
         Route::prefix('trainer')->group(function () {

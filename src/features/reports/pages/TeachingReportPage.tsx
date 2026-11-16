@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { useServerStaffReportData } from '../useServerStaffReportData';
 import { 
   BookOpen, 
   Search, 
@@ -50,6 +51,7 @@ export const TeachingReportPage: React.FC<Props> = ({
   const [subView, setSubView] = useState<TeachingReportSubView>('session_list');
   const [dateFrom, setDateFrom] = useState<string>(initialFilters.date_from || firstDayOfMonth);
   const [dateTo, setDateTo] = useState<string>(initialFilters.date_to || todayStr);
+  const { version: serverDataVersion, loading: serverDataLoading, error: serverDataError } = useServerStaffReportData(dateFrom, dateTo, onShowToast);
   const [selectedStaffId, setSelectedStaffId] = useState<string>(initialFilters.staff_id || 'ALL');
   const [selectedClassId, setSelectedClassId] = useState<string>(initialFilters.classroom_id || 'ALL');
   const [selectedSubjectId, setSelectedSubjectId] = useState<string>(initialFilters.subject_id || 'ALL');
@@ -65,15 +67,16 @@ export const TeachingReportPage: React.FC<Props> = ({
 
   const teachers = useMemo(() => {
     return StaffIdentityResolver.getStaffList().filter((s) => s.is_active && s.staff_type === 'teacher');
-  }, []);
+  }, [serverDataVersion]);
 
   const queryFilters: StaffAnalyticsFilters = useMemo(() => ({
     date_from: dateFrom,
+    _server_version: serverDataVersion,
     date_to: dateTo,
     staff_id: selectedStaffId,
     classroom_id: selectedClassId === 'ALL' ? undefined : Number(selectedClassId),
     subject_id: selectedSubjectId === 'ALL' ? undefined : Number(selectedSubjectId),
-  }), [dateFrom, dateTo, selectedStaffId, selectedClassId, selectedSubjectId]);
+  }), [dateFrom, dateTo, serverDataVersion, selectedStaffId, selectedClassId, selectedSubjectId]);
 
   const dailyData = useMemo(() => {
     if (subView !== 'session_list') return [];
@@ -308,6 +311,11 @@ export const TeachingReportPage: React.FC<Props> = ({
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6" id="teaching-report-page">
+      {(serverDataLoading || serverDataError) && (
+        <div className={`mb-3 p-2.5 rounded-xl text-xs font-semibold border ${serverDataError ? 'bg-rose-50 border-rose-200 text-rose-800' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
+          {serverDataError || 'Memuat data laporan dari server…'}
+        </div>
+      )}
       <ReportHeader
         categoryName="C. KBM & Pengajar"
         title="Laporan Pembelajaran & Guru KBM"

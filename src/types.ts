@@ -413,6 +413,11 @@ export interface AttendanceDevice {
   default_activity_id?: number | null;
   current_session_id?: number | null;
   mode?: DeviceMode;
+  device_mode?: DeviceMode;
+  location_label?: string;
+  last_ping_at?: string | null;
+  status?: string;
+  is_online?: boolean;
   tap_count_today?: number;
   created_at?: string;
   updated_at?: string;

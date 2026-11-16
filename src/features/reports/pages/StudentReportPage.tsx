@@ -1,4 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { apiClient, isOfflineError } from '../../../services/apiClient';
+import { todayLocalDate } from '../../../utils/today';
 import { 
   Users, 
   Search, 
@@ -53,9 +55,9 @@ interface Props {
 
 export const StudentReportPage: React.FC<Props> = ({
   currentUser,
-  sessions = [],
-  participants = [],
-  records = [],
+  sessions: propSessions = [],
+  participants: propParticipants = [],
+  records: propRecords = [],
   students = [],
   classrooms = [],
   categories = [],
@@ -64,11 +66,43 @@ export const StudentReportPage: React.FC<Props> = ({
   onBackToHub,
   onShowToast,
 }) => {
-  const todayStr = new Date().toISOString().substring(0, 10);
+  const todayStr = todayLocalDate();
 
   const [subView, setSubView] = useState<StudentReportSubView>('daily');
   const [dateFrom, setDateFrom] = useState<string>(initialFilters.date_from || todayStr);
   const [dateTo, setDateTo] = useState<string>(initialFilters.date_to || todayStr);
+
+  // Data absensi untuk rentang laporan diambil langsung dari server (aplikasi hanya memuat 14 hari terakhir)
+  const [rangeData, setRangeData] = useState<{ sessions: AttendanceSession[]; participants: AttendanceSessionParticipant[]; records: AttendanceRecord[] } | null>(null);
+  const [rangeLoading, setRangeLoading] = useState(false);
+  const [rangeError, setRangeError] = useState<string | null>(null);
+  useEffect(() => {
+    if (!dateFrom || !dateTo || dateFrom > dateTo) return;
+    let cancelled = false;
+    setRangeLoading(true);
+    const t = setTimeout(async () => {
+      try {
+        const res: any = await apiClient.get('/attendance/snapshot', { from: dateFrom, to: dateTo });
+        if (cancelled) return;
+        const d = res?.data || {};
+        setRangeData({ sessions: d.sessions || [], participants: d.participants || [], records: d.records || [] });
+        setRangeError(d.from && d.from > dateFrom ? `Rentang dibatasi maksimal 93 hari: data mulai ${d.from}.` : null);
+      } catch (err: any) {
+        if (cancelled) return;
+        setRangeData(null);
+        setRangeError(isOfflineError(err) ? 'Server tidak terjangkau: laporan hanya memakai data yang sudah dimuat (14 hari terakhir).' : err?.message || 'Gagal memuat data laporan.');
+      } finally {
+        if (!cancelled) setRangeLoading(false);
+      }
+    }, 300);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [dateFrom, dateTo]);
+  const sessions = rangeData?.sessions ?? propSessions;
+  const participants = rangeData?.participants ?? propParticipants;
+  const records = rangeData?.records ?? propRecords;
   const [selectedClass, setSelectedClass] = useState<string>(initialFilters.classroom_name || 'all');
   const [selectedCategory, setSelectedCategory] = useState<number | 'all'>(initialFilters.category_id || 'all');
   const [selectedActivity, setSelectedActivity] = useState<number | 'all'>(initialFilters.activity_id || 'all');
@@ -450,6 +484,11 @@ export const StudentReportPage: React.FC<Props> = ({
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6" id="student-report-page">
+      {(rangeLoading || rangeError) && (
+        <div className={`mb-3 p-2.5 rounded-xl text-xs font-semibold border ${rangeError ? 'bg-amber-50 border-amber-200 text-amber-900' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
+          {rangeError || 'Memuat data absensi periode ini dari server…'}
+        </div>
+      )}
       {/* Header */}
       <ReportHeader
         categoryName="A. Absensi Santri"

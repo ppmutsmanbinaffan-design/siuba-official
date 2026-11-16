@@ -415,21 +415,21 @@ class AttendanceSessionApiController extends Controller
     /**
      * Data absensi sekaligus (sesi + peserta + catatan) untuk mengisi state awal aplikasi React
      * (dashboard, laporan, monitoring) — menggantikan data contoh/localStorage.
-     * Route: GET /api/v1/attendance/snapshot?from=YYYY-MM-DD&to=YYYY-MM-DD (maks. 62 hari)
+     * Route: GET /api/v1/attendance/snapshot?from=YYYY-MM-DD&to=YYYY-MM-DD (maks. 93 hari)
      */
     public function snapshot(Request $request): JsonResponse
     {
         $request->validate(['from' => 'nullable|date', 'to' => 'nullable|date']);
         $to = Carbon::parse($request->input('to', today()->addDay()->toDateString()))->endOfDay();
         $from = Carbon::parse($request->input('from', today()->subDays(13)->toDateString()))->startOfDay();
-        if ($from->diffInDays($to, true) > 62) {
-            $from = $to->copy()->subDays(62)->startOfDay();
+        if ($from->diffInDays($to, true) > 93) { // laporan bulanan/triwulan
+            $from = $to->copy()->subDays(93)->startOfDay();
         }
 
         $sessions = AttendanceSession::with(['activity.category', 'openedByUser', 'closedByUser'])
             ->whereBetween('session_date', [$from->toDateString(), $to->toDateString()])
             ->orderBy('session_date')->orderBy('start_at')
-            ->limit(3000)
+            ->limit(6000)
             ->get();
         $ids = $sessions->pluck('id');
         $stats = $this->statsFor($ids);

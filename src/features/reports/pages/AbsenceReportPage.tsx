@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { useServerStaffReportData } from '../useServerStaffReportData';
 import { 
   CalendarDays, 
   Search, 
@@ -47,6 +48,7 @@ export const AbsenceReportPage: React.FC<Props> = ({
 
   const [dateFrom, setDateFrom] = useState<string>(initialFilters.date_from || firstDayOfMonth);
   const [dateTo, setDateTo] = useState<string>(initialFilters.date_to || todayStr);
+  const { version: serverDataVersion, loading: serverDataLoading, error: serverDataError } = useServerStaffReportData(dateFrom, dateTo, onShowToast);
   const [selectedStaffId, setSelectedStaffId] = useState<string>(initialFilters.staff_id || 'ALL');
   const [selectedType, setSelectedType] = useState<string>(initialFilters.type || 'ALL');
   const [selectedStatus, setSelectedStatus] = useState<string>(initialFilters.status || 'ALL');
@@ -59,13 +61,14 @@ export const AbsenceReportPage: React.FC<Props> = ({
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
 
-  const staffList = useMemo(() => StaffIdentityResolver.getStaffList().filter((s) => s.is_active), []);
+  const staffList = useMemo(() => StaffIdentityResolver.getStaffList().filter((s) => s.is_active), [serverDataVersion]);
 
   const queryFilters: StaffAnalyticsFilters = useMemo(() => ({
     date_from: dateFrom,
+    _server_version: serverDataVersion,
     date_to: dateTo,
     staff_id: selectedStaffId,
-  }), [dateFrom, dateTo, selectedStaffId]);
+  }), [dateFrom, dateTo, serverDataVersion, selectedStaffId]);
 
   const items = useMemo(() => {
     let list = StaffReportQueryService.getStaffAbsenceReport(queryFilters, currentUser);
@@ -256,6 +259,11 @@ export const AbsenceReportPage: React.FC<Props> = ({
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6" id="absence-report-page">
+      {(serverDataLoading || serverDataError) && (
+        <div className={`mb-3 p-2.5 rounded-xl text-xs font-semibold border ${serverDataError ? 'bg-rose-50 border-rose-200 text-rose-800' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
+          {serverDataError || 'Memuat data laporan dari server…'}
+        </div>
+      )}
       <ReportHeader
         categoryName="E. Izin & Cuti"
         title="Laporan Izin, Sakit, Cuti & Dinas Luar"
