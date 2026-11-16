@@ -139,28 +139,12 @@ class ApiClientService {
 
     // Check client-side connectivity first
     if (!navigator.onLine || ServerConnectivityService.getState() === 'SERVER_OFFLINE') {
-      if (options.method && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(options.method.toUpperCase())) {
-        try {
-          const bodyPayload = options.body ? JSON.parse(options.body as string) : {};
-          OfflineStorageService.addPendingAttendance({
-            sessionId: bodyPayload.attendance_session_id || bodyPayload.sessionId || 1,
-            studentId: bodyPayload.student_id || bodyPayload.studentId || 0,
-            studentNumber: bodyPayload.student_number || bodyPayload.studentNumber || 'UNKNOWN',
-            studentName: bodyPayload.student_name || bodyPayload.studentName || 'Santri Offline',
-            status: bodyPayload.status || 'present',
-            method: bodyPayload.verification_method || bodyPayload.method || 'manual',
-            operatorId: bodyPayload.operator_id || 1,
-            operatorName: bodyPayload.operator_name || 'System Operator',
-          });
-        } catch {
-          // Silent offline cache fallback
-        }
-      }
-
+      // Catatan: dulu SEMUA permintaan ubah data (simpan pengaturan, tambah kelas, dll.) saat offline diubah menjadi
+      // "absensi tertunda" palsu (santri #0, sesi #1). Kini hanya pencatatan absensi yang diantre (lihat attendanceApi).
       throw new ApiClientError({
         status: 0,
         code: 'NETWORK_OFFLINE',
-        message: 'Koneksi server lokal terputus. Data disimpan secara offline dan akan disinkronkan saat server kembali online.',
+        message: 'Koneksi ke server terputus. Absensi santri tetap bisa dicatat dan akan dikirim otomatis saat server kembali terhubung; perubahan lain perlu diulang saat online.',
         isNetworkError: true,
       });
     }

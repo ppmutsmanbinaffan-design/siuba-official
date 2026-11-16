@@ -648,3 +648,29 @@ Tambahkan ke `.env` setelah data asli mulai dipakai:
 ```
 SIUBA_ALLOW_DATABASE_RESET=false
 ```
+
+---
+
+# Update 17 — Tahap 14: Absensi offline benar-benar terkirim ke server
+
+Masalah sebelumnya:
+- Absensi yang dicatat saat server mati hanya tersimpan di cache browser, lalu **tertimpa data server** dalam ≤60 detik — hilang.
+- `apiClient` mengubah *setiap* POST/PUT/DELETE yang gagal menjadi "absensi tertunda" palsu (santri 0, sesi 1).
+- Tombol "Sinkronkan" di Pusat Sinkronisasi hanya simulasi.
+
+Perbaikan:
+- Absensi manual, massal, dan QR saat offline masuk **antrean offline** (`siuba_pending_attendance`), juga bila data
+  sesi/santri belum ada di cache perangkat (server yang memvalidasi saat sinkron). Operator melihat pemberitahuan kuning.
+- Antrean dikirim **otomatis** ke `/offline/attendance/sync` saat koneksi kembali (dan tiap 60 detik), per 200 data;
+  hasil: tersinkron / konflik / gagal (dengan jumlah percobaan).
+- Pusat Sinkronisasi: tombol sinkron memakai server sungguhan; konflik "pakai data offline" mengoreksi catatan server,
+  "pakai data server" menutup konflik; tombol backup membuat & mengunduh backup server.
+- Antrean palsu dari `apiClient` dihapus. Buka/tutup/batal sesi saat offline kini ditolak dengan pesan jelas.
+- Data sesi, peserta, dan catatan yang dibuka saat online disimpan ke cache, sehingga mode offline punya data terbaru.
+
+## Langkah setelah update
+
+```bash
+php artisan optimize:clear
+```
+Tidak ada migrasi baru. Setelah update, muat ulang browser (Ctrl+F5).

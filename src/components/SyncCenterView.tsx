@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { pushPendingAttendance } from '../services/offlineQueueSync';
+import { apiClient } from '../services/apiClient';
 import { 
   Wifi, 
   WifiOff, 
@@ -208,107 +210,73 @@ export const SyncCenterView: React.FC<SyncCenterViewProps> = ({
     onShowToast('Cache offline sesi berhasil dihapus', 'info');
   };
 
-  const handleSyncAllPending = () => {
-    if (connectivityState === 'SERVER_OFFLINE') {
-      onShowToast('Tidak dapat sinkronisasi: Server sedang offline / terputus.', 'error');
-      return;
-    }
-
+  // Kirim antrean ke SERVER (dulu hanya diproses ke data browser lalu tertimpa data server)
+  const handleSyncAllPending = async () => {
     const itemsToSync = (pendingItems || []).filter(p => p && (p.sync_status === 'pending' || p.sync_status === 'failed'));
     if (itemsToSync.length === 0) {
       onShowToast('Tidak ada antrean absensi pending untuk disinkronkan.', 'info');
       return;
     }
-
     setIsSyncing(true);
-
-    setTimeout(() => {
-      const { batchResponse, updatedRecords, updatedHistories, updatedParticipants } = OfflineSyncService.processSyncBatch(
-        itemsToSync,
-        safeSessions,
-        safeParticipants,
-        safeRecords,
-        safeHistories,
-        safeStudents,
-        currentUser
-      );
-
-      if (onUpdateRecords) onUpdateRecords(updatedRecords);
-      if (onApplySyncedRecords) onApplySyncedRecords(updatedRecords);
-      if (onUpdateRecordHistories) onUpdateRecordHistories(updatedHistories);
-      if (onUpdateParticipants) onUpdateParticipants(updatedParticipants);
-
+    try {
+      const r = await pushPendingAttendance({ includeFailed: true });
       refreshLocalState();
-      setIsSyncing(false);
-
-      if (batchResponse.conflict_count > 0) {
-        onShowToast(
-          `Sinkronisasi selesai: ${batchResponse.success_count} berhasil, ${batchResponse.conflict_count} konflik perlu ditinjau.`,
-          'info'
-        );
-      } else if (batchResponse.failed_count > 0) {
-        onShowToast(
-          `Sinkronisasi selesai: ${batchResponse.success_count} berhasil, ${batchResponse.failed_count} gagal validasi.`,
-          'error'
-        );
+      if (r.offline) {
+        onShowToast('Server belum terjangkau. Antrean tetap tersimpan dan akan dikirim otomatis saat server kembali online.', 'error');
+      } else if (r.conflict > 0) {
+        onShowToast(`Sinkronisasi selesai: ${r.success} berhasil, ${r.conflict} konflik perlu ditinjau.`, 'info');
+      } else if (r.failed > 0) {
+        onShowToast(`Sinkronisasi selesai: ${r.success} berhasil, ${r.failed} gagal (lihat keterangan di daftar).`, 'error');
       } else {
-        onShowToast(
-          `Semua ${batchResponse.success_count} absensi offline berhasil disinkronkan ke server!`,
-          'success'
-        );
+        onShowToast(`Semua ${r.success} absensi offline berhasil dikirim ke server.`, 'success');
       }
-    }, 600);
+      if (r.success > 0 && onApplySyncedRecords) onApplySyncedRecords([]);
+    } finally {
+      setIsSyncing(false);
+    }
   };
 
-  const handleResolveConflict = (item: PendingAttendanceItem, decision: 'ACCEPT_OFFLINE' | 'KEEP_SERVER') => {
-    const result = OfflineSyncService.resolveConflict(
-      item,
-      decision,
-      safeRecords,
-      safeHistories,
-      safeParticipants,
-      currentUser
-    );
-
-    if (onUpdateRecords) onUpdateRecords(result.updatedRecords);
-    if (onUpdateRecordHistories) onUpdateRecordHistories(result.updatedHistories);
-    if (onUpdateParticipants) onUpdateParticipants(result.updatedParticipants);
-
-    refreshLocalState();
-    onShowToast(result.message, 'success');
+  // Konflik = data sudah diatur operator di server. Terima offline → koreksi di server; pertahankan server → tandai selesai.
+  const resolveOne = async (item: PendingAttendanceItem, decision: 'ACCEPT_OFFLINE' | 'KEEP_SERVER') => {
+    if (decision === 'ACCEPT_OFFLINE') {
+      if (!item.server_attendance_id) throw new Error('ID absensi server tidak diketahui.');
+      await apiClient.post(`/attendance/records/${item.server_attendance_id}/correct`, {
+        new_status: item.requested_status,
+        reason: `Konflik sinkron offline: data dari perangkat ${item.device_context?.device_name || 'offline'} diterima`,
+      });
+    }
+    OfflineStorageService.updatePendingRecord(item.local_id, { sync_status: 'synced', conflict_message: decision === 'KEEP_SERVER' ? 'Data server dipertahankan' : 'Data offline diterima' } as any);
   };
 
-  const handleBatchResolveAllConflicts = (decision: 'ACCEPT_OFFLINE' | 'KEEP_SERVER') => {
+  const handleResolveConflict = async (item: PendingAttendanceItem, decision: 'ACCEPT_OFFLINE' | 'KEEP_SERVER') => {
+    try {
+      await resolveOne(item, decision);
+      refreshLocalState();
+      onShowToast(decision === 'ACCEPT_OFFLINE' ? 'Data offline diterapkan ke server.' : 'Data server dipertahankan.', 'success');
+      if (onApplySyncedRecords) onApplySyncedRecords([]);
+    } catch (err: any) {
+      onShowToast(err?.message || 'Gagal menyelesaikan konflik.', 'error');
+    }
+  };
+
+  const handleBatchResolveAllConflicts = async (decision: 'ACCEPT_OFFLINE' | 'KEEP_SERVER') => {
     const conflicts = (pendingItems || []).filter(p => p && p.sync_status === 'conflict');
     if (conflicts.length === 0) {
       onShowToast('Tidak ada konflik yang perlu diselesaikan.', 'info');
       return;
     }
-
-    let lastUpdatedRecords = safeRecords;
-    let lastUpdatedHistories = safeHistories;
-    let lastUpdatedParticipants = safeParticipants;
-
-    conflicts.forEach(item => {
-      const result = OfflineSyncService.resolveConflict(
-        item,
-        decision,
-        lastUpdatedRecords,
-        lastUpdatedHistories,
-        lastUpdatedParticipants,
-        currentUser
-      );
-      lastUpdatedRecords = result.updatedRecords;
-      lastUpdatedHistories = result.updatedHistories;
-      lastUpdatedParticipants = result.updatedParticipants;
-    });
-
-    if (onUpdateRecords) onUpdateRecords(lastUpdatedRecords);
-    if (onUpdateRecordHistories) onUpdateRecordHistories(lastUpdatedHistories);
-    if (onUpdateParticipants) onUpdateParticipants(lastUpdatedParticipants);
-
+    let ok = 0;
+    for (const item of conflicts) {
+      try {
+        await resolveOne(item, decision);
+        ok++;
+      } catch {
+        /* lanjut ke berikutnya */
+      }
+    }
     refreshLocalState();
-    onShowToast(`✓ Berhasil menyelesaikan ${conflicts.length} konflik (${decision === 'ACCEPT_OFFLINE' ? 'Terima Data Offline' : 'Pertahankan Data Server'}).`, 'success');
+    if (onApplySyncedRecords) onApplySyncedRecords([]);
+    onShowToast(`✓ ${ok} dari ${conflicts.length} konflik diselesaikan (${decision === 'ACCEPT_OFFLINE' ? 'Terima Data Offline' : 'Pertahankan Data Server'}).`, ok === conflicts.length ? 'success' : 'error');
   };
 
   // Create simulated offline attendance item for demonstration/testing
@@ -321,44 +289,50 @@ export const SyncCenterView: React.FC<SyncCenterViewProps> = ({
     const randomStudent = safeStudents[Math.floor(Math.random() * safeStudents.length)];
     const activeSession = safeSessions.find(s => s.status !== 'cancelled') || safeSessions[0];
 
-    const newItem: PendingAttendanceItem = {
-      local_id: 'local_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
-      client_request_id: 'req_' + Math.random().toString(36).substring(2, 14) + Date.now(),
-      session_id: activeSession.id,
-      activity_name: activeSession.activity_name,
-      student_id: randomStudent.id,
-      student_name: randomStudent.name,
-      student_number: randomStudent.student_number,
-      classroom_name: randomStudent.classroom || 'Kelas Santri',
-      requested_status: 'present',
-      attendance_method: 'rfid_card',
-      captured_at_client: new Date().toISOString(),
-      client_installation_id: installation.installation_id,
-      operator_id: currentUser.id,
-      operator_name: currentUser.name,
-      sync_status: 'pending',
-      retry_count: 0
-    };
-
-    OfflineStorageService.addPendingRecord(newItem);
+    OfflineStorageService.addPendingAttendance({
+      sessionId: activeSession.id,
+      activityName: activeSession.activity_name,
+      studentId: randomStudent.id,
+      studentNumber: randomStudent.student_number,
+      studentName: randomStudent.name,
+      classroomName: (randomStudent as any).classroom || 'Kelas Santri',
+      method: 'rfid' as any,
+      status: 'present' as any,
+      operatorId: currentUser.id,
+      operatorName: currentUser.name,
+      notes: 'Simulasi antrean offline',
+    });
     refreshLocalState();
     onShowToast(`✓ Simulasi absensi offline santri "${randomStudent.name}" berhasil ditambahkan ke antrean!`, 'success');
   };
 
-  const handleCreateBackup = () => {
-    const { meta, jsonContent } = LocalBackupService.createDatabaseBackup({
-      students: safeStudents,
-      sessions: safeSessions,
-      participants: safeParticipants,
-      records: safeRecords,
-      excusals: safeExcusals,
-      devices: safeDevices,
-      operatorName: currentUser.name
-    });
-
-    LocalBackupService.downloadBackupFile(meta.filename, jsonContent);
-    refreshLocalState();
-    onShowToast(`Backup database "${meta.filename}" berhasil dibuat dan diunduh.`, 'success');
+  // Backup sungguhan dari database server (dulu hanya mengunduh salinan sebagian data di browser)
+  const handleCreateBackup = async () => {
+    try {
+      const res: any = await apiClient.post('/maintenance/backups', { notes: 'Backup dari Sync Center' });
+      const id = res?.data?.backup_id;
+      const file = await fetch(`/api/v1/maintenance/backups/${encodeURIComponent(id)}/download`, {
+        headers: { Authorization: `Bearer ${apiClient.getToken() || ''}` },
+      });
+      if (!file.ok) throw new Error(`Unduhan gagal (HTTP ${file.status}).`);
+      const blob = await file.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `siuba_backup_${id}.ndjson.gz`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      onShowToast(`Backup database server ${id} dibuat dan diunduh.`, 'success');
+    } catch (err: any) {
+      onShowToast(
+        err?.status === 403
+          ? 'Backup database hanya bisa dibuat oleh Admin / Super Admin (Maintenance Hub → Backup Database).'
+          : err?.message || 'Gagal membuat backup.',
+        'error'
+      );
+    }
   };
 
   const handleSimulateRestoreTest = () => {

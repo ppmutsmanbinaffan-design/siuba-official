@@ -65,6 +65,7 @@ export const ManualAttendancePage: React.FC<ManualAttendancePageProps> = ({
   // Bulk Action Dialog
   const [bulkAction, setBulkAction] = useState<AttendanceStatus | null>(null);
   const [isProcessingBulk, setIsProcessingBulk] = useState<boolean>(false);
+  const [offlineNotice, setOfflineNotice] = useState<string | null>(null);
 
   // Correction Modal
   const [recordToCorrect, setRecordToCorrect] = useState<AttendanceRecord | null>(null);
@@ -129,6 +130,7 @@ export const ManualAttendancePage: React.FC<ManualAttendancePageProps> = ({
       });
 
       if (res.success) {
+        setOfflineNotice(/antrean offline/i.test(res.message || '') ? res.message : null);
         if (status === 'present') {
           AudioFeedbackService.playSuccess();
         } else if (status === 'late') {
@@ -171,6 +173,8 @@ export const ManualAttendancePage: React.FC<ManualAttendancePageProps> = ({
         notes: `Pencatatan massal ${bulkAction.toUpperCase()} oleh ${currentUser.name}`,
       });
 
+      const bulkMsg = (res as any)?.messages?.find?.((m: string) => /antrean offline/i.test(m));
+      setOfflineNotice(bulkMsg || null);
       AudioFeedbackService.playSuccess();
       setBulkAction(null);
       await loadSessionData();
@@ -236,6 +240,12 @@ export const ManualAttendancePage: React.FC<ManualAttendancePageProps> = ({
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
+      {offlineNotice && (
+        <div id="manual-offline-notice" className="rounded-2xl border border-amber-300 bg-amber-50 text-amber-900 px-4 py-3 text-sm font-medium flex items-start justify-between gap-3">
+          <span>{offlineNotice} Lihat status antrean di menu Pusat Sinkronisasi.</span>
+          <button type="button" onClick={() => setOfflineNotice(null)} className="text-amber-700 font-bold">×</button>
+        </div>
+      )}
       {/* Brand Header Card */}
       <div className="bg-gradient-to-br from-[#12372A] via-[#1a4a39] to-[#12372A] text-white rounded-3xl p-6 sm:p-8 shadow-xl border border-[#1f5c45]/40 relative overflow-hidden flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
         <div className="absolute right-0 top-0 bottom-0 w-1/3 bg-radial from-white/10 to-transparent pointer-events-none" />

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { startAutoQueueSync } from './services/offlineQueueSync';
 import { loadInstitution } from './services/institutionService';
 import { Sidebar } from './components/Sidebar';
 import { TopHeader } from './components/TopHeader';
@@ -783,6 +784,20 @@ export function App() {
       showToast(isOfflineError(err) ? 'Server offline: sesi rutin belum bisa dibuat.' : err?.message || 'Gagal membuat sesi rutin.', 'error');
     }
   };
+
+  // Antrean absensi offline dikirim otomatis ke server saat koneksi kembali
+  useEffect(() => {
+    if (!currentUser) return;
+    return startAutoQueueSync((r) => {
+      showToast(
+        r.conflict > 0
+          ? `${r.success} absensi offline terkirim ke server; ${r.conflict} konflik perlu ditinjau di Sync Center.`
+          : `${r.success} absensi offline berhasil dikirim ke server.`,
+        r.conflict > 0 || r.failed > 0 ? 'info' : 'success'
+      );
+      void refreshServerData(true);
+    });
+  }, [currentUser?.id]);
 
   // Berpindah akun tanpa login sungguhan dinonaktifkan: dulu menimpa token asli dengan token palsu
   // sehingga semua panggilan API gagal dan identitas pengguna menjadi rancu.
@@ -2305,7 +2320,8 @@ export function App() {
               onUpdateRecordHistories={(newHistories) => setRecordHistories(newHistories)}
               onUpdateParticipants={(newParts) => setSessionParticipants(newParts)}
               onApplySyncedRecords={(newRecords) => {
-                setRecords((prev) => [...newRecords, ...prev]);
+                if (newRecords.length) setRecords((prev) => [...newRecords, ...prev]);
+                void refreshServerData(true); // ambil data terbaru setelah antrean offline terkirim
                 showToast(`Berhasil menambahkan ${newRecords.length} record dari antrean offline ke server.`, 'success');
               }}
               onRestoreDatabase={(dump) => {
