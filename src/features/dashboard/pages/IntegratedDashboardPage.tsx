@@ -472,21 +472,21 @@ export const IntegratedDashboardPage: React.FC<Props> = ({
 
         {canViewStaff && (activeDomain === 'all' || activeDomain === 'sdm_daily') && (
           <StaffTrendChart
-            trends={staffDashboardData.trends.daily_presence_trend}
+            trends={staffDashboardData.trends.daily}
             onSelectDate={(d) => setSelectedDate(d)}
           />
         )}
 
         {canViewTeaching && (activeDomain === 'all' || activeDomain === 'teaching') && (
           <TeachingTrendChart
-            trends={staffDashboardData.trends.teaching_trend}
+            trends={staffDashboardData.trends.teaching}
             onSelectDate={(d) => setSelectedDate(d)}
           />
         )}
 
         {(activeDomain === 'all' || activeDomain === 'training') && (
           <TrainingTrendChart
-            trends={staffDashboardData.trends.training_trend}
+            trends={staffDashboardData.trends.training}
             onSelectDate={(d) => setSelectedDate(d)}
           />
         )}

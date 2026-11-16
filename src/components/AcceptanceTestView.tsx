@@ -919,7 +919,7 @@ export const AcceptanceTestView: React.FC<Props> = ({
         };
       });
 
-      setTests(updated);
+      setTests(updated as TestItem[]);
       setIsRunningAll(false);
     }, 600);
   };

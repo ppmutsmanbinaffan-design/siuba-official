@@ -85,7 +85,7 @@ export const TeacherSubstitutionModal: React.FC<TeacherSubstitutionModalProps> =
       onClose={onClose}
       title="Penugasan Resmi Guru Pengganti"
       description="Delegasikan sesi jam pelajaran ke guru pengganti resmi."
-      size="md"
+      maxWidth="md"
     >
       <form onSubmit={handleSubmit} className="space-y-4 pt-2">
         {errorMessage && (

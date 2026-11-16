@@ -388,7 +388,7 @@ export const TrainingAttendancePage: React.FC<TrainingAttendancePageProps> = ({
 
       {/* Content */}
       {isLoading ? (
-        <LoadingState text="Memuat jadwal sesi ekstrakurikuler..." />
+        <LoadingState message="Memuat jadwal sesi ekstrakurikuler..." />
       ) : filteredSessions.length === 0 ? (
         <EmptyState
           title="Tidak Ada Jadwal Ekstrakurikuler"

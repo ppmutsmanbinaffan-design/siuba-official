@@ -219,7 +219,7 @@ export const StaffDetailPage: React.FC<StaffDetailPageProps> = ({
             <DetailField
               label="Jenis Kelamin"
               value={
-                staff.gender === 'male' || staff.gender === 'L'
+                staff.gender === 'male' || (staff.gender as string) === 'L'
                   ? 'Laki-laki (Ikhwan)'
                   : 'Perempuan (Akhwat)'
               }

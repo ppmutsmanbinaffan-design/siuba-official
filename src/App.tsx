@@ -1230,16 +1230,16 @@ export function App() {
   // ===== Ekstrakurikuler: disimpan di server =====
   const handleAddExtracurricular = (ekskul: Partial<Extracurricular>) =>
     kbmCall(() => apiClient.post('/community/extracurriculars', ekskul), `Ekstrakurikuler '${ekskul.name || ''}' ditambahkan.`);
-  const handleAddExtracurricularMember = (member: Partial<ExtracurricularMember>) =>
-    kbmCall(() => apiClient.post(`/community/extracurriculars/${member.extracurricular_id}/members`, member), 'Anggota ekstrakurikuler ditambahkan.');
+  const handleAddExtracurricularMember = (extracurricularId: number, studentId: number) =>
+    kbmCall(() => apiClient.post(`/community/extracurriculars/${extracurricularId}/members`, { student_id: studentId }), 'Anggota ekstrakurikuler ditambahkan.');
   const handleRemoveExtracurricularMember = (memberId: number) =>
     kbmCall(() => apiClient.delete(`/community/extracurricular-members/${memberId}`), 'Anggota ekstrakurikuler dinonaktifkan.');
 
   // ===== Kelompok santri khusus: disimpan di server =====
   const handleAddStudentGroup = (grp: Partial<StudentGroup>) =>
     kbmCall(() => apiClient.post('/community/student-groups', grp), `Kelompok '${grp.name || ''}' berhasil dibuat.`);
-  const handleAddStudentGroupMember = (member: Partial<StudentGroupMember>) =>
-    kbmCall(() => apiClient.post(`/community/student-groups/${member.student_group_id}/members`, { student_id: member.student_id }), 'Santri berhasil didaftarkan ke kelompok.');
+  const handleAddStudentGroupMember = (groupId: number, studentId: number) =>
+    kbmCall(() => apiClient.post(`/community/student-groups/${groupId}/members`, { student_id: studentId }), 'Santri berhasil didaftarkan ke kelompok.');
   const handleRemoveStudentGroupMember = (memberId: number) =>
     kbmCall(() => apiClient.delete(`/community/student-group-members/${memberId}`), 'Santri dikeluarkan dari kelompok.');
 
@@ -1586,7 +1586,7 @@ export function App() {
           isMobileOpen={isMobileSidebarOpen}
           onCloseMobile={() => setIsMobileSidebarOpen(false)}
           onLogout={handleLogout}
-          isLoadingAuth={authStatus === 'loading'}
+          isLoadingAuth={false}
         />
 
         {/* Main Content Area */}
@@ -1609,14 +1609,12 @@ export function App() {
             {activeTab === '403' && (
               <Forbidden403
                 onBackToDashboard={() => handleSetActiveTab('dashboard')}
-                onLoginAsDifferentUser={handleLogout}
               />
             )}
 
             {activeTab === '404' && (
               <NotFound404
                 onBackToDashboard={() => handleSetActiveTab('dashboard')}
-                requestedPath={window.location.pathname}
               />
             )}
 
@@ -1691,7 +1689,6 @@ export function App() {
 
           {activeTab === 'attendance-dashboard' && (
             <AttendanceDashboardPage
-              userRole={currentUser.role}
               onNavigateToManual={(sId) => {
                 if (sId) setSelectedAttendanceSessionId(sId);
                 setActiveTab('manual-attendance');
@@ -1709,10 +1706,10 @@ export function App() {
                 setAttendanceSubView('detail');
                 setActiveTab('sessions');
               }}
-              onNavigateToRfidMonitoring={() => {
+              onNavigateToRfid={() => {
                 setActiveTab('rfid-monitoring');
               }}
-              onNavigateToLiveMonitoring={() => {
+              onNavigateToMonitoring={() => {
                 setActiveTab('attendance-monitoring');
               }}
             />
@@ -1779,8 +1776,8 @@ export function App() {
             attendanceSubView === 'detail' && selectedAttendanceSessionId ? (
               <SessionDetailPage
                 sessionId={selectedAttendanceSessionId}
-                userRole={currentUser.role}
-                onNavigateBack={() => setAttendanceSubView('sessions')}
+                onBack={() => setAttendanceSubView('sessions')}
+                currentUser={currentUser}
                 onNavigateToManual={(sId) => {
                   setSelectedAttendanceSessionId(sId);
                   setActiveTab('manual-attendance');
@@ -1789,7 +1786,6 @@ export function App() {
                   setSelectedAttendanceSessionId(sId);
                   setActiveTab('qr-scanner');
                 }}
-                onShowToast={showToast}
               />
             ) : (
               <SessionListPage
@@ -2121,6 +2117,16 @@ export function App() {
           {activeTab === 'staff-integrated-dashboard' && (
             <IntegratedDashboardPage
               currentUser={currentUser}
+              sessions={sessions}
+              participants={sessionParticipants}
+              records={records}
+              students={students}
+              classrooms={classrooms}
+              dormitories={dormitories}
+              categories={categories}
+              activities={activities}
+              excusals={excusals}
+              devices={devices}
               onNavigateTab={(t, params) => {
                 if (params?.category) setReportCategory(params.category);
                 if (params?.filters) setReportFilters(params.filters);

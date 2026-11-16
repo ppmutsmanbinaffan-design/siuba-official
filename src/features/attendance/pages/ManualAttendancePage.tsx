@@ -574,7 +574,7 @@ export const ManualAttendancePage: React.FC<ManualAttendancePageProps> = ({
         variant={bulkAction === 'present' ? 'primary' : 'danger'}
         isLoading={isProcessingBulk}
         onConfirm={handleBulkSubmit}
-        onCancel={() => setBulkAction(null)}
+        onClose={() => setBulkAction(null)}
       />
 
       {/* Correction Modal */}

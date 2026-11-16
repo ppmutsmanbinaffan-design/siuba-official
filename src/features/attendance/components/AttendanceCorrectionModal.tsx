@@ -68,7 +68,7 @@ export const AttendanceCorrectionModal: React.FC<AttendanceCorrectionModalProps>
       isOpen={isOpen}
       onClose={onClose}
       title="Koreksi Status Absensi"
-      size="md"
+      maxWidth="md"
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Santri Info Banner */}

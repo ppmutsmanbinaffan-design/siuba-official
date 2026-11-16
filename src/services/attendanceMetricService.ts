@@ -16,6 +16,7 @@ import {
   StudentExcusal, 
   User 
 } from '../types';
+import { todayLocalDate } from '../utils/today';
 
 export interface FilterCriteria {
   startDate?: string;
@@ -216,7 +217,7 @@ export class AttendanceMetricService {
     sessions: AttendanceSession[],
     participants: AttendanceSessionParticipant[],
     records: AttendanceRecord[],
-    dateStr: string = '2026-08-23'
+    dateStr: string = todayLocalDate()
   ) {
     const prayerNames = ['Subuh', 'Dzuhur', 'Ashar', 'Maghrib', 'Isya'];
     const results: Record<string, MetricSummary & { sessionCount: number }> = {};

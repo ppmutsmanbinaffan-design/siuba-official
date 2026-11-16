@@ -85,7 +85,7 @@ export const StaffRfidMonitoringPage: React.FC<StaffRfidMonitoringPageProps> = (
       }
 
       const res = await StaffAttendanceApi.recordDailyScan({
-        identifier: targetStaff.rfid_card_id || `RFID-${targetStaff.staff_number}`,
+        identifier: targetStaff.rfid_uid || `RFID-${targetStaff.staff_number}`,
         method: 'rfid',
         operatorName: 'Terminal Gerbang RFID-01',
       });
@@ -95,7 +95,7 @@ export const StaffRfidMonitoringPage: React.FC<StaffRfidMonitoringPageProps> = (
         terminal: 'Terminal Gerbang Pos Depan',
         staffName: res.staffName || targetStaff.name,
         staffNumber: res.staffNumber || targetStaff.staff_number,
-        cardUid: maskCardUid(targetStaff.rfid_card_id || '9A-4B-C2-88'),
+        cardUid: maskCardUid(targetStaff.rfid_uid || '-'),
         time: new Date().toLocaleTimeString('id-ID'),
         status: res.status || 'present',
         success: res.success,

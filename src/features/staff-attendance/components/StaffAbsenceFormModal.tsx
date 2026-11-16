@@ -82,7 +82,7 @@ export const StaffAbsenceFormModal: React.FC<StaffAbsenceFormModalProps> = ({
       onClose={onClose}
       title="Pengajuan Izin, Sakit, Cuti & Dinas SDM"
       description="Formulir resmi permohonan dispensasi dan ketidakhadiran staf pesantren."
-      size="md"
+      maxWidth="md"
     >
       <form onSubmit={handleSubmit} className="space-y-4 pt-2">
         {errorMessage && (

@@ -387,7 +387,7 @@ export const StaffDailyReportPage: React.FC<Props> = ({
         activeChips={activeChips}
         onRemoveChip={handleRemoveChip}
         onResetFilters={handleResetFilters}
-        onOpenDrawer={() => setIsMobileDrawerOpen(true)}
+        onOpenMobileDrawer={() => setIsMobileDrawerOpen(true)}
       >
         <select
           value={selectedStaffType}
@@ -398,8 +398,9 @@ export const StaffDailyReportPage: React.FC<Props> = ({
           <option value="teacher">Guru / Pengajar (KBM)</option>
           <option value="trainer">Pelatih Ekskul</option>
           <option value="musyrif">Musyrif / Pembina Asrama</option>
-          <option value="admin">Staf Administrasi & TU</option>
-          <option value="security">Security & Keamanan</option>
+          <option value="administration">Staf Administrasi & TU</option>
+          <option value="employee">Karyawan / Petugas</option>
+          <option value="management">Pimpinan / Manajemen</option>
           <option value="cleaning">Staf Kebersihan & Sarpras</option>
           <option value="kitchen">Staf Dapur</option>
         </select>
@@ -639,7 +640,7 @@ export const StaffDailyReportPage: React.FC<Props> = ({
         isOpen={isMobileDrawerOpen}
         onClose={() => setIsMobileDrawerOpen(false)}
         title="Filter Laporan Presensi Staf"
-        activeChipsCount={activeChips.length}
+        onApply={() => setIsMobileDrawerOpen(false)}
         onReset={handleResetFilters}
       >
         <div className="space-y-4 text-xs">
@@ -654,8 +655,9 @@ export const StaffDailyReportPage: React.FC<Props> = ({
               <option value="teacher">Guru / Pengajar (KBM)</option>
               <option value="trainer">Pelatih Ekskul</option>
               <option value="musyrif">Musyrif / Pembina Asrama</option>
-              <option value="admin">Staf Administrasi & TU</option>
-              <option value="security">Security & Keamanan</option>
+              <option value="administration">Staf Administrasi & TU</option>
+              <option value="employee">Karyawan / Petugas</option>
+          <option value="management">Pimpinan / Manajemen</option>
               <option value="cleaning">Staf Kebersihan & Sarpras</option>
               <option value="kitchen">Staf Dapur</option>
             </select>

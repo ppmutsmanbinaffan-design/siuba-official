@@ -123,7 +123,7 @@ export const RfidSimulatorView: React.FC<Props> = ({
     plain_secret_preview: 'sec_live_msj01_dev',
     ip_address: '192.168.1.101'
   };
-  const activeSession = sessions.find((s) => s.id === currentDevice?.current_session_id) || sessions.find((s) => s.status === 'open') || sessions[0];
+  const activeSession = sessions.find((s) => s.id === (currentDevice as any)?.current_session_id) || sessions.find((s) => s.status === 'open') || sessions[0];
 
   const serialBottomRef = useRef<HTMLDivElement>(null);
 

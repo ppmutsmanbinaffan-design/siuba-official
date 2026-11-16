@@ -34,7 +34,7 @@ export const TrainingManualAttendanceModal: React.FC<TrainingManualAttendanceMod
   if (!session) return null;
 
   const coaches = staffList.filter(
-    (s) => s.is_active && (s.staff_type === 'coach' || s.staff_type === 'teacher' || s.id === session.coach_staff_id)
+    (s) => s.is_active && (s.staff_type === 'trainer' || s.staff_type === 'teacher' || s.id === session.coach_staff_id)
   );
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -75,7 +75,7 @@ export const TrainingManualAttendanceModal: React.FC<TrainingManualAttendanceMod
       onClose={onClose}
       title="Presensi Pelatih Ekstrakurikuler"
       description="Catat kehadiran pelatih/pembina pada sesi kegiatan ekstrakurikuler."
-      size="md"
+      maxWidth="md"
     >
       <form onSubmit={handleSubmit} className="space-y-4 pt-2">
         {errorMessage && (

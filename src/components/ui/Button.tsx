@@ -1,7 +1,7 @@
 import React from 'react';
 import { Loader2 } from 'lucide-react';
 
-export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'gold';
+export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'gold' | 'default' | 'destructive';
 export type ButtonSize = 'sm' | 'md' | 'lg' | 'icon';
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -49,6 +49,9 @@ export const Button: React.FC<ButtonProps> = ({
     outline: 'bg-white hover:bg-zinc-50 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 border border-zinc-300 dark:border-zinc-700 focus:ring-[#1F5C45]',
     ghost: 'bg-transparent hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100 focus:ring-zinc-400',
     danger: 'bg-rose-600 hover:bg-rose-700 text-white shadow-xs focus:ring-rose-500',
+    // alias yang dipakai beberapa halaman (sebelumnya tombol tampil tanpa warna)
+    destructive: 'bg-rose-600 hover:bg-rose-700 text-white shadow-xs focus:ring-rose-500',
+    default: 'bg-[#1F5C45] hover:bg-[#12372A] text-white shadow-xs focus:ring-[#1F5C45]',
     gold: 'bg-[#C9A227] hover:bg-[#B28E1D] text-white shadow-xs focus:ring-amber-500',
   };
 

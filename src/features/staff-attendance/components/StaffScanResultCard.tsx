@@ -117,7 +117,7 @@ export const StaffScanResultCard: React.FC<StaffScanResultCardProps> = ({
       <div className="py-3.5 flex items-start gap-3.5">
         <PersonAvatar
           name={lastResult.staffName || lastResult.staff?.name || 'Staf'}
-          avatarUrl={lastResult.staff?.avatar}
+          photoUrl={lastResult.staff?.photo}
           className="w-12 h-12 rounded-2xl shrink-0 ring-2 ring-zinc-700/50"
         />
 

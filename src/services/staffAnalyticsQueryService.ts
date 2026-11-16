@@ -183,7 +183,7 @@ export class StaffAnalyticsQueryService {
     const totalTraining = trainingSessions.length;
     const cancelledTraining = trainingSessions.filter(s => s.status === 'cancelled').length;
     const eligibleTraining = totalTraining - cancelledTraining;
-    const realizedTraining = trainingSessions.filter(s => s.realization_status === 'realized').length;
+    const realizedTraining = trainingSessions.filter(s => ['realized', 'submitted'].includes(s.realization_status as string)).length;
     const substitutedTraining = trainingSessions.filter(s => Boolean(s.substitution_id)).length;
 
     const trainingRecords = StaffAttendanceService.getRecords().filter(r => 
@@ -215,7 +215,7 @@ export class StaffAnalyticsQueryService {
     const unrecordedTraining = Math.max(0, eligibleTraining - trainerAttended);
     const trainingNeedsReviewCount = trainingSessions.filter(s => 
       s.status !== 'cancelled' && 
-      (!trainingRecordBySession.has(s.id) || (s.realization_status !== 'realized' && trainingRecordBySession.has(s.id)))
+      (!trainingRecordBySession.has(s.id) || (!['realized', 'submitted'].includes(s.realization_status as string) && trainingRecordBySession.has(s.id)))
     ).length;
 
     const trainingAttendanceRate = StaffAttendanceMetricService.calculateTrainingRate(trainerAttended, eligibleTraining);
@@ -311,7 +311,7 @@ export class StaffAnalyticsQueryService {
     trainingSessions.forEach(session => {
       if (session.status === 'cancelled') return;
       const rec = trainingRecordBySession.get(session.id);
-      if (rec && session.realization_status !== 'realized') {
+      if (rec && !['realized', 'submitted'].includes(session.realization_status as string)) {
         trainingNeedsReviewList.push({
           session,
           issue: 'Pelatih hadir namun jurnal realisasi materi latihan belum diisi'
@@ -490,12 +490,12 @@ export class StaffAnalyticsQueryService {
       const trSessions = TrainingSessionService.getTrainingSessions(dateStr);
       const trCancelled = trSessions.filter(s => s.status === 'cancelled').length;
       const trEligible = trSessions.length - trCancelled;
-      const trRealized = trSessions.filter(s => s.realization_status === 'realized').length;
+      const trRealized = trSessions.filter(s => ['realized', 'submitted'].includes(s.realization_status as string)).length;
       const trRecords = allRecords.filter(r => r.attendance_date === dateStr && r.attendance_type === 'training');
       const trAttended = trRecords.filter(r => r.status === 'present' || r.status === 'late').length;
       const trLate = trRecords.filter(r => r.status === 'late').length;
       const trSub = trSessions.filter(s => Boolean(s.substitution_id)).length;
-      const trNeedsReview = trSessions.filter(s => s.status !== 'cancelled' && s.realization_status !== 'realized').length;
+      const trNeedsReview = trSessions.filter(s => s.status !== 'cancelled' && !['realized', 'submitted'].includes(s.realization_status as string)).length;
 
       trainingTrend.push({
         date: dateStr,

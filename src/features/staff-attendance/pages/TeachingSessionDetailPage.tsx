@@ -63,7 +63,7 @@ export const TeachingSessionDetailPage: React.FC<TeachingSessionDetailPageProps>
   }, [loadSession]);
 
   if (isLoading) {
-    return <LoadingState text="Memuat detail sesi mengajar..." />;
+    return <LoadingState message="Memuat detail sesi mengajar..." />;
   }
 
   if (!session) {

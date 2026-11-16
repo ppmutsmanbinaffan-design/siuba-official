@@ -450,7 +450,7 @@ class CommunityApiController extends Controller
     private function activity(Activity $a): array
     {
         return [
-            'id' => $a->id, 'activity_category_id' => $a->activity_category_id, 'category_name' => $a->category?->name ?? '',
+            'id' => $a->id, 'activity_category_id' => $a->activity_category_id, 'category_name' => $a->category?->name ?? '', 'category_code' => $a->category?->code ?? '',
             'code' => $a->code, 'name' => $a->name, 'description' => $a->description ?? '', 'location' => $a->location ?? '',
             'participant_type' => 'all_students', 'attendance_enabled' => (bool) $a->attendance_enabled,
             'allow_manual' => (bool) $a->allow_manual, 'allow_qr' => (bool) $a->allow_qr, 'allow_rfid' => (bool) $a->allow_rfid,

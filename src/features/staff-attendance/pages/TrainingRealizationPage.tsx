@@ -213,7 +213,7 @@ export const TrainingRealizationPage: React.FC<TrainingRealizationPageProps> = (
 
       {/* Content */}
       {isLoading ? (
-        <LoadingState text="Memuat jurnal realisasi ekstrakurikuler..." />
+        <LoadingState message="Memuat jurnal realisasi ekstrakurikuler..." />
       ) : filteredSessions.length === 0 ? (
         <EmptyState
           title="Tidak Ada Jurnal"

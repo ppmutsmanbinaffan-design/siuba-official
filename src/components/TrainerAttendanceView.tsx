@@ -677,7 +677,7 @@ export const TrainerAttendanceView: React.FC<TrainerAttendanceViewProps> = ({
                           </td>
 
                           <td className="py-3 px-4">
-                            {session.realization_status === 'realized' ? (
+                            {['realized', 'submitted'].includes(session.realization_status as string) ? (
                               <div>
                                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800">
                                   <BookOpen className="w-2.5 h-2.5" />
@@ -977,9 +977,9 @@ export const TrainerAttendanceView: React.FC<TrainerAttendanceViewProps> = ({
                   <div className="flex items-center justify-between gap-2">
                     <span className="font-black text-sm text-zinc-900">{session.extracurricular_name}</span>
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                      session.realization_status === 'realized' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                      ['realized', 'submitted'].includes(session.realization_status as string) ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
                     }`}>
-                      {session.realization_status === 'realized' ? 'Jurnal Terisi' : 'Belum Terisi'}
+                      {['realized', 'submitted'].includes(session.realization_status as string) ? 'Jurnal Terisi' : 'Belum Terisi'}
                     </span>
                   </div>
                   <p className="text-xs text-zinc-500 mt-1">
@@ -989,7 +989,7 @@ export const TrainerAttendanceView: React.FC<TrainerAttendanceViewProps> = ({
                     {session.scheduled_start_at} - {session.scheduled_end_at} | {session.location || 'Lapangan Utama'}
                   </p>
 
-                  {session.realization_status === 'realized' ? (
+                  {['realized', 'submitted'].includes(session.realization_status as string) ? (
                     <div className="mt-3 p-3 bg-zinc-50 rounded-xl border border-zinc-200/60 text-xs space-y-1">
                       <div className="font-bold text-zinc-800">Materi Terlaksana:</div>
                       <div className="text-zinc-600">{session.topic}</div>
@@ -1015,7 +1015,7 @@ export const TrainerAttendanceView: React.FC<TrainerAttendanceViewProps> = ({
                   className="w-full py-2 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5"
                 >
                   <BookOpen className="w-3.5 h-3.5" />
-                  {session.realization_status === 'realized' ? 'Ubah / Lengkapi Jurnal' : 'Entri Jurnal Latihan'}
+                  {['realized', 'submitted'].includes(session.realization_status as string) ? 'Ubah / Lengkapi Jurnal' : 'Entri Jurnal Latihan'}
                 </button>
               </div>
             ))}
@@ -1231,11 +1231,11 @@ export const TrainerAttendanceView: React.FC<TrainerAttendanceViewProps> = ({
                     </td>
                     <td className="py-3 px-4">
                       <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-black uppercase ${
-                        item.realization_status === 'realized'
+                        ['realized', 'submitted'].includes(item.realization_status as string)
                           ? 'bg-emerald-100 text-emerald-800'
                           : 'bg-amber-100 text-amber-800'
                       }`}>
-                        {item.realization_status === 'realized' ? 'Terlaksana' : item.realization_status}
+                        {['realized', 'submitted'].includes(item.realization_status as string) ? 'Terlaksana' : item.realization_status}
                       </span>
                     </td>
                     <td className="py-3 px-4">

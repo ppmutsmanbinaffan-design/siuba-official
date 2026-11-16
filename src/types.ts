@@ -246,6 +246,7 @@ export interface ActivityCategory {
 export interface Activity {
   id: number;
   activity_category_id: number;
+  category_code?: string;
   category_name: string;
   code: string;
   name: string;
@@ -290,6 +291,7 @@ export interface AttendanceSessionParticipant {
   student_id: number;
   student_name: string;
   student_number: string;
+  classroom_id?: number | null;
   classroom_name: string;
   dormitory_room_name: string;
   participant_source: ParticipantType | 'manual' | 'walk_in' | string;
@@ -329,6 +331,7 @@ export interface AttendanceSession {
   routine_schedule_id?: number | null;
   academic_context?: AcademicSessionContext;
   classroom_id?: number;
+  classroom_name?: string;
   subject_id?: number;
   teacher_id?: number;
   substitute_teacher_id?: number;
@@ -1790,6 +1793,7 @@ export interface TeachingSession {
   actual_teacher_staff_id?: number | null;
   actual_teacher_name?: string | null;
   teacher_check_in_at?: string | null;
+  teacher_check_in_method?: string | null;
   teacher_attendance_status?: StaffAttendanceStatus | 'unrecorded';
   late_minutes?: number;
   start_time?: string;
@@ -1878,7 +1882,7 @@ export interface ExtracurricularStaffAssignment {
 }
 
 export type TrainingSessionStatus = 'scheduled' | 'open' | 'completed' | 'cancelled' | 'rescheduled' | 'substituted';
-export type TrainingRealizationStatus = 'planned' | 'ongoing' | 'realized' | 'not_realized' | 'cancelled' | 'needs_review';
+export type TrainingRealizationStatus = 'planned' | 'ongoing' | 'realized' | 'not_realized' | 'cancelled' | 'needs_review' | 'pending' | 'submitted';
 
 export interface TrainingSession {
   id: number;
@@ -2014,15 +2018,17 @@ export interface TrainingReconciliationItem {
 export interface StaffAnalyticsFilters {
   date_from: string;
   date_to: string;
-  staff_id?: number | 'ALL';
-  staff_type?: StaffType | 'ALL';
-  employment_status?: string | 'ALL';
-  attendance_status?: StaffAttendanceStatus | 'ALL';
-  classroom_id?: number | 'ALL';
-  subject_id?: number | 'ALL';
-  extracurricular_id?: number | 'ALL';
-  attendance_method?: StaffAttendanceMethod | 'ALL';
-  unit_id?: number | null | 'ALL';
+  /** Penanda versi data server agar hasil dihitung ulang setelah sinkronisasi. */
+  _server_version?: number;
+  staff_id?: number | string;
+  staff_type?: StaffType | 'ALL' | string;
+  employment_status?: string;
+  attendance_status?: StaffAttendanceStatus | 'ALL' | string;
+  classroom_id?: number | string;
+  subject_id?: number | string;
+  extracurricular_id?: number | string;
+  attendance_method?: StaffAttendanceMethod | 'ALL' | string;
+  unit_id?: number | string | null;
 }
 
 export interface StaffDailyOperationalItem {

@@ -73,7 +73,7 @@ export const TeachingManualAttendanceModal: React.FC<TeachingManualAttendanceMod
       onClose={onClose}
       title="Presensi Mengajar Guru (KBM)"
       description="Catat kehadiran guru di dalam kelas untuk jam pelajaran ini."
-      size="md"
+      maxWidth="md"
     >
       <form onSubmit={handleSubmit} className="space-y-4 pt-2">
         {errorMessage && (

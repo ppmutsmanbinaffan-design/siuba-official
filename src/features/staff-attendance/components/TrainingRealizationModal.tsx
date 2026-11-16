@@ -75,7 +75,7 @@ export const TrainingRealizationModal: React.FC<TrainingRealizationModalProps> =
       onClose={onClose}
       title="Jurnal Realisasi Kegiatan Ekstrakurikuler"
       description={`Pengisian berita acara & materi latihan untuk ${session.extracurricular_name}`}
-      size="lg"
+      maxWidth="lg"
     >
       <form onSubmit={handleSubmit} className="space-y-4 pt-2">
         {errorMessage && (

@@ -46,6 +46,7 @@ import {
   Users, 
   Zap 
 } from 'lucide-react';
+import { todayLocalDate, shiftLocalDate } from '../utils/today';
 
 interface Props {
   sessions: AttendanceSession[];
@@ -96,14 +97,14 @@ export const ExecutiveDashboardView: React.FC<Props> = ({
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<number | 'all'>('all');
 
   // Date Range calculation based on preset
-  const todayStr = '2026-08-23';
+  const todayStr = todayLocalDate();
   let startDate = todayStr;
   let endDate = todayStr;
 
   if (selectedDatePreset === '7days') {
-    startDate = '2026-08-16';
+    startDate = shiftLocalDate(-6);
   } else if (selectedDatePreset === '30days') {
-    startDate = '2026-07-24';
+    startDate = shiftLocalDate(-29);
   }
 
   // Active Metric Criteria

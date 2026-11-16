@@ -697,3 +697,36 @@ php artisan optimize:clear
 ```
 Tidak ada migrasi baru. Bila muncul pesan "Ekstensi PHP zip belum aktif": buka XAMPP → Config → PHP (php.ini),
 hapus tanda `;` di depan `extension=zip`, lalu restart Apache.
+
+---
+
+# Update 19 — Tahap 16: Pemeriksaan tipe menyeluruh & perbaikan bug tampilan
+
+Paket tipe React (`@types/react`) ternyata tidak terpasang, sehingga kode tampilan tidak pernah diperiksa.
+Setelah dipasang muncul 181 kesalahan; semuanya sudah diperbaiki (kini 0, cek dengan `npm run typecheck`).
+Bug nyata yang ikut terungkap dan diperbaiki:
+
+- **Profil 360°**: kotak pencarian membuat halaman error; banyak kolom kosong (NIS, wali, riwayat presensi, izin,
+  piket, presensi SDM) karena membaca nama kolom yang salah; nama/HP wali palsu ("H. Abdullah") tidak lagi ditampilkan.
+- **Tanggal "hari ini" palsu (23/08/2026)** di Dashboard Operasional, Pusat Absensi, Sesi Absensi, Pusat Laporan,
+  Dashboard Eksekutif, dan simulator — kini memakai tanggal sebenarnya.
+- **Tambah anggota Ekskul / Kelompok** tidak berfungsi (alamat API salah) — diperbaiki.
+- **Tombol "Batal"** pada dialog konfirmasi buka/tutup sesi tidak berfungsi — diperbaiki.
+- **Dashboard Absensi**: tombol Monitoring & RFID tidak berfungsi; **Detail Sesi** (tampilan HP) tidak membuka detail;
+  tombol kembali di detail sesi — diperbaiki.
+- **Penyesuaian Jadwal Rutin "Dibatalkan"** tidak membatalkan sesi (kode `cancel` vs `cancelled`) — diperbaiki.
+- **Dashboard SDM terintegrasi**: grafik tren selalu "belum ada data", dan data santri tidak dikirim ke halaman.
+- **Jurnal latihan pelatih** yang sudah diisi tidak dihitung "terlaksana".
+- **Laporan Perangkat**: tidak lagi menampilkan perangkat & log fiktif; tombol ekspor CSV, cetak, dan hapus filter
+  diperbaiki; status log tidak lagi selalu "ERROR".
+- **Filter peran SDM** (Administrasi, Karyawan, Pelatih) di laporan & presensi harian SDM tidak pernah cocok — diperbaiki.
+- **Kartu QR santri**: tombol perbarui token dari dialog kartu QR mengirim data salah — diperbaiki.
+- Teks putih di atas latar putih (nama santri di Detail Sesi, dll.) — diperiksa otomatis di 46 halaman, kini 0 temuan.
+- Tombol berwarna "default/destructive" yang tampil tanpa warna kini berwarna.
+
+## Langkah setelah update
+
+```bash
+php artisan optimize:clear
+```
+Tidak ada migrasi baru. Muat ulang browser (Ctrl+F5).

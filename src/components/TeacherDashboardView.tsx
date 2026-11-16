@@ -195,7 +195,7 @@ export const TeacherDashboardView: React.FC<Props> = ({
           <div className="w-12 h-12 rounded-full bg-slate-50 border border-slate-200 text-zinc-500 flex items-center justify-center mx-auto">
             <BookOpen className="w-6 h-6" />
           </div>
-          <h3 className="text-base font-bold text-white">Tidak Ada Sesi Mengajar Hari Ini</h3>
+          <h3 className="text-base font-bold text-slate-900">Tidak Ada Sesi Mengajar Hari Ini</h3>
           <p className="text-xs text-slate-500 max-w-md mx-auto">
             Ustadz/Ustadzah tidak memiliki jadwal KBM yang harus diampu pada tanggal ini, atau sesi belum digenerate oleh Administrator.
           </p>

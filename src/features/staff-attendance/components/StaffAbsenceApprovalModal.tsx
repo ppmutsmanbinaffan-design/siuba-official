@@ -81,7 +81,7 @@ export const StaffAbsenceApprovalModal: React.FC<StaffAbsenceApprovalModalProps>
       onClose={onClose}
       title={mode === 'approve' ? 'Konfirmasi Persetujuan Izin / Cuti' : 'Konfirmasi Penolakan Pengajuan'}
       description={`Permohonan ketidakhadiran atas nama ${request.staff_name}`}
-      size="md"
+      maxWidth="md"
     >
       <form onSubmit={handleSubmit} className="space-y-4 pt-2">
         {errorMessage && (

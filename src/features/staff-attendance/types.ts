@@ -115,18 +115,20 @@ export interface StaffDailyFilterState {
 export interface TeachingFilterState {
   search: string;
   classroomId: string;
-  subjectId: string;
-  teacherStaffId: string;
+  subjectId?: string;
+  teacherStaffId?: string;
   status: string;
-  sessionStatus: string;
+  sessionState: string;
+  substitutionOnly?: boolean;
 }
 
 export interface TrainingFilterState {
   search: string;
   extracurricularId: string;
-  coachStaffId: string;
+  coachStaffId?: string;
   status: string;
   realizationStatus: string;
+  substitutionOnly?: boolean;
 }
 
 export interface AbsenceFilterState {

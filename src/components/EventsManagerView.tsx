@@ -210,7 +210,7 @@ export const EventsManagerView: React.FC<EventsManagerViewProps> = ({
 
   // Dynamic Rule Preview for Selected Event Activity
   const resolvedDynamic = ActivityParticipantService.resolveParticipants({
-    activity: currentActivity,
+    activity: currentActivity as Activity,
     students: safeStudents,
     dormitoryRooms: safeDormitoryRooms,
     extracurricularMembers: safeExtracurricularMembers,

@@ -117,7 +117,7 @@ export const StaffAttendanceDashboardPage: React.FC<StaffAttendanceDashboardPage
       </div>
 
       {isLoading ? (
-        <LoadingState text="Memuat ringkasan data presensi SDM..." />
+        <LoadingState message="Memuat ringkasan data presensi SDM..." />
       ) : (
         <div className="space-y-8">
           {/* SECTION 1: KEHADIRAN HARIAN SDM */}

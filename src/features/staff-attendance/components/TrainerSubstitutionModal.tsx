@@ -84,7 +84,7 @@ export const TrainerSubstitutionModal: React.FC<TrainerSubstitutionModalProps> =
       onClose={onClose}
       title="Penugasan Resmi Pelatih Pengganti"
       description="Delegasikan sesi latihan ekstrakurikuler ke pelatih pengganti resmi."
-      size="md"
+      maxWidth="md"
     >
       <form onSubmit={handleSubmit} className="space-y-4 pt-2">
         {errorMessage && (

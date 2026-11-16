@@ -72,7 +72,7 @@ export const RoutineScheduleManagerView: React.FC<RoutineScheduleManagerViewProp
   // Form State for Override
   const [overrideScheduleId, setOverrideScheduleId] = useState<number>(safeRoutineSchedules[0]?.id || 1);
   const [overrideDate, setOverrideDate] = useState<string>(new Date().toISOString().slice(0, 10));
-  const [overrideType, setOverrideType] = useState<'cancel' | 'time_change' | 'special'>('time_change');
+  const [overrideType, setOverrideType] = useState<'cancelled' | 'time_change'>('time_change');
   const [newStartTime, setNewStartTime] = useState<string>('04:15');
   const [newEndTime, setNewEndTime] = useState<string>('05:15');
   const [overrideReason, setOverrideReason] = useState<string>('Penyesuaian Waktu');
@@ -459,7 +459,7 @@ export const RoutineScheduleManagerView: React.FC<RoutineScheduleManagerViewProp
                   className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-xs font-medium"
                 >
                   <option value="time_change">Perubahan Jam Mulai / Selesai</option>
-                  <option value="cancel">Dibatalkan (Libur / Acara Khusus)</option>
+                  <option value="cancelled">Dibatalkan (Libur / Acara Khusus)</option>
                 </select>
               </div>
 

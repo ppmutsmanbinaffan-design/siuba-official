@@ -84,7 +84,7 @@ export const TrainingQrScannerPage: React.FC<TrainingQrScannerPageProps> = ({
   );
 
   if (isLoading) {
-    return <LoadingState text="Menyiapkan scanner presensi pelatih..." />;
+    return <LoadingState message="Menyiapkan scanner presensi pelatih..." />;
   }
 
   if (!session) {

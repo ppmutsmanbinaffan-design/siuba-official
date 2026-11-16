@@ -192,7 +192,7 @@ export const TeacherSubstitutionPage: React.FC<TeacherSubstitutionPageProps> = (
 
       {/* Content */}
       {isLoading ? (
-        <LoadingState text="Memuat daftar penugasan guru pengganti..." />
+        <LoadingState message="Memuat daftar penugasan guru pengganti..." />
       ) : filteredSubstitutions.length === 0 ? (
         <EmptyState
           title="Belum Ada Guru Pengganti"

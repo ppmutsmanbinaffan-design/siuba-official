@@ -70,7 +70,7 @@ export const StaffAttendanceCorrectionModal: React.FC<StaffAttendanceCorrectionM
       onClose={onClose}
       title="Koreksi Presensi Harian SDM"
       description="Koreksi administratif catatan kehadiran dengan pencatatan audit trail."
-      size="md"
+      maxWidth="md"
     >
       <form onSubmit={handleSubmit} className="space-y-4 pt-2">
         {errorMessage && (

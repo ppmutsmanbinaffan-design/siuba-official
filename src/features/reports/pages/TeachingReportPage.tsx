@@ -321,7 +321,7 @@ export const TeachingReportPage: React.FC<Props> = ({
         categoryName="C. KBM & Pengajar"
         title="Laporan Pembelajaran & Guru KBM"
         description="Monitoring log sesi mengajar harian, kehadiran guru & guru pengganti (inval), serta rekapitulasi jam pelajaran bulanan."
-        badgeColor="indigo"
+        badgeColor="blue"
         subTabs={[
           { id: 'session_list', label: 'Log Sesi Mengajar Harian', count: dailyData.length },
           { id: 'teacher_summary', label: 'Rekap Bulanan Guru', count: summaryData.length },

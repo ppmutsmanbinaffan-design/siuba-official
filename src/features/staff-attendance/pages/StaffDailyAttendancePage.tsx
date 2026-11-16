@@ -346,10 +346,10 @@ export const StaffDailyAttendancePage: React.FC<StaffDailyAttendancePageProps> =
             >
               <option value="all">Semua Jenis SDM</option>
               <option value="teacher">Guru / Pengajar</option>
-              <option value="coach">Pelatih Ekskul</option>
+              <option value="trainer">Pelatih Ekskul</option>
               <option value="musyrif">Musyrif Asrama</option>
-              <option value="admin_staff">Administrasi / TU</option>
-              <option value="service_staff">Sarpras / Layanan</option>
+              <option value="administration">Administrasi / TU</option>
+              <option value="employee">Karyawan / Layanan</option>
             </Select>
 
             <Select
@@ -382,7 +382,7 @@ export const StaffDailyAttendancePage: React.FC<StaffDailyAttendancePageProps> =
 
       {/* Content: Desktop Table & Mobile Cards */}
       {isLoading ? (
-        <LoadingState text="Memuat daftar presensi harian staf..." />
+        <LoadingState message="Memuat daftar presensi harian staf..." />
       ) : filteredRecords.length === 0 ? (
         <EmptyState
           title="Tidak Ada Catatan Presensi"
@@ -436,10 +436,10 @@ export const StaffDailyAttendancePage: React.FC<StaffDailyAttendancePageProps> =
             >
               <option value="all">Semua Jenis SDM</option>
               <option value="teacher">Guru / Pengajar</option>
-              <option value="coach">Pelatih Ekskul</option>
+              <option value="trainer">Pelatih Ekskul</option>
               <option value="musyrif">Musyrif Asrama</option>
-              <option value="admin_staff">Administrasi / TU</option>
-              <option value="service_staff">Sarpras / Layanan</option>
+              <option value="administration">Administrasi / TU</option>
+              <option value="employee">Karyawan / Layanan</option>
             </Select>
           </div>
 

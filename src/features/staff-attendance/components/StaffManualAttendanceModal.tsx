@@ -75,7 +75,7 @@ export const StaffManualAttendanceModal: React.FC<StaffManualAttendanceModalProp
       onClose={onClose}
       title="Presensi Manual SDM"
       description="Catat check-in atau check-out harian staf kantor/guru/pelatih secara manual."
-      size="md"
+      maxWidth="md"
     >
       <form onSubmit={handleSubmit} className="space-y-4 pt-2">
         {errorMessage && (

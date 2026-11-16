@@ -147,15 +147,15 @@ export const ActivitiesView: React.FC<ActivitiesViewProps> = ({
   const totalActivities = safeActivities.length;
   const prayerActivities = safeActivities.filter((a) => {
     const cat = safeCategories.find((c) => c.id === a.activity_category_id);
-    return cat?.code === 'prayer' || a.name.toLowerCase().includes('shalat') || a.name.toLowerCase().includes('sholat');
+    return cat?.code === 'IBADAH' || a.name.toLowerCase().includes('shalat') || a.name.toLowerCase().includes('sholat');
   }).length;
   const academicActivities = safeActivities.filter((a) => {
     const cat = safeCategories.find((c) => c.id === a.activity_category_id);
-    return cat?.code === 'kbm' || cat?.code === 'halaqah' || a.name.toLowerCase().includes('kbm') || a.name.toLowerCase().includes('tahfidz');
+    return cat?.code === 'AKADEMIK' || cat?.code === 'TAHFIDZ' || a.name.toLowerCase().includes('kbm') || a.name.toLowerCase().includes('tahfidz');
   }).length;
   const extraActivities = safeActivities.filter((a) => {
     const cat = safeCategories.find((c) => c.id === a.activity_category_id);
-    return cat?.code === 'extracurricular' || a.participant_type === 'extracurricular' || a.participant_type === 'custom_group';
+    return cat?.code === 'EKSTRAKURIKULER' || a.participant_type === 'extracurricular' || a.participant_type === 'custom_group';
   }).length;
 
   const filteredActivities = safeActivities.filter((a) => {

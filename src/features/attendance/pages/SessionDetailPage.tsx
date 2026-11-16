@@ -233,7 +233,7 @@ export const SessionDetailPage: React.FC<SessionDetailPageProps> = ({
   if (!session) {
     return (
       <div className="p-8 text-center space-y-4">
-        <h3 className="text-base font-bold text-zinc-200">Sesi tidak ditemukan</h3>
+        <h3 className="text-base font-bold text-zinc-800">Sesi tidak ditemukan</h3>
         <Button variant="secondary" onClick={onBack}>
           Kembali ke Daftar Sesi
         </Button>
@@ -269,7 +269,7 @@ export const SessionDetailPage: React.FC<SessionDetailPageProps> = ({
           </button>
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="text-lg sm:text-xl font-black text-zinc-100">{session.activity_name}</h2>
+              <h2 className="text-lg sm:text-xl font-black text-zinc-900">{session.activity_name}</h2>
               <span className="text-xs font-mono px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 border border-zinc-700">
                 {session.session_code}
               </span>
@@ -352,7 +352,7 @@ export const SessionDetailPage: React.FC<SessionDetailPageProps> = ({
       </div>
 
       {/* KPI Summary Card */}
-      <Card className="p-4 sm:p-5 bg-zinc-900/60 border-zinc-800">
+      <Card className="p-4 sm:p-5 bg-white border-zinc-200">
         <SessionSummaryKpi
           title="Statistik Rekapitulasi Presensi Sesi Ini"
           totalEligible={totalParticipants}
@@ -371,7 +371,7 @@ export const SessionDetailPage: React.FC<SessionDetailPageProps> = ({
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h3 className="text-sm sm:text-base font-black text-zinc-100 uppercase tracking-wide">
+            <h3 className="text-sm sm:text-base font-black text-zinc-900 uppercase tracking-wide">
               Snapshot Peserta Sesi ({filteredParticipants.length} dari {totalParticipants})
             </h3>
             <p className="text-xs text-zinc-400">
@@ -468,7 +468,7 @@ export const SessionDetailPage: React.FC<SessionDetailPageProps> = ({
                   <div className="flex items-center gap-3">
                     <PersonAvatar name={p.student_name} size="sm" />
                     <div>
-                      <strong className="text-sm font-bold text-zinc-100 block">{p.student_name}</strong>
+                      <strong className="text-sm font-bold text-zinc-900 block">{p.student_name}</strong>
                       <span className="text-xs font-mono text-zinc-400">{p.student_number}</span>
                     </div>
                   </div>
@@ -478,7 +478,7 @@ export const SessionDetailPage: React.FC<SessionDetailPageProps> = ({
                 key: 'classroom',
                 header: 'Kelas / Halaqah',
                 render: (p) => (
-                  <span className="text-xs font-medium text-zinc-300">
+                  <span className="text-xs font-medium text-zinc-600">
                     {p.classroom_name || 'Santri'}
                   </span>
                 ),
@@ -499,7 +499,7 @@ export const SessionDetailPage: React.FC<SessionDetailPageProps> = ({
                   if (!rec) return <span className="text-xs text-zinc-500">—</span>;
                   return (
                     <div className="flex items-center gap-2 text-xs">
-                      <span className="font-mono text-zinc-200">{formatAttendanceTime(rec.check_in_at)}</span>
+                      <span className="font-mono text-zinc-800">{formatAttendanceTime(rec.check_in_at)}</span>
                       <AttendanceMethodBadge method={rec.method} size="sm" />
                       {rec.late_minutes > 0 && (
                         <span className="text-[11px] font-bold text-amber-400">+{rec.late_minutes}m</span>
@@ -573,7 +573,7 @@ export const SessionDetailPage: React.FC<SessionDetailPageProps> = ({
         variant="primary"
         isLoading={isProcessingAction}
         onConfirm={handleOpenSession}
-        onCancel={() => setIsOpenConfirmOpen(false)}
+        onClose={() => setIsOpenConfirmOpen(false)}
       />
 
       {/* Close Confirmation */}
@@ -585,7 +585,7 @@ export const SessionDetailPage: React.FC<SessionDetailPageProps> = ({
         variant="danger"
         isLoading={isProcessingAction}
         onConfirm={handleCloseSession}
-        onCancel={() => setIsCloseConfirmOpen(false)}
+        onClose={() => setIsCloseConfirmOpen(false)}
       />
 
       {/* Cancel Modal with Reason */}
@@ -593,7 +593,7 @@ export const SessionDetailPage: React.FC<SessionDetailPageProps> = ({
         isOpen={isCancelModalOpen}
         onClose={() => setIsCancelModalOpen(false)}
         title="Batalkan Sesi Absensi"
-        size="md"
+        maxWidth="md"
       >
         <div className="space-y-4">
           <Textarea

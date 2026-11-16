@@ -1118,8 +1118,8 @@ export const StudentsView: React.FC<StudentsViewProps> = ({
                     <div className="space-y-2">
                       {safeRoomHistories.filter(r => r.student_id === selectedStudentForDetail.id).map((rh) => (
                         <div key={rh.id} className="p-2.5 rounded-xl bg-slate-100 border border-slate-200 flex justify-between text-[11px]">
-                          <span className="text-slate-800 font-semibold">{rh.room_name}</span>
-                          <span className="text-zinc-500 font-mono">{rh.academic_year || 'Tahun Ajaran Aktif'}</span>
+                          <span className="text-slate-800 font-semibold">{rh.dormitory_room_name || '-'}</span>
+                          <span className="text-zinc-500 font-mono">{rh.started_at ? rh.started_at.slice(0, 10) : '-'}{rh.ended_at ? ` s/d ${rh.ended_at.slice(0, 10)}` : ' s/d sekarang'}</span>
                         </div>
                       ))}
                     </div>
@@ -1478,12 +1478,12 @@ export const StudentsView: React.FC<StudentsViewProps> = ({
         <QrCardModal
           student={selectedStudentForQrCard}
           allStudents={students}
-          currentUser={currentUser}
+          currentUser={currentUser as User}
           onClose={() => setSelectedStudentForQrCard(null)}
-          onUpdateStudent={(updated) => {
-            onUpdateStudent(updated.id, updated);
-            setSelectedStudentForQrCard(updated);
-            onShowToast(`QR Token santri ${updated.name} berhasil diperbarui.`, 'success');
+          onUpdateStudent={(studentId, updateData) => {
+            onUpdateStudent(studentId, updateData);
+            setSelectedStudentForQrCard((prev) => (prev ? { ...prev, ...updateData } : prev));
+            onShowToast(`QR Token santri ${selectedStudentForQrCard.name} berhasil diperbarui.`, 'success');
           }}
           onShowToast={onShowToast}
         />

@@ -292,7 +292,7 @@ export const DutyRosterManagerView: React.FC<DutyRosterManagerViewProps> = ({
                                 </span>
                               </div>
                               <p className="text-[11px] text-slate-500 truncate mt-0.5">
-                                Kategori: {act.category_code || 'KEBERSIHAN'} • Peserta Roster
+                                Kategori: {act.category_name || act.category_code || '-'} • Peserta Roster
                               </p>
                             </div>
                             {isSelected && (
@@ -460,7 +460,7 @@ export const DutyRosterManagerView: React.FC<DutyRosterManagerViewProps> = ({
                       </td>
                       <td className="py-3 px-4">
                         <span className="font-bold text-slate-800 block">{actObj?.name || item.activity_name}</span>
-                        <span className="text-[10px] text-slate-400 font-mono">{actObj?.category_code || 'KEBERSIHAN'}</span>
+                        <span className="text-[10px] text-slate-400 font-mono">{actObj?.category_name || actObj?.category_code || '-'}</span>
                       </td>
                       <td className="py-3 px-4 font-mono text-slate-600 text-[11px] font-semibold">{item.date}</td>
                       <td className="py-3 px-4">
@@ -526,7 +526,7 @@ export const DutyRosterManagerView: React.FC<DutyRosterManagerViewProps> = ({
                 >
                   {rosterActivities.map((act) => (
                     <option key={act.id} value={act.id}>
-                      {act.name} ({act.category_code})
+                      {act.name} ({act.category_name || act.category_code || '-'})
                     </option>
                   ))}
                 </select>

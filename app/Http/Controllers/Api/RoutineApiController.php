@@ -382,7 +382,7 @@ class RoutineApiController extends Controller
     {
         $type = $a->participant_type ?: 'all_students';
         $row = [
-            'id' => $a->id, 'activity_category_id' => $a->activity_category_id, 'category_name' => $a->category?->name ?? '',
+            'id' => $a->id, 'activity_category_id' => $a->activity_category_id, 'category_name' => $a->category?->name ?? '', 'category_code' => $a->category?->code ?? '',
             'code' => $a->code, 'name' => $a->name, 'description' => $a->description ?? '', 'location' => $a->location ?? '',
             'participant_type' => $type, 'participant_gender' => $a->participant_gender ?? 'all',
             'classroom_id' => null, 'dormitory_id' => null, 'dormitory_room_id' => null, 'extracurricular_id' => null,

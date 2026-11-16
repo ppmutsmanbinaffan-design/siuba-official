@@ -471,13 +471,13 @@ export const KbmMonitoringView: React.FC<Props> = ({
                         {status === 'present' || isPresent ? (
                           <span className="px-2.5 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-black rounded-md border border-emerald-200 flex items-center gap-1">
                             <Check className="w-3 h-3 text-emerald-600" />
-                            Hadir {record?.recorded_at ? `(${record.recorded_at.slice(11, 16)})` : ''}
+                            Hadir {record?.check_in_at ? `(${new Date(record.check_in_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })})` : ''}
                           </span>
                         ) : status === 'sick' ? (
                           <span className="px-2.5 py-0.5 bg-amber-100 text-amber-800 text-[10px] font-black rounded-md border border-amber-200">
                             Sakit
                           </span>
-                        ) : status === 'excused' ? (
+                        ) : status === 'permission' || status === 'dispensation' ? (
                           <span className="px-2.5 py-0.5 bg-blue-100 text-blue-800 text-[10px] font-black rounded-md border border-blue-200">
                             Izin
                           </span>

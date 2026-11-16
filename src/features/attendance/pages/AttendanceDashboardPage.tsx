@@ -30,6 +30,7 @@ import { SessionCard } from '../components/SessionCard';
 import { OpenSessionMonitoringCard } from '../components/OpenSessionMonitoringCard';
 import { INITIAL_ACTIVITIES } from '../../../data/initialData';
 import { formatIndonesianDate } from '../utils/attendanceUtils';
+import { todayLocalDate } from '../../../utils/today';
 
 interface AttendanceDashboardPageProps {
   onNavigateToSessions: () => void;
@@ -60,7 +61,7 @@ export const AttendanceDashboardPage: React.FC<AttendanceDashboardPageProps> = (
       const [kpiData, monitoringData, sessionsData] = await Promise.all([
         attendanceApi.getTodayKpi(),
         attendanceApi.getOpenSessionsMonitoring(),
-        attendanceApi.getSessions({ date: '2026-08-23' }),
+        attendanceApi.getSessions({ date: todayLocalDate() }),
       ]);
       setKpi(kpiData);
       setOpenSessions(monitoringData);
@@ -113,7 +114,7 @@ export const AttendanceDashboardPage: React.FC<AttendanceDashboardPageProps> = (
           <div className="flex flex-wrap items-center gap-2.5 self-start md:self-auto">
             <div className="flex items-center gap-2 bg-black/25 text-emerald-100 border border-white/15 px-3 py-2 rounded-xl text-xs font-semibold backdrop-blur-xs">
               <Calendar className="w-4 h-4 text-[#EADAA2]" />
-              <span>{formatIndonesianDate('2026-08-23')}</span>
+              <span>{formatIndonesianDate(todayLocalDate())}</span>
             </div>
 
             <button

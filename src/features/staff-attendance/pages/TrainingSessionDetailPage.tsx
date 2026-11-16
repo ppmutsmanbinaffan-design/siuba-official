@@ -65,7 +65,7 @@ export const TrainingSessionDetailPage: React.FC<TrainingSessionDetailPageProps>
   }, [loadSession]);
 
   if (isLoading) {
-    return <LoadingState text="Memuat detail sesi ekstrakurikuler..." />;
+    return <LoadingState message="Memuat detail sesi ekstrakurikuler..." />;
   }
 
   if (!session) {
@@ -192,9 +192,9 @@ export const TrainingSessionDetailPage: React.FC<TrainingSessionDetailPageProps>
           <div className="pt-0.5">
             <StaffAttendanceStatusBadge status={session.trainer_attendance_status} />
           </div>
-          {session.late_minutes && session.late_minutes > 0 ? (
+          {session.trainer_late_minutes && session.trainer_late_minutes > 0 ? (
             <p className="text-[11px] text-amber-400">
-              Terlambat {session.late_minutes} menit
+              Terlambat {session.trainer_late_minutes} menit
             </p>
           ) : null}
         </div>

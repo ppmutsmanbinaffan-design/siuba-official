@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { todayLocalDate } from '../utils/today';
+import { currentMonthRange, shiftLocalDate, todayLocalDate } from '../utils/today';
 import { 
   Activity, 
   ActivityCategory, 
@@ -94,22 +94,24 @@ export const ReportCenterView: React.FC<Props> = ({
   const [selectedStudentFilter, setSelectedStudentFilter] = useState<number | 'all'>('all');
 
   // Compute active date range
-  const todayStr = '2026-08-23';
+  const todayStr = todayLocalDate();
+  const yesterdayStr = shiftLocalDate(-1);
+  const monthRange = currentMonthRange();
   let startDate = todayStr;
   let endDate = todayStr;
 
   if (selectedDatePreset === 'yesterday') {
-    startDate = '2026-08-22';
-    endDate = '2026-08-22';
+    startDate = yesterdayStr;
+    endDate = yesterdayStr;
   } else if (selectedDatePreset === '7days') {
-    startDate = '2026-08-16';
+    startDate = shiftLocalDate(-6);
     endDate = todayStr;
   } else if (selectedDatePreset === '30days') {
-    startDate = '2026-07-24';
+    startDate = shiftLocalDate(-29);
     endDate = todayStr;
   } else if (selectedDatePreset === 'this_month') {
-    startDate = '2026-08-01';
-    endDate = '2026-08-31';
+    startDate = monthRange.start;
+    endDate = monthRange.end;
   } else if (selectedDatePreset === 'custom') {
     startDate = customStartDate || todayStr;
     endDate = customEndDate || todayStr;
@@ -150,8 +152,8 @@ export const ReportCenterView: React.FC<Props> = ({
   // Reset Filters Handler
   const handleResetFilters = () => {
     setSelectedDatePreset('today');
-    setCustomStartDate('2026-08-16');
-    setCustomEndDate('2026-08-23');
+    setCustomStartDate(shiftLocalDate(-6));
+    setCustomEndDate(todayLocalDate());
     setSelectedClassFilter('all');
     setSelectedDormFilter('all');
     setSelectedCategoryFilter('all');
@@ -419,10 +421,10 @@ export const ReportCenterView: React.FC<Props> = ({
               className="w-full bg-white text-zinc-900 font-semibold border border-zinc-300 rounded-xl px-3 py-2.5 text-xs shadow-xs focus:ring-2 focus:ring-[#1F5C45] focus:border-[#1F5C45] outline-none cursor-pointer hover:border-zinc-400 transition-colors"
             >
               <option value="today" className="text-zinc-900 bg-white font-medium">Hari Ini ({todayStr})</option>
-              <option value="yesterday" className="text-zinc-900 bg-white font-medium">Kemarin (2026-08-22)</option>
+              <option value="yesterday" className="text-zinc-900 bg-white font-medium">Kemarin ({yesterdayStr})</option>
               <option value="7days" className="text-zinc-900 bg-white font-medium">7 Hari Terakhir</option>
               <option value="30days" className="text-zinc-900 bg-white font-medium">30 Hari Terakhir</option>
-              <option value="this_month" className="text-zinc-900 bg-white font-medium">Bulan Ini (Agustus 2026)</option>
+              <option value="this_month" className="text-zinc-900 bg-white font-medium">Bulan Ini ({monthRange.label})</option>
               <option value="custom" className="text-zinc-900 bg-white font-medium">📅 Kustom Rentang Tanggal...</option>
             </select>
           </div>

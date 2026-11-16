@@ -36,6 +36,7 @@ import {
   StudentExcusal 
 } from '../types';
 import { AttendanceSummaryService } from '../services/attendanceSummaryService';
+import { todayLocalDate } from '../utils/today';
 
 interface DashboardViewProps {
   students: Student[];
@@ -71,7 +72,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   
   // Today's stats calculation
   const todaySummary = useMemo(() => {
-    return AttendanceSummaryService.calculateTodaySummary(safeSessions, safeParticipants, safeRecords, '2026-08-23');
+    return AttendanceSummaryService.calculateTodaySummary(safeSessions, safeParticipants, safeRecords, todayLocalDate());
   }, [safeSessions, safeParticipants, safeRecords]);
 
   // "BUTUH PERHATIAN" items

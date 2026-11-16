@@ -339,7 +339,7 @@ export const StaffAbsencePage: React.FC<StaffAbsencePageProps> = ({
 
       {/* Content */}
       {isLoading ? (
-        <LoadingState text="Memuat daftar permohonan izin staf..." />
+        <LoadingState message="Memuat daftar permohonan izin staf..." />
       ) : filteredRequests.length === 0 ? (
         <EmptyState
           title="Belum Ada Pengajuan Izin / Cuti"

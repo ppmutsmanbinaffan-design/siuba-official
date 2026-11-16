@@ -280,7 +280,7 @@ export const CardBulkGenerateView: React.FC<CardBulkGenerateViewProps> = ({
                 .filter((r) => dormFilter === 'all' || r.dormitory_id === Number(dormFilter))
                 .map((r) => (
                   <option key={r.id} value={r.id} className="text-zinc-900 bg-white font-medium">
-                    {r.room_number} ({r.name})
+                    {r.name}{r.dormitory_name ? ` (${r.dormitory_name})` : ''}
                   </option>
                 ))}
             </select>

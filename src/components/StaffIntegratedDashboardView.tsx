@@ -727,7 +727,7 @@ export const StaffIntegratedDashboardView: React.FC<StaffIntegratedDashboardView
                         <td className="py-2.5 px-3 font-semibold text-zinc-900">
                           {session.classroom_name} - {session.subject_name}
                         </td>
-                        <td className="py-2.5 px-3 font-mono text-zinc-600">{session.time_slot_start} - {session.time_slot_end}</td>
+                        <td className="py-2.5 px-3 font-mono text-zinc-600">{session.start_time || session.scheduled_start_at?.slice(11, 16) || '-'} - {session.end_time || session.scheduled_end_at?.slice(11, 16) || '-'}</td>
                         <td className="py-2.5 px-3 text-zinc-700">{session.scheduled_teacher_name}</td>
                         <td className="py-2.5 px-3 text-amber-700 font-medium">{issue}</td>
                         <td className="py-2.5 px-3 text-right">

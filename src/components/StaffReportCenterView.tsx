@@ -1055,7 +1055,7 @@ export const StaffReportCenterView: React.FC<StaffReportCenterViewProps> = ({
                     </td>
                     <td className="py-3 px-3 text-center">
                       <span className={`px-2 py-0.5 rounded-md text-[10px] font-semibold ${
-                        r.realization_status === 'realized' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
+                        ['realized', 'submitted'].includes(r.realization_status as string) ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
                         'bg-amber-50 text-amber-700 border border-amber-200'
                       }`}>
                         {r.realization_status}
@@ -1309,7 +1309,7 @@ export const StaffReportCenterView: React.FC<StaffReportCenterViewProps> = ({
                             </td>
                             <td className="py-2 px-3 font-mono text-zinc-700">{rec.check_in_at ? rec.check_in_at.substring(11, 16) : '-'}</td>
                             <td className="py-2 px-3 font-mono text-zinc-700">{rec.check_out_at ? rec.check_out_at.substring(11, 16) : '-'}</td>
-                            <td className="py-2 px-3 uppercase font-mono text-[10px] text-zinc-500">{rec.method || '-'}</td>
+                            <td className="py-2 px-3 uppercase font-mono text-[10px] text-zinc-500">{rec.check_in_method || '-'}</td>
                           </tr>
                         ))
                       )}

@@ -188,7 +188,7 @@ export const TrainerSubstitutionPage: React.FC<TrainerSubstitutionPageProps> = (
 
       {/* Content */}
       {isLoading ? (
-        <LoadingState text="Memuat daftar delegasi pelatih pengganti..." />
+        <LoadingState message="Memuat daftar delegasi pelatih pengganti..." />
       ) : filteredSubstitutions.length === 0 ? (
         <EmptyState
           title="Belum Ada Pelatih Pengganti"
