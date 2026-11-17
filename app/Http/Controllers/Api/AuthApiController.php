@@ -41,8 +41,14 @@ class AuthApiController extends Controller
                 'message' => "Akun dikunci sementara karena terlalu banyak percobaan login gagal. Coba lagi dalam {$minutes} menit.",
             ], 429);
         }
-        $failed = function () use ($lockKey) {
+        $failed = function () use ($lockKey, $username) {
             RateLimiter::hit($lockKey, max(1, SecurityPolicy::int('lockout_duration_minutes', 15)) * 60);
+            try {
+                // Dicatat untuk Keamanan & Audit (jumlah login gagal hari ini); kata sandi tidak pernah disimpan
+                \App\Services\Security\AuditService::log(event: 'auth.login_failed', newValues: ['username' => mb_substr($username, 0, 100)], reason: 'Login gagal');
+            } catch (\Throwable) {
+                // pencatatan tidak boleh mengganggu respons login
+            }
 
             return response()->json([
                 'success' => false,

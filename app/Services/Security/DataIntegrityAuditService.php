@@ -115,32 +115,30 @@ class DataIntegrityAuditService
             ];
         }
 
-        // 6. Check Incomplete Closed Required Sessions (eligible > recorded in closed session)
-        $closedSessions = DB::table('attendance_sessions')
-            ->where('status', 'closed')
+        // 6. Sesi tertutup yang masih punya peserta eligible tanpa catatan presensi
+        //    (eligibility_status NULL dianggap eligible — sama seperti finalisasi saat sesi ditutup)
+        $missingBySession = DB::table('attendance_session_participants as p')
+            ->join('attendance_sessions as s', 's.id', '=', 'p.attendance_session_id')
+            ->leftJoin('attendance_records as r', function ($join) {
+                $join->on('r.attendance_session_id', '=', 'p.attendance_session_id')
+                     ->on('r.student_id', '=', 'p.student_id');
+            })
+            ->where('s.status', 'closed')
+            ->whereNull('r.id')
+            ->where(fn ($q) => $q->whereNull('p.eligibility_status')->orWhereRaw('LOWER(p.eligibility_status) != ?', ['ineligible']))
+            ->select('p.attendance_session_id', 's.session_code', DB::raw('COUNT(*) as missing'))
+            ->groupBy('p.attendance_session_id', 's.session_code')
             ->get();
 
-        foreach ($closedSessions as $sess) {
-            $eligibleCount = DB::table('attendance_session_participants')
-                ->where('attendance_session_id', $sess->id)
-                ->where('eligibility_status', '!=', 'ineligible')
-                ->count();
-
-            $recordedCount = DB::table('attendance_records')
-                ->where('attendance_session_id', $sess->id)
-                ->count();
-
-            if ($eligibleCount > 0 && $recordedCount < $eligibleCount) {
-                $missing = $eligibleCount - $recordedCount;
-                $issues[] = [
-                    'type' => 'incomplete_closed_required_session',
-                    'severity' => 'warning',
-                    'description' => "Sesi tertutup #{$sess->id} ({$sess->title}) memiliki {$missing} santri eligible belum terekam presensi.",
-                    'entity_type' => 'attendance_sessions',
-                    'context' => ['session_id' => $sess->id, 'eligible' => $eligibleCount, 'recorded' => $recordedCount, 'missing' => $missing],
-                    'action_needed' => 'Jalankan auto-alpha finalizer untuk melengkapi santri yang tidak hadir.',
-                ];
-            }
+        foreach ($missingBySession as $row) {
+            $issues[] = [
+                'type' => 'incomplete_closed_required_session',
+                'severity' => 'warning',
+                'description' => "Sesi tertutup {$row->session_code} masih memiliki {$row->missing} santri peserta tanpa catatan presensi.",
+                'entity_type' => 'attendance_sessions',
+                'context' => ['session_id' => $row->attendance_session_id, 'session_code' => $row->session_code, 'missing' => (int) $row->missing],
+                'action_needed' => 'Lengkapi otomatis: peserta yang belum tercatat diberi status sesuai izin yang disetujui atau Alpa.',
+            ];
         }
 
         // 7. Check Active Device Assignments to Inactive/Closed Sessions
@@ -174,5 +172,49 @@ class DataIntegrityAuditService
             'issues' => $issues,
             'checked_at' => now()->toISOString(),
         ];
+    }
+
+    /** Jenis temuan yang bisa diperbaiki otomatis dengan aman. */
+    public const REPAIRABLE = ['incomplete_closed_required_session', 'invalid_device_session_assignment', 'duplicate_participant'];
+
+    /**
+     * Perbaikan otomatis yang aman untuk satu temuan.
+     *
+     * @return array{success:bool, message:string, affected:int}
+     */
+    public static function repair(string $type, array $context, ?\App\Models\User $user = null): array
+    {
+        switch ($type) {
+            case 'incomplete_closed_required_session':
+                $session = AttendanceSession::find((int) ($context['session_id'] ?? 0));
+                if (!$session || $session->status?->value !== 'closed') {
+                    return ['success' => false, 'message' => 'Sesi tidak ditemukan atau belum ditutup.', 'affected' => 0];
+                }
+                $n = app(\App\Services\Attendance\SessionService::class)->finalizeUnrecorded($session, $user);
+
+                return ['success' => true, 'message' => "{$n} peserta sesi {$session->session_code} dilengkapi (izin/Alpa).", 'affected' => $n];
+
+            case 'invalid_device_session_assignment':
+                $n = AttendanceDevice::where('id', (int) ($context['device_id'] ?? 0))
+                    ->where('current_session_id', (int) ($context['session_id'] ?? 0))
+                    ->update(['current_session_id' => null]);
+
+                return $n
+                    ? ['success' => true, 'message' => 'Perangkat dilepas dari sesi yang sudah selesai.', 'affected' => $n]
+                    : ['success' => false, 'message' => 'Perangkat sudah tidak terikat ke sesi tersebut.', 'affected' => 0];
+
+            case 'duplicate_participant':
+                $ids = AttendanceSessionParticipant::where('attendance_session_id', (int) ($context['session_id'] ?? 0))
+                    ->where('student_id', (int) ($context['student_id'] ?? 0))
+                    ->orderBy('id')->pluck('id');
+                if ($ids->count() < 2) {
+                    return ['success' => false, 'message' => 'Duplikasi peserta sudah tidak ada.', 'affected' => 0];
+                }
+                $n = AttendanceSessionParticipant::whereIn('id', $ids->slice(1))->delete();
+
+                return ['success' => true, 'message' => "{$n} baris peserta ganda dihapus (yang pertama dipertahankan).", 'affected' => $n];
+        }
+
+        return ['success' => false, 'message' => 'Temuan ini harus diperiksa dan diperbaiki manual.', 'affected' => 0];
     }
 }

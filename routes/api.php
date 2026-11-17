@@ -372,6 +372,15 @@ Route::prefix('v1')->group(function () {
         });
     });
 
+    // Keamanan & Audit: kesehatan sistem, integritas data, uji pemulihan (data server)
+    Route::prefix('system')->middleware(['auth:sanctum', 'permission:system.security_audit|system.maintenance'])->group(function () {
+        Route::get('/health-report', [\App\Http\Controllers\Api\SystemStatusApiController::class, 'health']);
+        Route::post('/integrity', [\App\Http\Controllers\Api\SystemStatusApiController::class, 'integrity'])->middleware('throttle:10,1');
+        Route::post('/integrity/repair', [\App\Http\Controllers\Api\SystemStatusApiController::class, 'repair']);
+        Route::get('/dr-drills', [\App\Http\Controllers\Api\SystemStatusApiController::class, 'drills']);
+        Route::post('/dr-drills', [\App\Http\Controllers\Api\SystemStatusApiController::class, 'recordDrill']);
+    });
+
     // Migrasi data lama dari localStorage browser ke MySQL (halaman /migrasi-data)
     Route::post('/migration/local-data', LocalDataMigrationApiController::class)
         ->middleware(['auth:sanctum', 'permission:system.maintenance']);

@@ -890,3 +890,43 @@ php artisan optimize:clear
 ```
 (`jalankan-siuba.bat` menjalankan keduanya otomatis.) Lalu jalankan `pasang-penjadwal-windows.bat` sekali.
 Muat ulang browser (Ctrl+F5).
+
+---
+
+# Update 25 — Tahap 22: Keamanan & Audit memakai data server (bukan angka contoh)
+
+Sebelumnya tab **Status & Kesehatan**, **Integritas Data**, dan **Disaster Recovery** di menu Keamanan & Audit
+menampilkan angka rekaan (disk 68,4%, "PostgreSQL 16", backup "3,5 jam lalu", semua kontrol "PASS",
+tanggal uji pemulihan fiktif) dan "perbaikan otomatis" yang hanya mengubah data di browser.
+
+## Status & Kesehatan Server
+- Diambil dari server (`GET /system/health-report`) saat halaman dibuka dan tiap 60 detik:
+  versi & mode debug, jenis/latensi database, disk bebas, folder storage, penjadwal (kapan terakhir berjalan),
+  backup terverifikasi terakhir & jumlahnya, alat IoT online (aktif 10 menit terakhir), akun nonaktif.
+- **Login gagal hari ini** kini dihitung sungguhan: setiap login gagal dicatat di log audit
+  (`auth.login_failed`, hanya username — kata sandi tidak pernah disimpan).
+- Daftar "Kontrol Keamanan" mengikuti Kebijakan Keamanan yang berlaku dan memberi tanda **PERLU DIUBAH**
+  bila mode debug aktif atau kunci perangkat IoT (`NEXABSEN_GLOBAL_KEY`) belum diisi.
+
+## Integritas Data
+- Pemindaian dilakukan di server atas seluruh database (`POST /system/integrity`).
+- Perbaikan otomatis yang aman, dijalankan di server dan dicatat di log audit:
+  - sesi sudah ditutup tetapi peserta belum lengkap → peserta yang belum tercatat diberi status izin/Alpa;
+  - alat masih terikat ke sesi yang sudah selesai → dilepas;
+  - baris peserta ganda → dihapus, satu dipertahankan.
+- Temuan lain (presensi ganda, kartu QR/RFID ganda, presensi di luar peserta) ditandai "Perlu Tinjauan Manual".
+- Perbaikan bug pemeriksaan "sesi ditutup belum lengkap": peserta tanpa status kelayakan sebelumnya tidak terhitung,
+  dan pemeriksaan bisa gagal karena memakai kolom yang tidak ada.
+
+## Disaster Recovery
+- SOP ditulis ulang untuk instalasi Windows + XAMPP (perintah & menu yang benar-benar ada), plus SOP baru
+  "Alat RFID hilang/rusak/kunci bocor".
+- Hasil uji pemulihan dicatat di server (tombol **Catat Berhasil / Catat Gagal** di setiap SOP),
+  lengkap dengan tanggal, petugas, dan catatan. Tidak ada lagi tanggal uji fiktif.
+
+## Langkah setelah update
+
+```bash
+php artisan optimize:clear
+```
+Tidak ada migrasi baru. Muat ulang browser (Ctrl+F5).

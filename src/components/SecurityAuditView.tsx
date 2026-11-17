@@ -54,7 +54,7 @@ import {
 } from '../types';
 import { AuditService } from '../services/auditService';
 import { apiClient } from '../services/apiClient';
-import { DataIntegrityAuditService } from '../services/dataIntegrityAuditService';
+import { SystemStatusService, EMPTY_INTEGRITY, ServerHealthReport, ServerIntegritySummary, ServerIntegrityIssue, DrDrillRecord } from '../services/systemStatusService';
 import { SystemHealthService } from '../services/systemHealthService';
 import { SecurityConfigService } from '../services/securityConfigService';
 import { todayLocalDate } from '../utils/today';
@@ -73,6 +73,40 @@ interface SecurityAuditViewProps {
   onUpdateDevices?: (devices: AttendanceDevice[]) => void;
   onRestoreDatabase?: (dump: any) => void;
   onShowToast: (msg: string, type: 'success' | 'error' | 'info') => void;
+}
+
+const HEALTH_LABEL: Record<string, string> = { healthy: 'SEHAT', warning: 'PERHATIAN', critical: 'BERMASALAH' };
+const HEALTH_BADGE: Record<string, string> = {
+  healthy: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+  warning: 'bg-amber-50 text-amber-800 border-amber-200',
+  critical: 'bg-rose-50 text-rose-800 border-rose-200',
+};
+const CONTROL_LABEL: Record<string, string> = { pass: 'AKTIF', info: 'INFO', warn: 'PERLU DIUBAH' };
+const CONTROL_BADGE: Record<string, string> = {
+  pass: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+  info: 'bg-sky-50 text-sky-800 border-sky-200',
+  warn: 'bg-amber-50 text-amber-800 border-amber-200',
+};
+
+function fmtDateTime(iso?: string | null): string {
+  if (!iso) return '-';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '-';
+  return d.toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
+function fmtAgo(seconds?: number | null): string {
+  if (seconds == null) return '-';
+  if (seconds < 90) return `${seconds} detik lalu`;
+  if (seconds < 5400) return `${Math.round(seconds / 60)} menit lalu`;
+  if (seconds < 172800) return `${Math.round(seconds / 3600)} jam lalu`;
+  return `${Math.round(seconds / 86400)} hari lalu`;
+}
+
+function isDeviceOnline(dev: AttendanceDevice): boolean {
+  if (!dev.is_active || !dev.last_seen_at) return false;
+  const t = new Date(dev.last_seen_at).getTime();
+  return !isNaN(t) && Date.now() - t <= 10 * 60 * 1000;
 }
 
 export const SecurityAuditView: React.FC<SecurityAuditViewProps> = ({
@@ -99,11 +133,10 @@ export const SecurityAuditView: React.FC<SecurityAuditViewProps> = ({
 
   const [activeSubTab, setActiveSubTab] = useState<'health' | 'audit' | 'integrity' | 'dr' | 'policies'>('health');
   
-  // Health State
-  const [healthReport, setHealthReport] = useState<SystemHealthReport>(() => 
-    SystemHealthService.getHealthReport({ devices: safeDevices, users: safeUsers })
-  );
-  
+  // Kesehatan sistem — dari server (GET /system/health-report); cache terakhir dipakai saat offline
+  const [healthReport, setHealthReport] = useState<ServerHealthReport | null>(() => SystemStatusService.cachedHealth());
+  const [healthError, setHealthError] = useState<string | null>(null);
+
   // Audit Logs State
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>(() => AuditService.getLogs());
   const [auditEventFilter, setAuditEventFilter] = useState<string>('ALL');
@@ -111,16 +144,9 @@ export const SecurityAuditView: React.FC<SecurityAuditViewProps> = ({
   const [auditSearchQuery, setAuditSearchQuery] = useState<string>('');
   const [selectedAuditLog, setSelectedAuditLog] = useState<AuditLog | null>(null);
 
-  // Integrity State
-  const [integritySummary, setIntegritySummary] = useState<DataIntegritySummary>(() =>
-    DataIntegrityAuditService.runAudit({ 
-      sessions: safeSessions, 
-      sessionParticipants: safeSessionParticipants, 
-      records: safeRecords, 
-      students: safeStudents, 
-      devices: safeDevices 
-    })
-  );
+  // Integritas data — dipindai di server (POST /system/integrity)
+  const [integritySummary, setIntegritySummary] = useState<ServerIntegritySummary>(() => SystemStatusService.cachedIntegrity() || EMPTY_INTEGRITY);
+  const [repairingIssueId, setRepairingIssueId] = useState<string | null>(null);
   const [isScanningIntegrity, setIsScanningIntegrity] = useState<boolean>(false);
   const [integrityFilterSeverity, setIntegrityFilterSeverity] = useState<'ALL' | 'critical' | 'warning' | 'info'>('ALL');
 
@@ -131,19 +157,34 @@ export const SecurityAuditView: React.FC<SecurityAuditViewProps> = ({
   // Disaster Recovery State
   const [drPlans, setDrPlans] = useState<DisasterRecoveryPlan[]>(() => SystemHealthService.getDisasterRecoveryPlans());
   const [selectedDrPlan, setSelectedDrPlan] = useState<DisasterRecoveryPlan | null>(null);
+  const [drDrills, setDrDrills] = useState<Record<string, DrDrillRecord>>(() => SystemStatusService.cachedDrills());
+  const [drillNotes, setDrillNotes] = useState<string>('');
+  const [isSavingDrill, setIsSavingDrill] = useState<boolean>(false);
   const [isCreatingBackup, setIsCreatingBackup] = useState<boolean>(false);
   const [showRestoreModal, setShowRestoreModal] = useState<boolean>(false);
   const [restoreConfirmText, setRestoreConfirmText] = useState<string>('');
   const [isExecutingRestore, setIsExecutingRestore] = useState<boolean>(false);
 
-  // Refresh Health periodically
+  const refreshHealth = async () => {
+    try {
+      setHealthReport(await SystemStatusService.fetchHealth());
+      setHealthError(null);
+    } catch (err: any) {
+      setHealthError(
+        err?.status === 403
+          ? 'Anda tidak memiliki izin melihat status server (Audit Keamanan / Maintenance).'
+          : 'Server tidak terjangkau — menampilkan status terakhir yang tersimpan di perangkat ini.'
+      );
+    }
+  };
+
+  // Status server dimuat saat halaman dibuka lalu diperbarui tiap 60 detik; hasil uji pemulihan dari server
   useEffect(() => {
-    const timer = setInterval(() => {
-      SystemHealthService.recordHeartbeat();
-      setHealthReport(SystemHealthService.getHealthReport({ devices: safeDevices, users: safeUsers }));
-    }, 10000);
+    refreshHealth();
+    SystemStatusService.fetchDrills().then(setDrDrills).catch(() => {});
+    const timer = setInterval(refreshHealth, 60000);
     return () => clearInterval(timer);
-  }, [safeDevices, safeUsers]);
+  }, []);
 
   // Muat log audit server saat halaman dibuka (lalu gabung dengan log lokal)
   useEffect(() => {
@@ -170,54 +211,55 @@ export const SecurityAuditView: React.FC<SecurityAuditViewProps> = ({
     handleRefreshAuditLogs();
   }, [auditEventFilter, auditEntityFilter, auditSearchQuery]);
 
-  // Handle Scan Integrity
-  const handleRunIntegrityAudit = () => {
+  // Pemindaian integritas di server (seluruh database, bukan cache browser)
+  const handleRunIntegrityAudit = async () => {
     setIsScanningIntegrity(true);
-    setTimeout(() => {
-      const result = DataIntegrityAuditService.runAudit({
-        sessions,
-        sessionParticipants,
-        records,
-        students,
-        devices
-      });
+    try {
+      const result = await SystemStatusService.runIntegrity();
       setIntegritySummary(result);
-      setIsScanningIntegrity(false);
       if (result.critical_count === 0 && result.warning_count === 0) {
-        onShowToast('✓ Audit Integritas Selesai: Seluruh relasi data dalam status SEHAT (0 Masalah).', 'success');
+        onShowToast('✓ Audit integritas selesai: tidak ada masalah kritis maupun peringatan.', 'success');
       } else {
-        onShowToast(`Audit Integritas Selesai: Ditemukan ${result.critical_count} isu kritis & ${result.warning_count} peringatan.`, 'info');
+        onShowToast(`Audit integritas selesai: ${result.critical_count} isu kritis & ${result.warning_count} peringatan.`, 'info');
       }
-    }, 600);
+    } catch (err: any) {
+      onShowToast(
+        err?.status === 403
+          ? 'Anda tidak memiliki izin menjalankan audit integritas.'
+          : `Audit integritas gagal: ${err?.message || 'server tidak terjangkau'}`,
+        'error'
+      );
+    } finally {
+      setIsScanningIntegrity(false);
+    }
   };
 
-  // Handle Auto-Repair Issue
-  const handleRepairIssue = (issue: DataIntegrityIssue) => {
-    const res = DataIntegrityAuditService.executeRepair({
-      issue,
-      user: currentUser,
-      data: { sessions, sessionParticipants, records, students, devices },
-      onUpdateRecords,
-      onUpdateParticipants,
-      onUpdateStudents,
-      onUpdateDevices
-    });
-
-    if (res.success) {
+  // Perbaikan otomatis yang aman dijalankan di server, lalu pindai ulang
+  const handleRepairIssue = async (issue: ServerIntegrityIssue) => {
+    setRepairingIssueId(issue.id);
+    try {
+      const res = await SystemStatusService.repair(issue);
       onShowToast(`✓ ${res.message}`, 'success');
-      // Re-run scan to update UI
-      setTimeout(() => {
-        setIntegritySummary(DataIntegrityAuditService.runAudit({
-          sessions,
-          sessionParticipants,
-          records,
-          students,
-          devices
-        }));
-        setAuditLogs(AuditService.getLogs());
-      }, 300);
-    } else {
-      onShowToast(res.message, 'error');
+      await AuditService.syncFromServer();
+      setAuditLogs(AuditService.getLogs());
+      await handleRunIntegrityAudit();
+    } catch (err: any) {
+      onShowToast(err?.message || 'Perbaikan gagal diterapkan.', 'error');
+    } finally {
+      setRepairingIssueId(null);
+    }
+  };
+
+  const handleRecordDrill = async (planId: string, status: 'PASS' | 'FAIL') => {
+    setIsSavingDrill(true);
+    try {
+      setDrDrills(await SystemStatusService.recordDrill(planId, status, drillNotes.trim()));
+      setDrillNotes('');
+      onShowToast(status === 'PASS' ? '✓ Uji pemulihan dicatat BERHASIL.' : 'Uji pemulihan dicatat GAGAL — tindak lanjuti langkah yang bermasalah.', status === 'PASS' ? 'success' : 'info');
+    } catch (err: any) {
+      onShowToast(err?.message || 'Gagal menyimpan hasil uji pemulihan.', 'error');
+    } finally {
+      setIsSavingDrill(false);
     }
   };
 
@@ -239,7 +281,7 @@ export const SecurityAuditView: React.FC<SecurityAuditViewProps> = ({
       );
     } finally {
       setIsCreatingBackup(false);
-      setHealthReport(SystemHealthService.getHealthReport({ devices, users }));
+      refreshHealth();
     }
   };
 
@@ -265,6 +307,14 @@ export const SecurityAuditView: React.FC<SecurityAuditViewProps> = ({
     onShowToast(res.message, res.success ? 'success' : 'error');
   };
 
+  // Tab integritas dibuka dan belum ada hasil → pindai sekali di server
+  useEffect(() => {
+    if (activeSubTab === 'integrity' && !integritySummary.last_audit_at && !isScanningIntegrity) {
+      handleRunIntegrityAudit();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeSubTab]);
+
   // Kebijakan keamanan dari server saat halaman dibuka
   useEffect(() => {
     let cancelled = false;
@@ -282,6 +332,76 @@ export const SecurityAuditView: React.FC<SecurityAuditViewProps> = ({
     if (integrityFilterSeverity === 'ALL') return true;
     return issue.severity === integrityFilterSeverity;
   });
+
+  const healthCards: { icon: React.ElementType; title: string; status: 'healthy' | 'warning' | 'critical'; sub: string; rows: [string, string][]; hint?: string }[] = healthReport
+    ? [
+        {
+          icon: Server, title: 'Aplikasi', status: healthReport.application_status,
+          sub: `Versi ${healthReport.application_version}`,
+          rows: [['Lingkungan', String(healthReport.application_env || '-').toUpperCase()], ['Mode debug', healthReport.debug_mode ? 'AKTIF' : 'Nonaktif']],
+        },
+        {
+          icon: Database, title: 'Database', status: healthReport.database_status,
+          sub: healthReport.database_engine,
+          rows: [['Latensi', healthReport.database_latency_ms != null ? `${healthReport.database_latency_ms} ms` : '-']],
+        },
+        {
+          icon: Clock, title: 'Penjadwal Otomatis', status: healthReport.scheduler_status,
+          sub: healthReport.scheduler_last_heartbeat ? `Terakhir berjalan ${fmtAgo(healthReport.scheduler_heartbeat_diff_seconds)}` : 'Belum pernah berjalan',
+          rows: [['Tugas', 'Auto-close sesi, backup 01:30, bersih log 02:15']],
+          hint: healthReport.scheduler_status !== 'healthy' ? 'Di Windows jalankan pasang-penjadwal-windows.bat sekali.' : undefined,
+        },
+        {
+          icon: HardDrive, title: 'Kapasitas Disk', status: healthReport.disk_status,
+          sub: healthReport.disk_free_gb != null ? `${healthReport.disk_free_gb} GB bebas (${healthReport.disk_free_percentage}%)` : 'Tidak terbaca',
+          rows: [['Total', healthReport.disk_total_gb != null ? `${healthReport.disk_total_gb} GB` : '-'], ['Folder storage', healthReport.storage_writable ? 'Bisa ditulis' : 'TIDAK bisa ditulis']],
+        },
+        {
+          icon: Database, title: 'Backup Database', status: healthReport.backup_freshness_status,
+          sub: healthReport.backup_last_successful_at ? `Terakhir ${fmtDateTime(healthReport.backup_last_successful_at)}` : 'Belum ada backup terverifikasi',
+          rows: [['Backup tersimpan', String(healthReport.backup_count_stored)]],
+          hint: healthReport.backup_freshness_status !== 'healthy' ? 'Buat backup sekarang dan salin ke flashdisk/NAS.' : undefined,
+        },
+        {
+          icon: Lock, title: 'Akses & Login', status: healthReport.failed_logins_today >= 20 ? 'warning' : 'healthy',
+          sub: `${healthReport.failed_logins_today} login gagal hari ini`,
+          rows: [['Akun nonaktif', String(healthReport.inactive_users_count)], ['Alat IoT online', `${healthReport.active_devices_online} / ${healthReport.active_devices_total}`]],
+        },
+      ]
+    : [];
+
+  const securityControls: { label: string; desc: string; status: 'pass' | 'info' | 'warn' }[] = [
+    {
+      label: 'Penguncian akun setelah login gagal',
+      desc: `Dikunci ${securityConfig.lockout_duration_minutes} menit setelah ${securityConfig.max_login_attempts_before_lockout} kali gagal`,
+      status: 'pass',
+    },
+    {
+      label: 'Batas waktu sesi tidak aktif',
+      desc: Number(securityConfig.session_timeout_minutes) > 0 ? `Logout otomatis setelah ${securityConfig.session_timeout_minutes} menit tidak aktif` : 'Nonaktif (cocok untuk perangkat scanner gerbang)',
+      status: Number(securityConfig.session_timeout_minutes) > 0 ? 'pass' : 'info',
+    },
+    {
+      label: 'Aturan kata sandi',
+      desc: `Minimal ${securityConfig.min_password_length} karakter${securityConfig.require_numbers ? ', wajib angka' : ''}${securityConfig.require_special_char ? ', wajib simbol' : ''}`,
+      status: Number(securityConfig.min_password_length) >= 8 ? 'pass' : 'warn',
+    },
+    {
+      label: 'Login di beberapa perangkat sekaligus',
+      desc: securityConfig.allow_concurrent_sessions ? 'Diizinkan' : 'Login baru mengakhiri sesi di perangkat lain',
+      status: securityConfig.allow_concurrent_sessions ? 'info' : 'pass',
+    },
+    {
+      label: 'Mode debug aplikasi',
+      desc: healthReport?.debug_mode ? 'AKTIF — pesan galat rinci bisa terlihat pengguna. Ubah APP_DEBUG=false di .env.' : 'Nonaktif',
+      status: healthReport?.debug_mode ? 'warn' : 'pass',
+    },
+    {
+      label: 'Kunci perangkat IoT (NEXABSEN_GLOBAL_KEY)',
+      desc: healthReport?.iot_key_configured ? 'Sudah diisi — alat RFID wajib mengirim kunci ini' : 'BELUM diisi di .env — alat RFID tidak bisa mengirim tap',
+      status: healthReport?.iot_key_configured ? 'pass' : 'warn',
+    },
+  ];
 
   const auditStats = AuditService.getAuditStats();
 
@@ -304,23 +424,18 @@ export const SecurityAuditView: React.FC<SecurityAuditViewProps> = ({
                   <ShieldCheck className="w-3.5 h-3.5 text-amber-300" />
                   Keamanan & Audit Trail
                 </span>
-                <span className="text-[10px] font-mono text-emerald-100 bg-white/10 px-3 py-1 rounded-full border border-white/15">
-                  Enterprise Guardian
-                </span>
-                <span className="text-[10px] font-bold text-white bg-emerald-700/60 px-3 py-1 rounded-full border border-emerald-500/40 flex items-center gap-1">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-                  LIVE AUDIT ACTIVE
-                </span>
+                {healthReport && (
+                  <span className="text-[10px] font-bold text-white bg-white/10 px-3 py-1 rounded-full border border-white/15">
+                    Status server: {HEALTH_LABEL[healthReport.overall_status]}
+                  </span>
+                )}
               </div>
               <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight mt-1.5">
                 Pusat Keamanan, Audit Trail & Integritas Sistem
               </h1>
               <p className="text-xs text-emerald-100/90 mt-1 max-w-3xl leading-relaxed">
-                Platform Security Architecture: <strong className="text-white">Deny by Default</strong> &bull; 
-                <strong className="text-white"> Server-Side RBAC</strong> &bull; 
-                <strong className="text-white"> Checksummed Backups (SHA-256)</strong> &bull; 
-                <strong className="text-white"> Immutable Audit Log</strong> &bull; 
-                <strong className="text-white"> Disaster Recovery Ready</strong>
+                Hak akses diperiksa di server untuk setiap permintaan &bull; backup diverifikasi checksum SHA-256 &bull;
+                log audit disimpan di server sesuai masa simpan di Kebijakan Keamanan &bull; SOP pemulihan dengan catatan uji.
               </p>
             </div>
           </div>
@@ -392,183 +507,128 @@ export const SecurityAuditView: React.FC<SecurityAuditViewProps> = ({
       {/* ========================================================================= */}
       {activeSubTab === 'health' && (
         <div className="space-y-6">
-          {/* Health Bento Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Application Service */}
-            <div className="p-5 rounded-3xl bg-white dark:bg-zinc-900 border border-slate-200/90 dark:border-zinc-800 shadow-sm hover:shadow-md transition flex flex-col justify-between">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 flex items-center justify-center border border-emerald-100 dark:border-emerald-500/20">
-                    <Server className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-black text-slate-900 dark:text-zinc-200">Aplikasi Web</h4>
-                    <p className="text-[11px] text-slate-500 dark:text-zinc-400 font-mono">{healthReport.application_version}</p>
-                  </div>
-                </div>
-                <span className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black bg-emerald-50 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30">
-                  <Check className="w-3 h-3 text-emerald-600" /> OK
+          {healthError && (
+            <div id="health-error-notice" className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-semibold flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+              <span>{healthError}</span>
+            </div>
+          )}
+          {!healthReport ? (
+            <div className="p-10 rounded-3xl bg-white border border-slate-200 text-center text-xs text-slate-500">
+              Memuat status server…
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center justify-between flex-wrap gap-2 text-[11px] text-slate-500">
+                <span>
+                  Status keseluruhan:{' '}
+                  <span id="health-overall" className={`px-2.5 py-0.5 rounded-full font-black border ${HEALTH_BADGE[healthReport.overall_status]}`}>
+                    {HEALTH_LABEL[healthReport.overall_status]}
+                  </span>
+                </span>
+                <span className="flex items-center gap-2">
+                  Diperiksa server: {fmtDateTime(healthReport.checked_at)}
+                  <button onClick={refreshHealth} className="text-emerald-700 font-bold hover:underline cursor-pointer flex items-center gap-1">
+                    <RefreshCw className="w-3 h-3" /> Perbarui
+                  </button>
                 </span>
               </div>
-              <div className="mt-4 pt-3 border-t border-slate-100 dark:border-zinc-800 text-[11px] text-slate-500 dark:text-zinc-400 flex justify-between">
-                <span>Environment</span>
-                <span className="font-mono text-slate-900 dark:text-zinc-200 uppercase font-bold">{healthReport.application_env}</span>
-              </div>
-            </div>
 
-            {/* Database Service */}
-            <div className="p-5 rounded-3xl bg-white dark:bg-zinc-900 border border-slate-200/90 dark:border-zinc-800 shadow-sm hover:shadow-md transition flex flex-col justify-between">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 flex items-center justify-center border border-emerald-100 dark:border-emerald-500/20">
-                    <Database className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-black text-slate-900 dark:text-zinc-200">Database Engine</h4>
-                    <p className="text-[11px] text-slate-500 dark:text-zinc-400 font-mono">Latensi: {healthReport.database_latency_ms} ms</p>
-                  </div>
-                </div>
-                <span className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black bg-emerald-50 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30">
-                  <Check className="w-3 h-3 text-emerald-600" /> HEALTHY
-                </span>
-              </div>
-              <div className="mt-4 pt-3 border-t border-slate-100 dark:border-zinc-800 text-[11px] text-slate-500 dark:text-zinc-400 flex justify-between">
-                <span>Transactions</span>
-                <span className="font-bold text-emerald-700 dark:text-emerald-400">ACID Enforced</span>
-              </div>
-            </div>
-
-            {/* Scheduler / Cron */}
-            <div className="p-5 rounded-3xl bg-white dark:bg-zinc-900 border border-slate-200/90 dark:border-zinc-800 shadow-sm hover:shadow-md transition flex flex-col justify-between">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 flex items-center justify-center border border-emerald-100 dark:border-emerald-500/20">
-                    <Clock className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-black text-slate-900 dark:text-zinc-200">Scheduler Daemon</h4>
-                    <p className="text-[11px] text-slate-500 dark:text-zinc-400 font-mono">{healthReport.scheduler_heartbeat_diff_seconds} detik lalu</p>
-                  </div>
-                </div>
-                <span className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black bg-emerald-50 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30">
-                  <Activity className="w-3 h-3 text-emerald-600" /> ACTIVE
-                </span>
-              </div>
-              <div className="mt-4 pt-3 border-t border-slate-100 dark:border-zinc-800 text-[11px] text-slate-500 dark:text-zinc-400 flex justify-between">
-                <span>Auto Alpha & Cron</span>
-                <span className="font-bold text-slate-800 dark:text-zinc-200">Every Minute</span>
-              </div>
-            </div>
-
-            {/* Storage & Disk */}
-            <div className="p-5 rounded-3xl bg-white dark:bg-zinc-900 border border-slate-200/90 dark:border-zinc-800 shadow-sm hover:shadow-md transition flex flex-col justify-between">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-sky-50 dark:bg-sky-500/10 text-sky-700 dark:text-sky-400 flex items-center justify-center border border-sky-100 dark:border-sky-500/20">
-                    <HardDrive className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-black text-slate-900 dark:text-zinc-200">Kapasitas Disk</h4>
-                    <p className="text-[11px] text-slate-500 dark:text-zinc-400 font-mono">{healthReport.disk_free_gb} GB ({healthReport.disk_free_percentage}%)</p>
-                  </div>
-                </div>
-                <span className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black bg-sky-50 dark:bg-sky-500/20 text-sky-800 dark:text-sky-300 border border-sky-200 dark:border-sky-500/30">
-                  <Check className="w-3 h-3 text-sky-600" /> OK
-                </span>
-              </div>
-              <div className="mt-4 pt-3 border-t border-slate-100 dark:border-zinc-800 text-[11px] text-slate-500 dark:text-zinc-400 flex justify-between">
-                <span>Storage Path</span>
-                <span className="font-bold text-slate-800 dark:text-zinc-200">/storage/app</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Security & Infrastructure Readiness Matrix */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Operational Security Controls */}
-            <div className="p-6 rounded-3xl bg-white dark:bg-zinc-900 border border-slate-200/90 dark:border-zinc-800 shadow-sm space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-black text-slate-900 dark:text-white flex items-center gap-2">
-                  <Lock className="w-4 h-4 text-emerald-600" />
-                  Status Kontrol Keamanan Operasional
-                </h3>
-                <span className="text-[10px] text-slate-400 font-mono font-bold">Sprint 11 Standard</span>
-              </div>
-
-              <div className="space-y-3">
-                {[
-                  { label: 'Otorisasi Server-Side (RBAC Strict Scoping)', status: 'PASS', desc: 'Setiap request di-validasi server terlepas dari UI state' },
-                  { label: 'Pencegahan Kebocoran Rahasia (No Secrets in Logs/Repo)', status: 'PASS', desc: 'Filter redaction aktif untuk token, password, & kunci IoT' },
-                  { label: 'Proteksi XSS & Output Escaping', status: 'PASS', desc: 'Seluruh input santri & catatan absensi di-escape otomatis' },
-                  { label: 'Brute-Force Login Throttling & Lockout', status: 'PASS', desc: 'Maksimum 5 kali percobaan gagal sebelum cooldown 15 menit' },
-                  { label: 'Rotasi Rahasia Perangkat RFID (Zero Downtime)', status: 'PASS', desc: 'Secret lama langsung dibatalkan seketika setelah rotasi' },
-                  { label: 'Re-Autentikasi Sinkronisasi Offline PWA', status: 'PASS', desc: 'Token operator diverifikasi ulang saat online sebelum commit' },
-                ].map((item, idx) => (
-                  <div key={idx} className="p-3.5 rounded-2xl bg-slate-50 dark:bg-zinc-950/60 border border-slate-200/80 dark:border-zinc-800/80 flex items-start justify-between gap-3 shadow-2xs">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-slate-900 dark:text-zinc-200">{item.label}</span>
+              <div id="health-cards" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {healthCards.map((card) => {
+                  const Icon = card.icon;
+                  return (
+                    <div key={card.title} className="p-5 rounded-3xl bg-white border border-slate-200/90 shadow-sm flex flex-col justify-between">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center border border-emerald-100 shrink-0">
+                            <Icon className="w-5 h-5" />
+                          </div>
+                          <div className="min-w-0">
+                            <h4 className="text-xs font-black text-slate-900">{card.title}</h4>
+                            <p className="text-[11px] text-slate-500 font-mono truncate" title={card.sub}>{card.sub}</p>
+                          </div>
+                        </div>
+                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-black border shrink-0 ${HEALTH_BADGE[card.status]}`}>
+                          {HEALTH_LABEL[card.status]}
+                        </span>
                       </div>
-                      <p className="text-[11px] text-slate-500 dark:text-zinc-400 mt-0.5">{item.desc}</p>
+                      <div className="mt-4 pt-3 border-t border-slate-100 space-y-1">
+                        {card.rows.map(([k, v]) => (
+                          <div key={k} className="text-[11px] text-slate-500 flex justify-between gap-3">
+                            <span>{k}</span>
+                            <span className="font-bold text-slate-800 text-right">{v}</span>
+                          </div>
+                        ))}
+                        {card.hint && <p className="text-[11px] text-amber-700 font-semibold pt-1">{card.hint}</p>}
+                      </div>
                     </div>
-                    <span className="px-2.5 py-0.5 rounded text-[10px] font-black bg-emerald-50 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30 shrink-0">
-                      {item.status}
+                  );
+                })}
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="p-6 rounded-3xl bg-white border border-slate-200/90 shadow-sm space-y-4">
+                  <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
+                    <Lock className="w-4 h-4 text-emerald-600" />
+                    Kontrol Keamanan yang Berlaku
+                  </h3>
+                  <div className="space-y-3">
+                    {securityControls.map((item) => (
+                      <div key={item.label} className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-start justify-between gap-3">
+                        <div>
+                          <span className="text-xs font-bold text-slate-900">{item.label}</span>
+                          <p className="text-[11px] text-slate-500 mt-0.5">{item.desc}</p>
+                        </div>
+                        <span className={`px-2.5 py-0.5 rounded text-[10px] font-black border shrink-0 ${CONTROL_BADGE[item.status]}`}>
+                          {CONTROL_LABEL[item.status]}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="p-6 rounded-3xl bg-white border border-slate-200/90 shadow-sm space-y-4">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
+                      <Radio className="w-4 h-4 text-emerald-600" />
+                      Alat Absensi (RFID / QR)
+                    </h3>
+                    <span className="text-[10px] text-slate-500 font-mono font-bold">
+                      {healthReport.active_devices_online} / {healthReport.active_devices_total} online (10 menit terakhir)
                     </span>
                   </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Hardware & Terminal IoT Status */}
-            <div className="p-6 rounded-3xl bg-white dark:bg-zinc-900 border border-slate-200/90 dark:border-zinc-800 shadow-sm space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-black text-slate-900 dark:text-white flex items-center gap-2">
-                  <Radio className="w-4 h-4 text-emerald-600" />
-                  Status Terminal Absensi & IoT Pesantren
-                </h3>
-                <span className="text-[10px] text-slate-500 dark:text-zinc-400 font-mono font-bold">
-                  {safeDevices.filter(d => d && d.is_active).length} / {safeDevices.length} Online
-                </span>
-              </div>
-
-              <div className="space-y-3">
-                {safeDevices.length === 0 ? (
-                  <p className="text-xs text-slate-500 italic py-6 text-center">Belum ada perangkat terminal yang terdaftar.</p>
-                ) : (
-                  safeDevices.map((dev) => (
-                    <div key={dev.id} className="p-3.5 rounded-2xl bg-slate-50 dark:bg-zinc-950/60 border border-slate-200/80 dark:border-zinc-800/80 flex items-center justify-between shadow-2xs">
-                      <div className="flex items-center gap-3">
-                        <div className={`p-2.5 rounded-2xl border ${dev.is_active ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/30' : 'bg-slate-100 text-slate-500 border-slate-200'}`}>
-                          <Radio className="w-4 h-4" />
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-bold text-slate-900 dark:text-zinc-200">{dev.device_name}</span>
-                            <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-white dark:bg-zinc-800 text-slate-600 dark:text-zinc-400 border border-slate-200 dark:border-zinc-700">
-                              {dev.device_code}
+                  <div className="space-y-3">
+                    {safeDevices.length === 0 ? (
+                      <p className="text-xs text-slate-500 italic py-6 text-center">Belum ada perangkat yang terdaftar.</p>
+                    ) : (
+                      safeDevices.map((dev) => {
+                        const online = isDeviceOnline(dev);
+                        return (
+                          <div key={dev.id} className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-xs font-bold text-slate-900">{dev.device_name}</span>
+                                <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-white text-slate-600 border border-slate-200">{dev.device_code}</span>
+                              </div>
+                              <p className="text-[10px] text-slate-500 mt-0.5">
+                                Lokasi: {dev.location || '-'} &bull; Terakhir terlihat: {dev.last_seen_at ? fmtDateTime(dev.last_seen_at) : 'belum pernah'}
+                              </p>
+                            </div>
+                            <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black border shrink-0 ${
+                              !dev.is_active ? 'bg-slate-100 text-slate-600 border-slate-200' : online ? HEALTH_BADGE.healthy : HEALTH_BADGE.warning
+                            }`}>
+                              {!dev.is_active ? 'NONAKTIF' : online ? 'ONLINE' : 'OFFLINE'}
                             </span>
                           </div>
-                          <p className="text-[10px] text-slate-500 dark:text-zinc-400 mt-0.5">
-                            Lokasi: {dev.location || 'Komplek Utama'} &bull; IP: {dev.ip_address || '192.168.1.10X'}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black ${
-                          dev.is_active 
-                            ? 'bg-emerald-50 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30' 
-                            : 'bg-slate-100 text-slate-500'
-                        }`}>
-                          {dev.is_active ? 'ACTIVE' : 'INACTIVE'}
-                        </span>
-                        <p className="text-[10px] text-slate-400 dark:text-zinc-500 font-mono mt-1 font-semibold">HMAC-SHA256</p>
-                      </div>
-                    </div>
-                  ))
-                )}
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
+            </>
+          )}
         </div>
       )}
 
@@ -871,7 +931,10 @@ export const SecurityAuditView: React.FC<SecurityAuditViewProps> = ({
                 </h3>
               </div>
               <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1">
-                Pemeriksaan konsistensi relasi Foreign Key, duplikasi record, integritas finalisasi sesi, dan keunikan identitas QR/RFID.
+                Pemeriksaan di server atas seluruh database: presensi ganda, peserta ganda, kartu QR/RFID ganda, presensi di luar daftar peserta, sesi ditutup yang belum lengkap, dan alat yang masih terikat ke sesi selesai.
+              </p>
+              <p id="integrity-last-scan" className="text-[11px] text-slate-500 mt-1 font-semibold">
+                {integritySummary.last_audit_at ? `Pemindaian terakhir: ${fmtDateTime(integritySummary.last_audit_at)}` : 'Belum pernah dipindai dari perangkat ini — tekan Pindai Ulang Database.'}
               </p>
             </div>
 
@@ -943,9 +1006,11 @@ export const SecurityAuditView: React.FC<SecurityAuditViewProps> = ({
             {filteredIssues.length === 0 ? (
               <div className="p-10 text-center rounded-3xl bg-emerald-50/50 dark:bg-zinc-950/40 border border-emerald-100 dark:border-zinc-800/60 space-y-2">
                 <CheckCircle className="w-12 h-12 text-emerald-600 dark:text-emerald-400 mx-auto" />
-                <h5 className="text-sm font-black text-emerald-900 dark:text-zinc-200">Database Berintegritas Sempurna</h5>
+                <h5 className="text-sm font-black text-emerald-900 dark:text-zinc-200">{integritySummary.last_audit_at ? 'Tidak Ada Masalah Ditemukan' : 'Belum Ada Hasil Pemindaian'}</h5>
                 <p className="text-xs text-slate-500 max-w-md mx-auto">
-                  Tidak ada anomali atau record yatim yang ditemukan. Seluruh constraint relational dan aturan bisnis terpenuhi.
+                  {integritySummary.last_audit_at
+                    ? (integrityFilterSeverity === 'ALL' ? 'Pemeriksaan server tidak menemukan data ganda atau tidak lengkap.' : 'Tidak ada temuan dengan tingkat ini.')
+                    : 'Jalankan pemindaian untuk memeriksa seluruh data di server.'}
                 </p>
               </div>
             ) : (
@@ -989,10 +1054,11 @@ export const SecurityAuditView: React.FC<SecurityAuditViewProps> = ({
                           <button
                             id={`btn-repair-${issue.id}`}
                             onClick={() => handleRepairIssue(issue)}
+                            disabled={repairingIssueId !== null}
                             className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-[#1F5C45] hover:bg-[#12372A] text-white text-xs font-black shadow-xs transition-all active:scale-95 cursor-pointer min-h-[38px]"
                           >
                             <Zap className="w-3.5 h-3.5" />
-                            <span>{issue.repair_action_label || 'Perbaiki Otomatis'}</span>
+                            <span>{repairingIssueId === issue.id ? 'Memperbaiki…' : issue.repair_action_label || 'Perbaiki Otomatis'}</span>
                           </button>
                         ) : (
                           <span className="px-3.5 py-2 rounded-2xl bg-slate-100 dark:bg-zinc-800 text-slate-500 dark:text-zinc-400 text-xs font-bold border border-slate-200 dark:border-zinc-700">
@@ -1023,7 +1089,7 @@ export const SecurityAuditView: React.FC<SecurityAuditViewProps> = ({
                   Strategi Backup 3-2-1 & Kesiapan Disaster Recovery
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1">
-                  Target Operasional Pesantren: <strong className="text-slate-800 dark:text-zinc-200">RPO &le; 1 Jam</strong> &bull; <strong className="text-slate-800 dark:text-zinc-200">RTO &le; 30 Menit</strong> &bull; <strong className="text-slate-800 dark:text-zinc-200">Zero-Data Loss saat Listrik Padam via PWA Buffer</strong>
+                  Backup otomatis harian 01:30 (butuh penjadwal) &bull; simpan salinan backup di luar PC server (flashdisk/NAS) &bull; uji pemulihan minimal tiap semester dan catat hasilnya di setiap SOP.
                 </p>
               </div>
 
@@ -1063,9 +1129,13 @@ export const SecurityAuditView: React.FC<SecurityAuditViewProps> = ({
                       }`}>
                         {plan.severity}
                       </span>
-                      <span className="text-[10px] text-emerald-700 dark:text-emerald-400 font-bold font-mono">
-                        Drill: {plan.last_drill_status} ({plan.last_drill_at?.substring(0, 10)})
-                      </span>
+                      {drDrills[plan.id] ? (
+                        <span className={`text-[10px] font-bold font-mono ${drDrills[plan.id].status === 'PASS' ? 'text-emerald-700' : 'text-rose-700'}`}>
+                          Uji terakhir: {drDrills[plan.id].status === 'PASS' ? 'BERHASIL' : 'GAGAL'} ({fmtDateTime(drDrills[plan.id].at)})
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-amber-700 font-bold">Belum pernah diuji</span>
+                      )}
                     </div>
                     <h4 className="text-xs font-black text-slate-900 dark:text-zinc-100">{plan.title}</h4>
                     <p className="text-[11px] text-slate-600 dark:text-zinc-400 leading-relaxed">{plan.scenario}</p>
@@ -1096,7 +1166,7 @@ export const SecurityAuditView: React.FC<SecurityAuditViewProps> = ({
                     <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
                       <BookOpen className="w-5 h-5 text-emerald-600" />
                     </div>
-                    <h3 className="text-sm font-black text-slate-900 dark:text-white">SOP Penanganan Bencana (Runbook)</h3>
+                    <h3 className="text-sm font-black text-slate-900 dark:text-white">SOP Penanganan Gangguan</h3>
                   </div>
                   <button onClick={() => setSelectedDrPlan(null)} className="text-slate-400 hover:text-slate-900 cursor-pointer">
                     <XCircle className="w-5 h-5" />
@@ -1113,7 +1183,7 @@ export const SecurityAuditView: React.FC<SecurityAuditViewProps> = ({
                 </div>
 
                 <div className="space-y-2 pt-2">
-                  <h5 className="text-xs font-black text-slate-900 dark:text-zinc-300 uppercase tracking-wider">Langkah Eksekusi Lapangan (Step-by-Step):</h5>
+                  <h5 className="text-xs font-black text-slate-900 dark:text-zinc-300 uppercase tracking-wider">Langkah Penanganan:</h5>
                   <div className="space-y-2">
                     {selectedDrPlan.steps.map((step, idx) => (
                       <div key={idx} className="p-3 rounded-2xl bg-slate-50 dark:bg-zinc-950/70 border border-slate-200/80 dark:border-zinc-800/80 text-xs text-slate-800 dark:text-zinc-300 flex items-start gap-2.5">
@@ -1121,6 +1191,39 @@ export const SecurityAuditView: React.FC<SecurityAuditViewProps> = ({
                         <span className="leading-relaxed">{step.replace(/^\d+\.\s*/, '')}</span>
                       </div>
                     ))}
+                  </div>
+                </div>
+
+                <div id="dr-drill-record" className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+                  <h5 className="text-xs font-black text-slate-900">Catat Hasil Uji Pemulihan (Latihan)</h5>
+                  <p className="text-[11px] text-slate-500">
+                    {drDrills[selectedDrPlan.id]
+                      ? `Terakhir: ${drDrills[selectedDrPlan.id].status === 'PASS' ? 'BERHASIL' : 'GAGAL'} pada ${fmtDateTime(drDrills[selectedDrPlan.id].at)}${drDrills[selectedDrPlan.id].by ? ` oleh ${drDrills[selectedDrPlan.id].by}` : ''}${drDrills[selectedDrPlan.id].notes ? ` — ${drDrills[selectedDrPlan.id].notes}` : ''}`
+                      : 'Belum pernah diuji. Lakukan latihan sesuai langkah di atas (sebaiknya di PC cadangan), lalu catat hasilnya.'}
+                  </p>
+                  <textarea
+                    value={drillNotes}
+                    onChange={(e) => setDrillNotes(e.target.value)}
+                    maxLength={1000}
+                    rows={2}
+                    placeholder="Catatan (opsional): durasi pemulihan, kendala, dll."
+                    className="w-full px-3 py-2 rounded-xl bg-white border border-slate-200 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                  <div className="flex gap-2 justify-end">
+                    <button
+                      disabled={isSavingDrill}
+                      onClick={() => handleRecordDrill(selectedDrPlan.id, 'FAIL')}
+                      className="px-3.5 py-2 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold cursor-pointer disabled:opacity-50"
+                    >
+                      Catat Gagal
+                    </button>
+                    <button
+                      disabled={isSavingDrill}
+                      onClick={() => handleRecordDrill(selectedDrPlan.id, 'PASS')}
+                      className="px-3.5 py-2 rounded-xl bg-emerald-600 text-white text-xs font-bold cursor-pointer disabled:opacity-50"
+                    >
+                      Catat Berhasil
+                    </button>
                   </div>
                 </div>
 
