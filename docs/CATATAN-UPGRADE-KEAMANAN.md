@@ -730,3 +730,32 @@ Bug nyata yang ikut terungkap dan diperbaiki:
 php artisan optimize:clear
 ```
 Tidak ada migrasi baru. Muat ulang browser (Ctrl+F5).
+
+---
+
+# Update 20 — Tahap 17: Halaman publik & PSB tetap rapi saat offline
+
+Halaman `landing`, `psb`, `cms-landing`, `manajemen-psb`, dan `registrasi-rfid` sebelumnya memuat Tailwind (CDN),
+Google Fonts, ikon Material Symbols, dan Font Awesome dari internet. Saat jaringan pondok offline, halaman tampil
+tanpa gaya dan menu "Pusat Manajemen PSB" error.
+
+- Semua aset kini disimpan lokal di `public/offline-assets/` (CSS per halaman, font Urbanist / Plus Jakarta Sans /
+  JetBrains Mono, ikon Material Symbols Rounded, Font Awesome). Tidak ada lagi permintaan ke CDN.
+- Foto contoh (Unsplash) yang gagal dimuat saat offline otomatis diganti gambar pengganti hijau berisi keterangan foto.
+  Ganti dengan foto pondok sendiri melalui menu CMS Landing.
+- Video profil: bila belum diisi di CMS, kini tampil pesan "Video profil belum tersedia" (sebelumnya memutar video
+  YouTube contoh yang tidak terkait pondok).
+- Nomor WhatsApp contoh tidak lagi ikut tersimpan saat admin menyimpan pengaturan PSB di CMS, dan tombol WhatsApp
+  di halaman PSB tidak lagi mengarah ke nomor contoh sebelum data CMS termuat.
+- Jika class Tailwind di salah satu halaman tersebut diubah, buat ulang CSS-nya dengan `npm run build:static-pages`
+  (butuh internet sekali untuk mengunduh Tailwind v3).
+
+Catatan: ukuran font ikon Material Symbols ±5,4 MB (berisi semua ikon karena admin bisa memilih ikon bebas di CMS);
+hanya diunduh sekali lalu disimpan di cache browser.
+
+## Langkah setelah update
+
+```bash
+php artisan optimize:clear
+```
+Tidak ada migrasi baru. Muat ulang browser (Ctrl+F5).

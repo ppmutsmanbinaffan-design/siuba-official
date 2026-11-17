@@ -5,34 +5,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>CMS Landing Page (7 Sub-Menu) — SIUBA Pondok Pesantren Utsman Bin Affan</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,400,1,0" rel="stylesheet" />
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          fontFamily: {
-            sans: ['Urbanist', 'sans-serif'],
-          },
-          colors: {
-            forest: {
-              950: '#071f12',
-              900: '#0d331d',
-              800: '#14492b',
-              700: '#1c633b',
-            },
-            limeaccent: {
-              400: '#a3e635',
-              500: '#84cc16',
-            }
-          }
-        }
-      }
-    }
-  </script>
+  <link rel="stylesheet" href="/offline-assets/fonts/fonts.css" />
+  <!-- Aset lokal: halaman tetap rapi walau jaringan pondok offline -->
+  <link rel="stylesheet" href="/offline-assets/css/cms-landing.css" />
+  <script src="/offline-assets/img-fallback.js"></script>
 </head>
 <body class="bg-[#f4f6f0] text-forest-950 font-sans antialiased min-h-screen flex flex-col">
 
@@ -1639,7 +1615,7 @@
         setVal('ppdb-sma_quota', d.sma_quota);
         setVal('ppdb-sma_program', d.sma_program);
 
-        setVal('ppdb-whatsapp_contact', d.whatsapp_contact || '0812-3456-7890');
+        setVal('ppdb-whatsapp_contact', d.whatsapp_contact || '');
         setVal('ppdb-admin_contact_name', d.admin_contact_name || 'Ustadz H. Ahmad Fauzi, S.Pd.I');
 
         currentNews = json.news || (json.data && json.data.news) || [];

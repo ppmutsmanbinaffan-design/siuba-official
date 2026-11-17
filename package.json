@@ -8,7 +8,8 @@
     "build": "vite build && node scripts/publish-spa.mjs",
     "preview": "vite preview",
     "lint": "tsc --noEmit",
-    "typecheck": "tsc --noEmit -p ."
+    "typecheck": "tsc --noEmit -p .",
+    "build:static-pages": "node scripts/build-static-pages.mjs"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.14",
