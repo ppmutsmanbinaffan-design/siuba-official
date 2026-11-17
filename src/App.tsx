@@ -22,7 +22,7 @@ import { QrScannerView } from './components/QrScannerView';
 import { QrBulkPrintView } from './components/QrBulkPrintView';
 import { InteractiveScannerSimulator } from './components/InteractiveScannerSimulator';
 import { HistoryView } from './components/HistoryView';
-import { AcceptanceTestView } from './components/AcceptanceTestView';
+import { SystemReadinessView } from './features/golive/SystemReadinessPanel';
 import { AccessControlView } from './components/AccessControlView';
 import { Profile360View } from './components/Profile360View';
 import { SettingsView } from './components/SettingsView';
@@ -42,7 +42,7 @@ import { ExecutiveDashboardView } from './components/ExecutiveDashboardView';
 import { ReportCenterView } from './components/ReportCenterView';
 import { SyncCenterView } from './components/SyncCenterView';
 import { SecurityAuditView } from './components/SecurityAuditView';
-import { GoLiveQAView } from './components/GoLiveQAView';
+import { GoLiveQAPage } from './features/golive/GoLiveQAPage';
 import { StaffAttendanceView } from './components/StaffAttendanceView';
 import { TrainerAttendanceView } from './components/TrainerAttendanceView';
 import { StaffIntegratedDashboardView } from './components/StaffIntegratedDashboardView';
@@ -1452,7 +1452,7 @@ export function App() {
       case 'scanner-simulator': return 'Simulator Pemindai QR';
       case 'history': return 'Riwayat & Log Transaksi Presensi';
       case 'devices': return 'Manajemen Perangkat Terminal';
-      case 'acceptance-tests': return 'Acceptance Tests';
+      case 'acceptance-tests': return 'Uji Kesiapan Sistem';
       case 'access': return 'Role & Permission';
       case 'psb-management': return 'Pusat Manajemen PSB';
       case 'settings': return 'Pengaturan Sistem & Lingkungan';
@@ -1468,7 +1468,7 @@ export function App() {
       case 'timetable': return 'Jadwal Pelajaran KBM';
       case 'academic-master': return 'Master Akademik';
       case 'academic-reports': return 'Laporan Akademik KBM';
-      case 'go-live-qa': return 'Go-Live & QA Master';
+      case 'go-live-qa': return 'Go-Live & QA';
       case '403': return 'Akses Ditolak (403)';
       case '404': return 'Halaman Tidak Ditemukan (404)';
       default: return 'Presensi Terpadu SDM & Guru';
@@ -1986,21 +1986,7 @@ export function App() {
           )}
 
           {activeTab === 'acceptance-tests' && (
-            <AcceptanceTestView
-              students={students}
-              activities={activities}
-              sessions={sessions}
-              records={records}
-              devices={devices}
-              currentUser={currentUser}
-              extracurriculars={extracurriculars}
-              extracurricularMembers={extracurricularMembers}
-              studentGroups={studentGroups}
-              studentGroupMembers={studentGroupMembers}
-              sessionParticipants={sessionParticipants}
-              excusals={excusals}
-              recordHistories={recordHistories}
-            />
+            <SystemReadinessView onShowToast={showToast} />
           )}
 
           {activeTab === 'access' && (
@@ -2210,13 +2196,7 @@ export function App() {
           )}
 
           {activeTab === 'go-live-qa' && (
-            <GoLiveQAView
-              sessions={sessions}
-              records={records}
-              students={students}
-              devices={devices}
-              currentUser={currentUser}
-            />
+            <GoLiveQAPage onShowToast={showToast} />
           )}
 
           {activeTab === 'security-audit' && (

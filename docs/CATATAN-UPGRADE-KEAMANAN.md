@@ -1018,3 +1018,39 @@ Dulu berisi daftar centang statis untuk server Linux. Kini diperiksa sungguhan:
 
 ## Langkah setelah update
 Tidak ada migrasi baru. Jalankan `jalankan-siuba.bat`, lalu Ctrl+F5.
+
+---
+
+# Update 29 — Tahap 25: Uji Kesiapan Sistem & Go-Live & QA memakai data sungguhan
+
+## Sebelumnya
+- **Acceptance Tests** menjalankan ±60 "tes" terhadap mesin perhitungan lama di browser dengan tanggal & data contoh,
+  sebagian menulis data uji ke cache browser, dan hasilnya hampir selalu LULUS.
+- **Go-Live & QA Master** berisi hasil UAT "LULUS" dengan nama penguji rekaan, tanda tangan pimpinan rekaan
+  (lengkap dengan hash palsu), uji beban & uji chaos simulasi, bug contoh, dan SOP yang menyebut berkas/perangkat
+  yang tidak ada. Semuanya tersimpan di browser.
+
+## Sekarang
+- Menu **Uji Kesiapan Sistem** (dulu Acceptance Tests, kini di kelompok SISTEM): server menjalankan ±27 pemeriksaan
+  baca-saja atas data sungguhan, dikelompokkan:
+  - *Konfigurasi server*: koneksi database, migrasi tertunda, APP_KEY, mode debug, zona waktu, folder storage, kunci alat RFID.
+  - *Keamanan & cadangan*: akun Super Admin, berkas kata sandi awal yang tertinggal, pengguna tanpa peran,
+    umur & keutuhan backup, penjadwal, integritas data.
+  - *Data master*: identitas lembaga, tahun ajaran aktif, santri (tanpa kelas / tanpa kartu), kelas, SDM, guru tanpa akun.
+  - *Operasional*: kegiatan aktif, sesi 7 hari terakhir, sesi lupa ditutup, alat RFID yang tidak terhubung,
+    izin santri yang tertahan.
+  Setiap butir berstatus Lulus / Perlu perhatian / Gagal lengkap dengan cara memperbaikinya.
+- Menu **Go-Live & QA** (semua tersimpan di server bersama nama pencatat & waktu):
+  - **Gerbang go-live** dihitung otomatis: uji kesiapan tanpa GAGAL (≤ 7 hari), semua skenario UAT diuji tanpa gagal,
+    tidak ada bug BLOCKER/CRITICAL terbuka, dan semua perwakilan menyetujui.
+  - **Skenario UAT** (17 skenario per peran) — mulai dari "Belum diuji"; petugas mencatat hasil sungguhan.
+  - **Persetujuan** per peran — nama perwakilan diisi sendiri, tanpa nama/tanda tangan bawaan.
+  - **Catatan bug** — mulai kosong; catat, ubah status (terbuka → diperbaiki → selesai).
+  - **SOP & kode galat** ditulis ulang untuk instalasi Windows + XAMPP, hanya merujuk menu & berkas yang ada.
+- Dihapus: uji beban & chaos simulasi, daftar periksa go-live berisi hasil rekaan, dan seluruh layanan pendukungnya.
+- Endpoint baru: `GET /golive`, `POST /golive/self-test`, `POST /golive/uat/{id}`, `POST /golive/signoffs`,
+  `POST /golive/bugs`, `PATCH /golive/bugs/{id}` (izin Pemeliharaan Sistem / Audit Keamanan).
+
+## Langkah setelah update
+Tidak ada migrasi baru. Jalankan `jalankan-siuba.bat`, lalu Ctrl+F5. Buka **Uji Kesiapan Sistem** dan tekan
+**Jalankan Uji Kesiapan** — benahi butir yang GAGAL lebih dulu.

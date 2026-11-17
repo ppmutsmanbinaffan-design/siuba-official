@@ -373,6 +373,16 @@ Route::prefix('v1')->group(function () {
         });
     });
 
+    // Go-Live & QA: uji kesiapan sistem, UAT, persetujuan, catatan bug (disimpan di server)
+    Route::prefix('golive')->middleware(['auth:sanctum', 'permission:system.maintenance|system.security_audit'])->group(function () {
+        Route::get('/', [\App\Http\Controllers\Api\GoLiveApiController::class, 'overview']);
+        Route::post('/self-test', [\App\Http\Controllers\Api\GoLiveApiController::class, 'runSelfTest'])->middleware('throttle:6,1');
+        Route::post('/uat/{caseId}', [\App\Http\Controllers\Api\GoLiveApiController::class, 'recordUat']);
+        Route::post('/signoffs', [\App\Http\Controllers\Api\GoLiveApiController::class, 'signOff']);
+        Route::post('/bugs', [\App\Http\Controllers\Api\GoLiveApiController::class, 'storeBug']);
+        Route::patch('/bugs/{bugId}', [\App\Http\Controllers\Api\GoLiveApiController::class, 'updateBug']);
+    });
+
     // Keamanan & Audit: kesehatan sistem, integritas data, uji pemulihan (data server)
     Route::prefix('system')->middleware(['auth:sanctum', 'permission:system.security_audit|system.maintenance'])->group(function () {
         Route::get('/health-report', [\App\Http\Controllers\Api\SystemStatusApiController::class, 'health']);

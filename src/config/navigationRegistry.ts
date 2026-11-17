@@ -632,11 +632,11 @@ export const NAVIGATION_REGISTRY: NavItemConfig[] = [
   // ARSITEKTUR & QA
   {
     id: 'acceptance-tests',
-    label: 'Acceptance Tests',
+    label: 'Uji Kesiapan Sistem',
     icon: CheckCircle2,
-    category: 'ARSITEKTUR & TEST',
+    category: 'SISTEM',
     route: '/acceptance-tests',
-    permission: 'acceptance_tests.view',
+    permission: 'system.maintenance',
   },
 
   // PENGGUNA & AKSES
@@ -660,7 +660,7 @@ export const NAVIGATION_REGISTRY: NavItemConfig[] = [
   },
   {
     id: 'go-live-qa',
-    label: 'Go-Live & QA Master',
+    label: 'Go-Live & QA',
     icon: Rocket,
     category: 'SISTEM',
     route: '/sistem/go-live',
