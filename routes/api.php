@@ -391,6 +391,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/', [SystemBackupApiController::class, 'index']);
         Route::post('/', [SystemBackupApiController::class, 'store']);
         Route::get('/{backupId}/download', [SystemBackupApiController::class, 'download']);
+        Route::post('/{backupId}/verify', [SystemBackupApiController::class, 'verify']);
         Route::delete('/{backupId}', [SystemBackupApiController::class, 'destroy']);
         Route::post('/{backupId}/restore', [SystemBackupApiController::class, 'restore'])->middleware('role:super-admin');
     });

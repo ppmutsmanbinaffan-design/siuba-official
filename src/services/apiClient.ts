@@ -47,6 +47,33 @@ export interface PaginatedResult<T> {
   pagination: PaginationMeta;
 }
 
+/**
+ * Selisih jam perangkat vs server (ms), diukur dari header X-Server-Time di setiap respons.
+ * Dipakai untuk mengoreksi waktu absensi yang dicatat offline (jam HP sering tidak tepat).
+ */
+const CLOCK_KEY = 'siuba_offline_metadata';
+let lastClockSave = 0;
+function recordServerClock(header: string | null, sentAt: number, receivedAt: number) {
+  const serverMs = Number(header);
+  if (!header || !Number.isFinite(serverMs) || serverMs <= 0) return;
+  const rtt = receivedAt - sentAt;
+  if (rtt > 3000) return; // jaringan lambat: ukuran tidak akurat
+  if (receivedAt - lastClockSave < 5 * 60 * 1000) return;
+  lastClockSave = receivedAt;
+  const offset = Math.round(serverMs - (sentAt + rtt / 2));
+  try {
+    const meta = JSON.parse(localStorage.getItem(CLOCK_KEY) || '{}');
+    localStorage.setItem(CLOCK_KEY, JSON.stringify({
+      ...meta,
+      clock_offset_ms: offset,
+      clock_measured_at: new Date(receivedAt).toISOString(),
+      server_time_reference: new Date(serverMs).toISOString(),
+    }));
+  } catch {
+    /* penyimpanan penuh */
+  }
+}
+
 export class ApiClientError extends Error {
   public status: number;
   public code: string;
@@ -150,10 +177,12 @@ class ApiClientService {
     }
 
     try {
+      const sentAt = Date.now();
       const response = await fetch(url, {
         ...options,
         headers,
       });
+      recordServerClock(response.headers.get('X-Server-Time'), sentAt, Date.now());
 
       const responseRequestId = response.headers.get('X-Request-ID') || undefined;
 

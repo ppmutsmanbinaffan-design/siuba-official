@@ -26,6 +26,8 @@ class CorrelationIdMiddleware
         $response = $next($request);
 
         $response->headers->set('X-Request-ID', $requestId);
+        // Jam server (milidetik) agar perangkat bisa mengukur selisih jamnya — dipakai mengoreksi waktu absensi offline
+        $response->headers->set('X-Server-Time', (string) (int) floor(microtime(true) * 1000));
 
         return $response;
     }

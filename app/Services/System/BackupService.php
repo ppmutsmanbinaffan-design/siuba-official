@@ -143,4 +143,97 @@ class BackupService
         // Catatan backup gagal yang lama dibersihkan
         SystemBackup::where('status', 'failed')->where('created_at', '<', now()->subDays(30))->delete();
     }
+
+    /**
+     * Uji kelayakan pulih tanpa mengubah database: checksum, berkas bisa dibaca utuh, jumlah baris sesuai
+     * catatan akhir, dan kecocokan tabel/migrasi dengan aplikasi sekarang.
+     *
+     * @return array<string, mixed>
+     */
+    public static function inspectBackup(SystemBackup $backup): array
+    {
+        $path = self::pathFor($backup);
+        $r = [
+            'backup_id' => $backup->backup_id, 'file_exists' => File::exists($path), 'checksum_ok' => false,
+            'format_ok' => false, 'complete' => false, 'rows' => 0, 'tables' => 0, 'counts' => [],
+            'created_at' => null, 'last_migration' => null, 'current_migration' => DB::table('migrations')->max('migration'),
+            'missing_tables' => [], 'new_tables' => [], 'problems' => [], 'warnings' => [], 'ok' => false,
+        ];
+        if (!$r['file_exists']) {
+            $r['problems'][] = 'Berkas backup tidak ada di folder storage/app/backups.';
+            return $r;
+        }
+        $r['checksum_ok'] = self::verifyBackup($backup);
+        if (!$r['checksum_ok']) {
+            $r['problems'][] = 'Checksum SHA-256 tidak cocok: berkas rusak atau telah diubah.';
+        }
+
+        $gz = @gzopen($path, 'rb');
+        if ($gz === false) {
+            $r['problems'][] = 'Berkas tidak bisa dibuka sebagai arsip gzip.';
+            return $r;
+        }
+        $first = json_decode((string) gzgets($gz, 1 << 20), true);
+        $manifest = $first['manifest'] ?? null;
+        $r['format_ok'] = ($manifest['format'] ?? null) === self::FORMAT;
+        if (!$r['format_ok']) {
+            gzclose($gz);
+            $r['problems'][] = 'Format backup tidak dikenali (backup versi lama tidak bisa dipulihkan otomatis).';
+            return $r;
+        }
+        $r['created_at'] = $manifest['created_at'] ?? null;
+        $r['last_migration'] = $manifest['last_migration'] ?? null;
+
+        $counts = [];
+        $end = null;
+        $bad = 0;
+        while (!gzeof($gz)) {
+            $line = gzgets($gz, 1 << 24);
+            if ($line === false || trim($line) === '') {
+                continue;
+            }
+            $row = json_decode($line, true);
+            if (!is_array($row)) {
+                $bad++;
+                continue;
+            }
+            if (isset($row['end'])) {
+                $end = $row['end'];
+                continue;
+            }
+            if (isset($row['t'])) {
+                $counts[$row['t']] = ($counts[$row['t']] ?? 0) + 1;
+            }
+        }
+        gzclose($gz);
+
+        $r['rows'] = array_sum($counts);
+        $r['tables'] = count($manifest['tables'] ?? []);
+        arsort($counts);
+        $r['counts'] = array_slice($counts, 0, 8, true);
+        $r['complete'] = $end !== null && (int) ($end['rows'] ?? -1) === $r['rows'] && $bad === 0;
+        if (!$r['complete']) {
+            $r['problems'][] = $end === null
+                ? 'Berkas terpotong: penanda akhir backup tidak ditemukan.'
+                : "Jumlah baris tidak sesuai catatan backup ({$r['rows']} dibaca, " . (int) ($end['rows'] ?? 0) . " tercatat" . ($bad ? ", {$bad} baris rusak" : '') . ').';
+        }
+
+        $current = self::dataTables();
+        $r['missing_tables'] = array_values(array_diff($manifest['tables'] ?? [], $current));
+        $r['new_tables'] = array_values(array_diff($current, $manifest['tables'] ?? []));
+        if ($r['new_tables']) {
+            $r['warnings'][] = count($r['new_tables']) . ' tabel baru belum ada saat backup dibuat; tabel itu tidak disentuh saat pemulihan.';
+        }
+        if ($r['missing_tables']) {
+            $r['warnings'][] = count($r['missing_tables']) . ' tabel di backup sudah tidak dipakai aplikasi dan akan dilewati.';
+        }
+        if ($r['last_migration'] && $r['current_migration'] && $r['last_migration'] !== $r['current_migration']) {
+            $r['warnings'][] = $r['last_migration'] < $r['current_migration']
+                ? 'Backup dibuat sebelum update terakhir; setelah dipulihkan jalankan "php artisan migrate --force".'
+                : 'Backup berasal dari versi aplikasi yang lebih baru dari yang terpasang sekarang.';
+        }
+        $r['ok'] = $r['checksum_ok'] && $r['format_ok'] && $r['complete'];
+
+        return $r;
+    }
 }

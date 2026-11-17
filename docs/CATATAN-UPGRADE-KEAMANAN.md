@@ -986,3 +986,35 @@ Perintah manual: `php artisan trainer:generate --date=YYYY-MM-DD`, `php artisan 
 ## Langkah setelah update
 Tidak ada migrasi baru. Jalankan `jalankan-siuba.bat`, lalu Ctrl+F5. Pastikan penjadwal Windows terpasang
 (`pasang-penjadwal-windows.bat`) agar sesi latihan dibuat & difinalisasi otomatis.
+
+---
+
+# Update 28 — Tahap 24: Pusat Sinkronisasi — backup & kesiapan perangkat sungguhan
+
+## Tab "Backup & Pemulihan Database"
+- Sebelumnya: riwayat backup contoh (berkas `siuba_backup_20260823_020000.json`, "287 santri") yang dibaca dari browser,
+  dan tombol "Uji Validasi Restore" yang hanya menghitung data di layar.
+- Sekarang: daftar backup **di server** (sama dengan Maintenance Hub → Pusat Backup), buat & unduh backup, dan tombol
+  **Uji Pulih** (ikon perisai) yang membaca seluruh isi berkas backup di server tanpa mengubah database:
+  checksum SHA-256, berkas utuh sampai penanda akhir, jumlah baris per tabel, dan kecocokan dengan versi aplikasi.
+  Backup yang gagal uji ditandai **Gagal** dan tidak lagi ditawarkan untuk pemulihan.
+- Tombol Uji Pulih juga tersedia di Maintenance Hub → Pusat Backup. Hapus & pulihkan tetap hanya di Maintenance Hub.
+- Pengguna tanpa izin backup melihat penjelasan, bukan pesan galat.
+- Endpoint baru: `POST /maintenance/backups/{id}/verify`.
+
+## Tab "Kesiapan Perangkat & Server" (dulu "Arsitektur Local LAN & PWA")
+Dulu berisi daftar centang statis untuk server Linux. Kini diperiksa sungguhan:
+- **Perangkat ini:** kamera untuk scan QR (butuh HTTPS/localhost — beserta cara mengatasinya di HP), mode offline,
+  penyimpanan antrean, dan selisih jam perangkat dengan server.
+- **Server (admin):** penjadwal, backup terakhir, ruang disk, kunci alat RFID, mode debug.
+- Panduan singkat server Windows (IP tetap, jalankan-siuba.bat, penjadwal, UPS).
+
+## Jam perangkat & absensi offline
+- Selisih jam HP/tablet dengan server sebelumnya tidak pernah diukur (selalu tertulis "0 ms (Sinkron)").
+  Kini setiap respons server membawa jam server (`X-Server-Time`) dan aplikasi mengukur selisihnya.
+- Saat antrean offline dikirim, server memakai waktu yang sudah dikoreksi — jam HP yang terlambat 20 menit
+  tidak lagi membuat santri tercatat tepat waktu padahal terlambat (atau sebaliknya). Waktu di masa depan ditolak
+  dan diganti waktu server.
+
+## Langkah setelah update
+Tidak ada migrasi baru. Jalankan `jalankan-siuba.bat`, lalu Ctrl+F5.

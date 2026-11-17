@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { HardDrive, Download, Trash2, RefreshCw, Plus, AlertTriangle, Info, RotateCcw, CheckCircle2, XCircle } from 'lucide-react';
+import { HardDrive, Download, Trash2, RefreshCw, Plus, AlertTriangle, Info, RotateCcw, CheckCircle2, XCircle, ShieldCheck } from 'lucide-react';
 import { BackupRecord } from '../types';
 import { User } from '../../../types';
 import { apiClient } from '../../../services/apiClient';
@@ -19,6 +19,19 @@ interface ServerBackup {
   created_by: string;
   file_exists: boolean;
   restorable: boolean;
+  checksum?: string | null;
+}
+
+interface VerifyResult {
+  backup_id: string;
+  ok: boolean;
+  checksum_ok: boolean;
+  complete: boolean;
+  rows: number;
+  tables: number;
+  counts: Record<string, number>;
+  problems: string[];
+  warnings: string[];
 }
 
 interface BackupCenterTabProps {
@@ -27,13 +40,18 @@ interface BackupCenterTabProps {
   backups?: BackupRecord[];
   onRefreshBackups?: () => void;
   onShowToast: (msg: string, type: 'success' | 'error' | 'info') => void;
+  /** Tampilan ringkas (Pusat Sinkronisasi): tanpa hapus & pulihkan — kelola penuh di Maintenance Hub */
+  compact?: boolean;
 }
 
 const fmtSize = (b: number) => (b >= 1048576 ? `${(b / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1024))} KB`);
 const fmtDate = (iso?: string | null) =>
   iso ? new Date(iso).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }) : '-';
 
-export const BackupCenterTab: React.FC<BackupCenterTabProps> = ({ currentUser, onShowToast }) => {
+export const BackupCenterTab: React.FC<BackupCenterTabProps> = ({ currentUser, onShowToast, compact = false }) => {
+  const [verifying, setVerifying] = useState<string | null>(null);
+  const [verifyResult, setVerifyResult] = useState<VerifyResult | null>(null);
+  const [forbidden, setForbidden] = useState(false);
   const [items, setItems] = useState<ServerBackup[]>([]);
   const [lastBackupAt, setLastBackupAt] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -58,7 +76,12 @@ export const BackupCenterTab: React.FC<BackupCenterTabProps> = ({ currentUser, o
       const res: any = await apiClient.get('/maintenance/backups');
       setItems(res?.data || []);
       setLastBackupAt(res?.meta?.last_backup_at || null);
+      setForbidden(false);
     } catch (err: any) {
+      if (err?.status === 403) {
+        setForbidden(true);
+        return;
+      }
       onShowToast(errMsg(err, 'Gagal memuat daftar backup.'), 'error');
     } finally {
       setLoading(false);
@@ -103,6 +126,21 @@ export const BackupCenterTab: React.FC<BackupCenterTabProps> = ({ currentUser, o
     }
   };
 
+  // Uji pulih: baca seluruh isi berkas di server tanpa mengubah database
+  const handleVerify = async (b: ServerBackup) => {
+    setVerifying(b.backup_id);
+    try {
+      const res: any = await apiClient.post(`/maintenance/backups/${encodeURIComponent(b.backup_id)}/verify`, {});
+      setVerifyResult(res?.data || null);
+      onShowToast(res?.message || 'Uji pulih selesai.', res?.data?.ok ? 'success' : 'error');
+      await load();
+    } catch (err: any) {
+      onShowToast(errMsg(err, 'Uji pulih gagal dijalankan.'), 'error');
+    } finally {
+      setVerifying(null);
+    }
+  };
+
   const handleDelete = async (b: ServerBackup) => {
     if (!confirm(`Hapus backup ${b.backup_id}? Berkas di server ikut terhapus.`)) return;
     try {
@@ -139,6 +177,12 @@ export const BackupCenterTab: React.FC<BackupCenterTabProps> = ({ currentUser, o
 
   return (
     <div className="space-y-5">
+      {forbidden ? (
+        <div id="backup-forbidden" className="p-4 rounded-2xl border bg-slate-50 border-slate-200 text-slate-700 text-xs flex items-start gap-3">
+          <Info className="w-5 h-5 shrink-0 mt-0.5 text-slate-500" />
+          <span>Daftar & pembuatan backup database hanya untuk Admin / Super Admin (izin Backup atau Pemeliharaan Sistem). Hubungi admin bila perlu backup.</span>
+        </div>
+      ) : (<>
       <div className={`p-4 rounded-2xl border flex items-start gap-3 ${ageHours <= 26 ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : 'bg-amber-50 border-amber-200 text-amber-900'}`}>
         {ageHours <= 26 ? <CheckCircle2 className="w-5 h-5 mt-0.5 shrink-0" /> : <AlertTriangle className="w-5 h-5 mt-0.5 shrink-0" />}
         <div className="text-xs leading-relaxed">
@@ -148,7 +192,7 @@ export const BackupCenterTab: React.FC<BackupCenterTabProps> = ({ currentUser, o
           <p className="mt-0.5">
             Backup berisi <b>seluruh data</b> (santri, absensi, SDM, KBM, pengaturan, dll.) dan disimpan di folder
             <code className="mx-1 px-1 bg-white/70 rounded">storage/app/backups</code> pada komputer server (14 backup terakhir disimpan).
-            Backup otomatis dibuat setiap kali <b>start-siuba-offline.bat</b> dijalankan bila backup terakhir lebih dari 20 jam lalu.
+            Backup otomatis dibuat tiap malam pukul 01:30 (bila penjadwal Windows terpasang) dan saat <b>jalankan-siuba.bat</b> dijalankan bila backup terakhir lebih dari 20 jam lalu.
             Unduh backup secara berkala dan simpan di flashdisk/Google Drive agar aman bila komputer server rusak.
           </p>
         </div>
@@ -220,14 +264,21 @@ export const BackupCenterTab: React.FC<BackupCenterTabProps> = ({ currentUser, o
                         <Download className="w-4 h-4 text-zinc-700" />
                       </button>
                     )}
-                    {isSuperAdmin && b.status === 'verified' && b.file_exists && b.restorable && (
+                    {b.file_exists && b.restorable && (
+                      <button onClick={() => handleVerify(b)} disabled={verifying !== null} title="Uji pulih: periksa berkas bisa dibaca utuh & checksum cocok" className="p-1.5 rounded-lg border border-emerald-200 hover:bg-emerald-50 cursor-pointer disabled:opacity-50">
+                        {verifying === b.backup_id ? <RefreshCw className="w-4 h-4 text-emerald-700 animate-spin" /> : <ShieldCheck className="w-4 h-4 text-emerald-700" />}
+                      </button>
+                    )}
+                    {!compact && isSuperAdmin && b.status === 'verified' && b.file_exists && b.restorable && (
                       <button onClick={() => { setRestoreTarget(b); setConfirmText(''); }} title="Pulihkan database dari backup ini" className="p-1.5 rounded-lg border border-amber-200 hover:bg-amber-50 cursor-pointer">
                         <RotateCcw className="w-4 h-4 text-amber-700" />
                       </button>
                     )}
-                    <button onClick={() => handleDelete(b)} title="Hapus" className="p-1.5 rounded-lg border border-rose-200 hover:bg-rose-50 cursor-pointer">
-                      <Trash2 className="w-4 h-4 text-rose-700" />
-                    </button>
+                    {!compact && (
+                      <button onClick={() => handleDelete(b)} title="Hapus" className="p-1.5 rounded-lg border border-rose-200 hover:bg-rose-50 cursor-pointer">
+                        <Trash2 className="w-4 h-4 text-rose-700" />
+                      </button>
+                    )}
                   </div>
                 </td>
               </tr>
@@ -236,14 +287,38 @@ export const BackupCenterTab: React.FC<BackupCenterTabProps> = ({ currentUser, o
         </table>
       </div>
 
+      {verifyResult && (
+        <div id="backup-verify-result" className={`p-4 rounded-2xl border text-xs space-y-1.5 ${verifyResult.ok ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : 'bg-rose-50 border-rose-200 text-rose-900'}`}>
+          <p className="font-black text-sm flex items-center gap-1.5">
+            {verifyResult.ok ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
+            Uji pulih {verifyResult.backup_id}: {verifyResult.ok ? 'LAYAK DIPULIHKAN' : 'TIDAK LAYAK DIPULIHKAN'}
+          </p>
+          <p>
+            Checksum {verifyResult.checksum_ok ? 'cocok' : 'TIDAK cocok'} &bull; isi {verifyResult.complete ? 'utuh' : 'TIDAK utuh'} &bull;{' '}
+            {verifyResult.rows.toLocaleString('id-ID')} baris dari {verifyResult.tables} tabel
+          </p>
+          {Object.keys(verifyResult.counts || {}).length > 0 && (
+            <p className="text-[11px] opacity-80">
+              Terbanyak: {Object.entries(verifyResult.counts).map(([t, n]) => `${t} ${n.toLocaleString('id-ID')}`).join(' · ')}
+            </p>
+          )}
+          {verifyResult.problems.map((m) => <p key={m} className="font-semibold">• {m}</p>)}
+          {verifyResult.warnings.map((m) => <p key={m} className="text-amber-800">• {m}</p>)}
+        </div>
+      )}
+
       <div className="p-3 rounded-2xl bg-zinc-50 border border-zinc-200 text-[11px] text-zinc-600 flex items-start gap-2">
         <Info className="w-4 h-4 shrink-0 mt-0.5" />
         <span>
-          Pemulihan (tombol <RotateCcw className="inline w-3 h-3" />) hanya untuk Super Admin. Sebelum memulihkan, sistem otomatis membuat
-          backup pengaman dari data saat ini, dan bila pemulihan gagal di tengah jalan seluruh perubahan dibatalkan.
+          Tombol <ShieldCheck className="inline w-3 h-3" /> menguji apakah backup bisa dipulihkan (berkas dibaca utuh di server, database tidak diubah).{' '}
+          {compact
+            ? 'Hapus & pulihkan backup dilakukan di Maintenance Hub → Pusat Backup (pemulihan khusus Super Admin).'
+            : <>Pemulihan (tombol <RotateCcw className="inline w-3 h-3" />) hanya untuk Super Admin. Sebelum memulihkan, sistem otomatis membuat
+              backup pengaman dari data saat ini, dan bila pemulihan gagal di tengah jalan seluruh perubahan dibatalkan.</>}{' '}
           Backup juga bisa dibuat lewat terminal: <code className="px-1 bg-white rounded">php artisan system:backup</code>.
         </span>
       </div>
+      </>)}
 
       {restoreTarget && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">

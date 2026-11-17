@@ -23,6 +23,7 @@ class SystemBackupApiController extends Controller
             'created_by' => $b->creator?->name ?? 'Sistem (otomatis)',
             'file_exists' => File::exists(BackupService::pathFor($b)),
             'restorable' => str_ends_with($b->filename, '.ndjson.gz'),
+            'checksum' => $b->checksum ? substr($b->checksum, 0, 12) : null,
         ]);
         $latest = SystemBackup::where('status', 'verified')->latest('created_at')->first();
 
@@ -54,6 +55,28 @@ class SystemBackupApiController extends Controller
         }
 
         return response()->download(BackupService::pathFor($b), $b->filename, ['Content-Type' => 'application/gzip']);
+    }
+
+    /** Uji kelayakan pulih (tanpa mengubah database). */
+    public function verify(Request $request, string $backupId): JsonResponse
+    {
+        $b = SystemBackup::where('backup_id', $backupId)->first();
+        if (!$b) {
+            return ApiResponse::error('NOT_FOUND', 'Backup tidak ditemukan.', null, 404);
+        }
+        @set_time_limit(600);
+        $r = BackupService::inspectBackup($b);
+        if (!$r['ok'] && $b->status === 'verified') {
+            // Tidak layak pulih → tidak lagi ditawarkan untuk pemulihan
+            $b->update(['status' => 'failed', 'notes' => trim(($b->notes ? $b->notes . ' | ' : '') . 'Uji pulih gagal: ' . implode(' ', $r['problems']))]);
+        }
+        \App\Services\Security\AuditService::log(event: 'backup_verified', auditableType: SystemBackup::class, auditableId: $b->id,
+            newValues: ['backup_id' => $backupId, 'ok' => $r['ok'], 'rows' => $r['rows']], reason: $r['ok'] ? 'Uji pulih berhasil' : implode(' ', $r['problems']),
+            userId: $request->user()?->id);
+
+        return response()->json(['success' => true, 'message' => $r['ok']
+            ? "Backup {$backupId} layak dipulihkan: {$r['rows']} baris dari {$r['tables']} tabel terbaca utuh."
+            : "Backup {$backupId} TIDAK layak dipulihkan: " . implode(' ', $r['problems']), 'data' => $r]);
     }
 
     public function destroy(string $backupId): JsonResponse
