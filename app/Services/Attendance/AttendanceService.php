@@ -291,6 +291,14 @@ class AttendanceService
      */
     public function determineStatus(AttendanceSession $session, Carbon $checkInTime): AttendanceStatus
     {
+        if (!$session->present_until && $session->start_at) {
+            // Sesi tanpa batas hadir: pakai toleransi kegiatan / Pengaturan Sistem
+            $limit = $session->start_at->copy()->addMinutes(SessionService::toleranceFor($session->activity));
+            if ($checkInTime->lessThanOrEqualTo($limit)) {
+                return AttendanceStatus::PRESENT;
+            }
+        }
+
         if ($session->present_until && $checkInTime->lessThanOrEqualTo($session->present_until)) {
             return AttendanceStatus::PRESENT;
         }

@@ -389,7 +389,7 @@ class RoutineApiController extends Controller
             'student_group_id' => null, 'halaqah_id' => null,
             'attendance_enabled' => (bool) $a->attendance_enabled, 'allow_manual' => (bool) $a->allow_manual,
             'allow_qr' => (bool) $a->allow_qr, 'allow_rfid' => (bool) $a->allow_rfid,
-            'late_tolerance_minutes' => (int) $a->late_tolerance_minutes, 'is_active' => (bool) $a->is_active,
+            'late_tolerance_minutes' => \App\Services\Attendance\SessionService::toleranceFor($a), 'is_active' => (bool) $a->is_active,
             'default_start_time' => $this->hm($a->default_start_time) ?? '07:00',
             'default_present_until' => $this->hm($a->default_present_until) ?? '07:15',
             'default_late_until' => $this->hm($a->default_late_until) ?? '07:30',

@@ -46,6 +46,7 @@ import {
 } from '../types';
 import { QrAttendanceService } from '../services/qrAttendanceService';
 import { AudioFeedbackService } from '../services/audioFeedbackService';
+import { defaultChimeEnabled, enableKioskFullscreenOnFirstInteraction } from '../services/attendanceRulesService';
 import { StudentIdentityService } from '../services/studentIdentityService';
 
 interface QrScannerViewProps {
@@ -106,7 +107,7 @@ export const QrScannerView: React.FC<QrScannerViewProps> = ({
   // Scanner state
   const [scannerMode, setScannerMode] = useState<'camera' | 'usb'>('camera');
   const [continuousScan, setContinuousScan] = useState<boolean>(true);
-  const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
+  const [soundEnabled, setSoundEnabled] = useState<boolean>(() => defaultChimeEnabled());
   const [isTorchOn, setIsTorchOn] = useState<boolean>(false);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [isWakeLockActive, setIsWakeLockActive] = useState<boolean>(false);
@@ -320,6 +321,9 @@ export const QrScannerView: React.FC<QrScannerViewProps> = ({
       }
     };
   }, []);
+
+  // Pengaturan → Aturan Absensi → Mode kios: layar penuh otomatis pada sentuhan pertama
+  useEffect(() => enableKioskFullscreenOnFirstInteraction(() => setIsFullscreen(true)), []);
 
   // Sync sound service toggle
   useEffect(() => {

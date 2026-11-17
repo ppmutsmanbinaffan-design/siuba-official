@@ -35,6 +35,7 @@ import {
 } from 'lucide-react';
 import { isDevelopmentToolsEnabled } from '../utils/devTools';
 import { apiClient } from '../services/apiClient';
+import { applyServerAttendanceRules } from '../services/attendanceRulesService';
 import { setInstitutionCache } from '../services/institutionService';
 
 interface Props {
@@ -259,6 +260,14 @@ export const SettingsView: React.FC<Props> = ({
         city: config.city,
       });
       await apiClient.put('/settings/attendance', {
+        late_tolerance_minutes: config.lateToleranceMinutes,
+        auto_close_session_minutes: config.autoCloseSessionMinutes,
+        rfid_debounce_seconds: config.rfidDebounceSeconds,
+        allow_self_excusal: config.allowSelfExcusal,
+        enable_kiosk_fullscreen: config.enableKioskFullscreen,
+        enable_audio_chime: config.enableAudioChime,
+      });
+      applyServerAttendanceRules({
         late_tolerance_minutes: config.lateToleranceMinutes,
         auto_close_session_minutes: config.autoCloseSessionMinutes,
         rfid_debounce_seconds: config.rfidDebounceSeconds,
@@ -890,7 +899,7 @@ export const SettingsView: React.FC<Props> = ({
                 className="w-full accent-emerald-700 cursor-pointer"
               />
               <span className="text-[10px] text-slate-500 block">
-                Santri yang hadir setelah toleransi akan otomatis berstatus <strong>Terlambat</strong>.
+                Santri yang hadir setelah toleransi akan otomatis berstatus <strong>Terlambat</strong>. Berlaku untuk sesi KBM baru dan kegiatan yang tidak punya toleransi sendiri.
               </span>
             </div>
 
@@ -913,7 +922,7 @@ export const SettingsView: React.FC<Props> = ({
                 className="w-full accent-emerald-700 cursor-pointer"
               />
               <span className="text-[10px] text-slate-500 block">
-                Cron scheduler akan menutup sesi dan menandai santri yang belum hadir sebagai <strong>Alpa</strong>.
+                Penjadwal (dicek tiap 5 menit) menutup sesi yang masih dibuka dan menandai santri yang belum hadir sebagai <strong>Alpa</strong> (atau sesuai izin yang disetujui). Isi 0 untuk menonaktifkan. Di Windows, pasang dulu penjadwal lewat <code>pasang-penjadwal-windows.bat</code>.
               </span>
             </div>
 
@@ -936,7 +945,7 @@ export const SettingsView: React.FC<Props> = ({
                 className="w-full accent-emerald-700 cursor-pointer"
               />
               <span className="text-[10px] text-slate-500 block">
-                Mencegah santri men-tap kartu RFID 2x berturut-turut pada alat scanner terminal.
+                Tap ulang kartu yang sama dalam rentang ini diabaikan (layar alat menampilkan &quot;Tunggu Sebentar&quot;). Isi 0 untuk menonaktifkan.
               </span>
             </div>
 
@@ -946,7 +955,7 @@ export const SettingsView: React.FC<Props> = ({
                   Izinkan Pengajuan Izin / Sakit Mandiri
                 </label>
                 <span className="text-[10px] text-slate-500">
-                  Wali santri / musyrif dapat menginput surat izin sebelum sesi dimulai.
+                  Guru, wali kelas &amp; petugas absensi (bukan petugas perizinan) boleh menginput surat izin; statusnya menunggu persetujuan. Bila dimatikan, hanya petugas perizinan yang bisa menginput.
                 </span>
               </div>
               <input
@@ -963,7 +972,7 @@ export const SettingsView: React.FC<Props> = ({
                   Audio Chime Suara Konfirmasi (Beep)
                 </label>
                 <span className="text-[10px] text-slate-500">
-                  Mainkan bunyi nada konfirmasi sukses/gagal saat scan kartu QR/RFID.
+                  Mainkan bunyi nada konfirmasi sukses/gagal saat scan kartu QR/RFID (bawaan semua perangkat; tetap bisa dimatikan di halaman scanner).
                 </span>
               </div>
               <input
@@ -980,7 +989,7 @@ export const SettingsView: React.FC<Props> = ({
                   Mode Kiosk Layar Penuh pada Terminal
                 </label>
                 <span className="text-[10px] text-slate-500">
-                  Otomatis sembunyikan bilah URL browser saat membuka scanner di pos gerbang.
+                  Halaman scanner masuk layar penuh pada sentuhan/klik pertama (browser tidak mengizinkan layar penuh tanpa interaksi).
                 </span>
               </div>
               <input

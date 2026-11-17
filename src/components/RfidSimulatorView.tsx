@@ -38,6 +38,7 @@ import {
 } from '../types';
 import { RfidAttendanceService } from '../services/rfidAttendanceService';
 import { AudioFeedbackService } from '../services/audioFeedbackService';
+import { defaultChimeEnabled } from '../services/attendanceRulesService';
 import { StudentIdentityService } from '../services/studentIdentityService';
 
 interface Props {
@@ -74,7 +75,7 @@ export const RfidSimulatorView: React.FC<Props> = ({
   const rfidDevices = devices.filter((d) => d.device_type === 'rfid_reader');
   const [selectedDeviceId, setSelectedDeviceId] = useState<number>(rfidDevices[0]?.id || 1);
   const [customRfidInput, setCustomRfidInput] = useState<string>('04 A8 7F 12');
-  const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
+  const [soundEnabled, setSoundEnabled] = useState<boolean>(() => defaultChimeEnabled());
   const [deviceMode, setDeviceMode] = useState<'attendance' | 'enrollment'>('attendance');
   const [isCopiedLog, setIsCopiedLog] = useState(false);
 

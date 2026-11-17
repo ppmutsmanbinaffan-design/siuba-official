@@ -4,7 +4,15 @@
  */
 export class AudioFeedbackService {
   private static audioCtx: AudioContext | null = null;
-  private static soundEnabled: boolean = true;
+  // Bawaan mengikuti Pengaturan Sistem → Aturan Absensi → Bunyi konfirmasi (cache perangkat)
+  private static soundEnabled: boolean = (() => {
+    try {
+      const raw = typeof localStorage !== 'undefined' ? localStorage.getItem('siuba_attendance_rules') : null;
+      return raw ? JSON.parse(raw).enable_audio_chime !== false : true;
+    } catch {
+      return true;
+    }
+  })();
 
   private static getAudioContext(): AudioContext | null {
     if (typeof window === 'undefined') return null;

@@ -454,7 +454,7 @@ class CommunityApiController extends Controller
             'code' => $a->code, 'name' => $a->name, 'description' => $a->description ?? '', 'location' => $a->location ?? '',
             'participant_type' => 'all_students', 'attendance_enabled' => (bool) $a->attendance_enabled,
             'allow_manual' => (bool) $a->allow_manual, 'allow_qr' => (bool) $a->allow_qr, 'allow_rfid' => (bool) $a->allow_rfid,
-            'late_tolerance_minutes' => (int) $a->late_tolerance_minutes, 'is_active' => (bool) $a->is_active,
+            'late_tolerance_minutes' => \App\Services\Attendance\SessionService::toleranceFor($a), 'is_active' => (bool) $a->is_active,
         ];
     }
 

@@ -134,6 +134,20 @@ Artisan::command('siuba:device-deactivate {code}', function () {
     return $updated ? 0 : 1;
 })->purpose('Nonaktifkan perangkat RFID (tap dari alat ini akan ditolak)');
 
+Artisan::command('attendance:auto-close {--minutes= : Abaikan pengaturan dan pakai N menit}', function () {
+    $minutes = $this->option('minutes');
+    $result = app(\App\Services\Attendance\SessionService::class)->autoCloseExpired($minutes !== null && $minutes !== '' ? (int) $minutes : null);
+    if ($result['closed'] === 0) {
+        $this->line('Tidak ada sesi yang perlu ditutup otomatis.');
+        return 0;
+    }
+    $this->info("✓ {$result['closed']} sesi ditutup otomatis; {$result['finalized']} peserta ditandai Alpa / sesuai izin.");
+    foreach ($result['sessions'] as $code) {
+        $this->line("  - {$code}");
+    }
+    return 0;
+})->purpose('Tutup sesi absensi yang sudah lewat waktu selesai + N menit (Pengaturan → Aturan Absensi → Auto-Close)');
+
 // Bersihkan log perangkat > 60 hari setiap malam (butuh cron: * * * * * php artisan schedule:run)
 Schedule::command('model:prune', ['--model' => [\App\Models\AttendanceDeviceLog::class, \App\Models\AuditLog::class]])->dailyAt('02:15');
 
@@ -143,3 +157,6 @@ Schedule::command('system:backup', ['--notes' => 'Backup harian terjadwal', '--i
 
 // Tanda penjadwal hidup (ditampilkan di Maintenance Hub → Status)
 Schedule::call(fn () => \App\Services\System\SystemHealthService::recordSchedulerHeartbeat())->everyMinute()->name('siuba-heartbeat')->withoutOverlapping();
+
+// Tutup otomatis sesi absensi yang sudah lewat waktu selesai + N menit (0 = nonaktif)
+Schedule::command('attendance:auto-close')->everyFiveMinutes()->withoutOverlapping();

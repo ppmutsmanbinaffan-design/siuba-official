@@ -30,6 +30,7 @@ import {
   User 
 } from '../types';
 import { AudioFeedbackService } from '../../../services/audioFeedbackService';
+import { defaultChimeEnabled, enableKioskFullscreenOnFirstInteraction } from '../../../services/attendanceRulesService';
 import { formatAttendanceTime, getAttendanceErrorMessage } from '../utils/attendanceUtils';
 
 interface QrScannerPageProps {
@@ -51,7 +52,13 @@ export const QrScannerPage: React.FC<QrScannerPageProps> = ({
   const [cooldownActive, setCooldownActive] = useState<boolean>(false);
   const [lastResult, setLastResult] = useState<QrScanHistoryItem | null>(null);
   const [scanHistory, setScanHistory] = useState<QrScanHistoryItem[]>([]);
-  const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
+  const [soundEnabled, setSoundEnabled] = useState<boolean>(() => defaultChimeEnabled());
+
+  // Bunyi konfirmasi mengikuti Pengaturan Sistem; mode kios → layar penuh pada sentuhan pertama
+  useEffect(() => {
+    AudioFeedbackService.setSoundEnabled(defaultChimeEnabled());
+    return enableKioskFullscreenOnFirstInteraction();
+  }, []);
 
   // Load Sessions
   const loadSessions = useCallback(async () => {

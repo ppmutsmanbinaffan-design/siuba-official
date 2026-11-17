@@ -24,6 +24,7 @@ import type {
 } from '../types';
 import { mergeServerDailyRecords } from '../features/staff-attendance/api/staffAttendanceApi';
 import { todayLocalDate } from '../utils/today';
+import { applyServerAttendanceRules } from './attendanceRulesService';
 
 export interface AcademicMaster {
   academic_years: any[];
@@ -80,6 +81,7 @@ export interface ServerSnapshot {
   staffDaily?: StaffAttendanceRecord[];
   staffAbsences?: StaffAbsenceRequest[];
   staffSchedule?: { days: Record<string, any>; upcoming_holidays?: any[] };
+  settings?: { attendance?: Record<string, any> };
   academic?: AcademicMaster;
   community?: CommunityMaster;
   routine?: RoutineMaster;
@@ -136,10 +138,11 @@ export async function loadServerSnapshot(options: { attendanceOnly?: boolean } =
       attempt('Kegiatan & jadwal rutin', async () => ((await apiClient.get<RoutineMaster>('/routine-master')) as any).data as RoutineMaster, errors),
       attempt('Ekskul/Halaqah/Event', async () => ((await apiClient.get<CommunityMaster>('/community/master')) as any).data as CommunityMaster, errors),
       attempt('Jadwal kerja SDM', async () => ((await apiClient.get<any>('/staff-attendance/work-schedule')) as any).data, errors),
+      attempt('Pengaturan', async () => ((await apiClient.get<any>('/settings')) as any).data, errors),
     ] as const);
 
   if (options.attendanceOnly) {
-    const [attendance, devices, [academic, excusals, staffDaily, staffAbsences, routine, community, staffSchedule]] = await Promise.all([
+    const [attendance, devices, [academic, excusals, staffDaily, staffAbsences, routine, community, staffSchedule, settings]] = await Promise.all([
       attempt('Absensi', async () => ((await apiClient.get<any>('/attendance/snapshot')) as any).data, errors),
       attempt('Perangkat', async () => ((await apiClient.get<AttendanceDevice[]>('/attendance/devices')) as any).data as AttendanceDevice[], errors),
       dailyExtras(),
@@ -148,11 +151,11 @@ export async function loadServerSnapshot(options: { attendanceOnly?: boolean } =
     return {
       sessions: attendance?.sessions, participants: attendance?.participants, records: attendance?.records, devices,
       deviceLogs, recordHistories: attendance?.record_histories,
-      excusals, staffDaily, staffAbsences, staffSchedule, academic, community, routine, errors,
+      excusals, staffDaily, staffAbsences, staffSchedule, settings, academic, community, routine, errors,
     };
   }
 
-  const [[academic, excusals, staffDaily, staffAbsences, routine, community, staffSchedule], students, classrooms, dormitories, dormitoryRooms, attendance, devices, staff, users, deviceLogs] = await Promise.all([
+  const [[academic, excusals, staffDaily, staffAbsences, routine, community, staffSchedule, settings], students, classrooms, dormitories, dormitoryRooms, attendance, devices, staff, users, deviceLogs] = await Promise.all([
     dailyExtras(),
     attempt('Santri', fetchAllStudents, errors),
     attempt('Kelas', async () => ((await apiClient.get<Classroom[]>('/classrooms')) as any).data as Classroom[], errors),
@@ -185,6 +188,7 @@ export async function loadServerSnapshot(options: { attendanceOnly?: boolean } =
     staffDaily,
     staffAbsences,
     staffSchedule,
+    settings,
     academic,
     community,
     routine,
@@ -217,6 +221,7 @@ export function persistSnapshotToCache(snap: ServerSnapshot): void {
   write('siuba_attendance_device_logs_cache', snap.deviceLogs);
   write('siuba_record_histories_cache', snap.recordHistories);
   if (snap.staffSchedule?.days) StaffWorkScheduleResolver.applyServerSchedule(snap.staffSchedule.days);
+  if (snap.settings?.attendance) applyServerAttendanceRules(snap.settings.attendance);
   if (snap.academic?.calendar_events) {
     // Hari libur & kalender akademik untuk penentuan jadwal kerja SDM dan sesi latihan
     write('siuba_calendar_holidays', snap.academic.calendar_events);

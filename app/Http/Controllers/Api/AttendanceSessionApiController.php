@@ -102,7 +102,7 @@ class AttendanceSessionApiController extends Controller
         return $this->transition(function () use ($session, $request) {
             $closed = $this->sessionService->closeSession($session, $request->user());
             app(\App\Services\Staff\StaffDailyAttendanceService::class)->recordTeaching($closed, 'close', $request->user());
-            $this->finalizeUnrecorded($closed, $request->user());
+            $this->sessionService->finalizeUnrecorded($closed, $request->user());
 
             return $closed;
         }, 'ditutup');
@@ -113,47 +113,6 @@ class AttendanceSessionApiController extends Controller
         $data = $request->validate(['reason' => 'required|string|max:500'], ['reason.required' => 'Alasan pembatalan sesi wajib diisi.']);
 
         return $this->transition(fn () => $this->sessionService->cancelSession($session, $request->user(), $data['reason']), 'dibatalkan');
-    }
-
-    /**
-     * Saat sesi ditutup: peserta yang belum tercatat otomatis diberi status — sesuai izin yang disetujui
-     * (sakit/izin/dispensasi) atau alpa. Sama seperti perilaku aplikasi lama, kini di server.
-     */
-    private function finalizeUnrecorded(AttendanceSession $session, $operator): int
-    {
-        $recorded = AttendanceRecord::where('attendance_session_id', $session->id)->pluck('student_id');
-        $pending = AttendanceSessionParticipant::where('attendance_session_id', $session->id)
-            ->whereNotIn('student_id', $recorded)
-            ->where(fn ($q) => $q->whereNull('eligibility_status')->orWhereRaw('LOWER(eligibility_status) != ?', ['ineligible']))
-            ->pluck('student_id');
-        if ($pending->isEmpty()) {
-            return 0;
-        }
-
-        $excusals = \App\Models\StudentExcusal::whereIn('student_id', $pending)
-            ->activeBetween($session->start_at ?? $session->session_date, $session->end_at ?? $session->session_date)
-            ->get()->keyBy('student_id');
-
-        foreach ($pending as $studentId) {
-            $exc = $excusals->get($studentId);
-            try {
-                AttendanceRecord::create([
-                    'attendance_session_id' => $session->id,
-                    'student_id' => $studentId,
-                    'status' => $exc ? (AttendanceStatus::tryFrom($exc->type) ?? AttendanceStatus::ABSENT) : AttendanceStatus::ABSENT,
-                    'method' => AttendanceMethod::MANUAL,
-                    'check_in_at' => null,
-                    'late_minutes' => 0,
-                    'recorded_by' => $operator?->id,
-                    'notes' => $exc ? 'Otomatis saat sesi ditutup (izin disetujui)' : 'Otomatis saat sesi ditutup (tanpa keterangan)',
-                    'metadata' => ['auto_finalized' => true],
-                ]);
-            } catch (\Illuminate\Database\UniqueConstraintViolationException) {
-                // sudah tercatat oleh proses lain
-            }
-        }
-
-        return $pending->count();
     }
 
     private function transition(callable $action, string $verb): JsonResponse

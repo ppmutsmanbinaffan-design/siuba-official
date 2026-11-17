@@ -81,6 +81,15 @@ class IotDeviceApiController extends Controller
             return response()->json(['success' => true, 'code' => 'ENROLLMENT_SCAN', 'message' => 'UID Terbaca', 'rfid_uid' => $normalizedUid, 'device' => $device->device_code], 200);
         }
 
+        // 2c. Debounce (Pengaturan → Aturan Absensi): tap ulang kartu yang sama dalam N detik diabaikan
+        $debounce = (int) (\App\Models\AppSetting::get('attendance')['rfid_debounce_seconds'] ?? 0);
+        if ($debounce > 0 && !Cache::add('rfid-debounce:' . $normalizedUid, now()->timestamp, $debounce)) {
+            return $this->lcd(true, 'DUPLICATE_TAP', 'Tunggu Sebentar', 200, [
+                'debounce_seconds' => $debounce,
+                'device' => $device->device_code,
+            ]);
+        }
+
         // 3. Kartu master teknisi (hanya jika NEXABSEN_MASTER_ADMIN_UID diisi)
         $masterAdminUid = Student::normalizeRfidUid((string) config('services.nexabsen.master_admin_uid', ''));
         if ($masterAdminUid && hash_equals($masterAdminUid, $normalizedUid)) {

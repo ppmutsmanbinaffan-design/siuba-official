@@ -45,6 +45,14 @@ if errorlevel 1 (
 "%PHP%" artisan db:seed --class=ActivityCategorySeeder --force
 "%PHP%" artisan system:backup --notes="Backup otomatis saat aplikasi dinyalakan" --if-older-than=20
 
+:: Ingatkan bila penjadwal otomatis (auto-close sesi, backup harian) belum dipasang
+schtasks /Query /TN "SIUBA Penjadwal" >nul 2>&1
+if errorlevel 1 (
+    echo [INFO] Penjadwal otomatis belum dipasang. Jalankan pasang-penjadwal-windows.bat sekali saja
+    echo        agar sesi absensi tertutup otomatis dan backup harian berjalan.
+    echo.
+)
+
 :: 4. Jalankan server
 echo.
 echo ========================================================

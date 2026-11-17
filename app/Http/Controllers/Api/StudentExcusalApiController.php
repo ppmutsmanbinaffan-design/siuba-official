@@ -59,6 +59,12 @@ class StudentExcusalApiController extends Controller
         $user = $request->user();
         // Petugas berwenang (izin attendance.excuses) -> langsung disetujui, kecuali diminta 'pending'
         $canApprove = $user?->can('attendance.excuses') ?? false;
+        // Pengaturan → Aturan Absensi → "Izin mandiri": bila dimatikan, hanya petugas perizinan
+        // (izin attendance.excuses) yang boleh menginput surat izin.
+        if (!$canApprove && !(bool) (\App\Models\AppSetting::get('attendance')['allow_self_excusal'] ?? true)) {
+            return ApiResponse::error('SELF_EXCUSAL_DISABLED',
+                'Input surat izin mandiri sedang dinonaktifkan di Pengaturan Sistem. Hubungi petugas perizinan.', null, 403);
+        }
         $status = ($data['status'] ?? 'approved') === 'approved' && $canApprove ? 'approved' : 'pending';
 
         $excusal = StudentExcusal::create([

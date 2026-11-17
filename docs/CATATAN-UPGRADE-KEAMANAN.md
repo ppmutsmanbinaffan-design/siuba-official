@@ -853,3 +853,40 @@ Nilai bawaan sama dengan perilaku sebelumnya, jadi tidak ada yang berubah sampai
 php artisan optimize:clear
 ```
 Tidak ada migrasi baru. Muat ulang browser (Ctrl+F5).
+
+---
+
+# Update 24 — Tahap 21: Aturan Absensi berlaku sungguhan + penjadwal Windows
+
+Sebelumnya lima dari enam isian di **Pengaturan Sistem → Aturan Absensi** hanya tersimpan, tidak dipakai di mana pun.
+Kini semuanya berlaku:
+
+| Pengaturan | Perilaku sekarang |
+|---|---|
+| Toleransi terlambat | Bawaan untuk sesi KBM baru dan untuk kegiatan yang toleransinya dikosongkan (kolom kegiatan kini boleh kosong = ikut pengaturan). Kegiatan dengan toleransi sendiri tetap memakai nilainya. |
+| Auto-close sesi (menit) | Penjadwal mengecek tiap 5 menit: sesi berstatus *dibuka* yang waktu selesainya sudah lewat N menit ditutup, peserta yang belum tercatat ditandai **Alpa** (atau Sakit/Izin/Dispensasi bila ada izin disetujui). 0 = nonaktif. Bawaan 30 menit. Perintah manual: `php artisan attendance:auto-close`. |
+| Debounce RFID (detik) | Tap ulang kartu yang sama dalam N detik diabaikan; alat menerima kode `DUPLICATE_TAP` ("Tunggu Sebentar"). 0 = nonaktif. |
+| Izin mandiri | Bila dimatikan, hanya pemegang izin *attendance.excuses* yang boleh menginput surat izin; guru/wali kelas/petugas absensi mendapat pesan penolakan. |
+| Bunyi konfirmasi | Menjadi bawaan bunyi di semua halaman scanner (QR, manual, simulator RFID); tombol bunyi di halaman scanner tetap bisa dipakai. |
+| Mode kios layar penuh | Halaman scanner masuk layar penuh pada sentuhan/klik pertama (browser melarang layar penuh tanpa interaksi). |
+
+## Penjadwal otomatis di Windows (XAMPP)
+Pekerjaan otomatis (auto-close sesi, backup harian 01:30, pembersihan log 02:15, tanda penjadwal hidup)
+butuh `php artisan schedule:run` tiap menit. Di Windows:
+
+1. Klik dua kali **`pasang-penjadwal-windows.bat`** (sekali saja). Ini membuat tugas Task Scheduler
+   bernama **"SIUBA Penjadwal"** yang menjalankan `siuba-penjadwal.vbs` tiap menit tanpa jendela.
+2. Cek di aplikasi: **Maintenance Hub → Status** — tanda penjadwal harus "hidup".
+3. Untuk melepas: **`hapus-penjadwal-windows.bat`**.
+
+Tugas berjalan selama pengguna Windows yang memasangnya sedang login. `jalankan-siuba.bat` kini mengingatkan
+bila penjadwal belum dipasang.
+
+## Langkah setelah update
+
+```bash
+php artisan migrate --force
+php artisan optimize:clear
+```
+(`jalankan-siuba.bat` menjalankan keduanya otomatis.) Lalu jalankan `pasang-penjadwal-windows.bat` sekali.
+Muat ulang browser (Ctrl+F5).
