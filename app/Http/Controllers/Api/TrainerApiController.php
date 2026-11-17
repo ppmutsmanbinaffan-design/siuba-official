@@ -27,8 +27,6 @@ use Illuminate\Validation\Rule;
  */
 class TrainerApiController extends Controller
 {
-    private const GRACE_MINUTES = 15;
-
     private const DAYS = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
 
     // ================================================================== Ringkasan harian
@@ -36,9 +34,18 @@ class TrainerApiController extends Controller
     public function overview(Request $request): JsonResponse
     {
         $date = Carbon::parse($request->query('date', today()->toDateString()))->toDateString();
+        $viewAll = $this->canViewAll($request);
+        $me = $this->myStaff($request);
+        $myEkskul = $me ? $this->assignedEkskulIds($me->id) : [];
+
         $sessions = TrainingSession::with(['extracurricular', 'primaryStaff', 'actualStaff', 'substitution'])
-            ->whereDate('session_date', $date)->orderBy('start_time')->get();
-        $records = StaffAttendanceRecord::with('staff')->where('attendance_type', 'training')->whereDate('attendance_date', $date)->get();
+            ->whereDate('session_date', $date)
+            // Pelatih biasa hanya melihat sesi latihan miliknya / ekskul yang ia latih
+            ->when(!$viewAll, fn ($q) => $q->where(fn ($w) => $w->where('actual_staff_profile_id', $me?->id ?? 0)
+                ->orWhere('primary_staff_profile_id', $me?->id ?? 0)->orWhereIn('extracurricular_id', $myEkskul ?: [0])))
+            ->orderBy('start_time')->get();
+        $records = StaffAttendanceRecord::with('staff')->where('attendance_type', 'training')->whereDate('attendance_date', $date)
+            ->when(!$viewAll, fn ($q) => $q->where('staff_profile_id', $me?->id ?? 0))->get();
         $recordBySession = $records->keyBy(fn ($r) => (int) ($r->metadata['training_session_id'] ?? 0));
 
         $sessionRows = $sessions->map(fn ($s) => $this->session($s, $recordBySession->get($s->id)))->values();
@@ -54,7 +61,10 @@ class TrainerApiController extends Controller
 
         return response()->json(['success' => true, 'data' => [
             'date' => $date,
-            'staff' => StaffProfile::where('is_active', true)->orderBy('name')->get()->map(fn ($s) => [
+            'me' => $me ? ['staff_id' => $me->id, 'name' => $me->name] : null,
+            'can_manage' => $this->canManageAll($request),
+            'can_view_all' => $viewAll,
+            'staff' => StaffProfile::where('is_active', true)->when(!$viewAll, fn ($q) => $q->whereKey($me?->id ?? 0))->orderBy('name')->get()->map(fn ($s) => [
                 'id' => $s->id, 'name' => $s->name, 'staff_number' => $s->staff_number, 'staff_type' => $s->staff_type, 'user_id' => $s->user_id,
             ])->values(),
             'extracurriculars' => Extracurricular::where('is_active', true)->orderBy('name')->get(['id', 'code', 'name', 'location'])->values(),
@@ -194,16 +204,24 @@ class TrainerApiController extends Controller
     public function generate(Request $request): JsonResponse
     {
         $data = $request->validate(['date' => 'required|date']);
-        $date = Carbon::parse($data['date']);
+        $result = self::generateFor(Carbon::parse($data['date']));
+
+        return response()->json(['success' => true, 'data' => $result] + (!empty($result['is_holiday'])
+            ? ['message' => "Tanggal {$result['date']} libur ({$result['holiday_name']}); sesi latihan tidak dibuat."] : []));
+    }
+
+    /** Buat sesi latihan dari jadwal mingguan untuk satu tanggal (idempoten). Dipakai tombol, penjadwal & scan. */
+    public static function generateFor(Carbon $date): array
+    {
         $dateStr = $date->toDateString();
 
         $holiday = AcademicCalendarEvent::whereDate('start_date', '<=', $dateStr)->whereDate('end_date', '>=', $dateStr)
             ->where('type', 'holiday')->first();
         if ($holiday) {
-            return response()->json(['success' => true, 'data' => [
+            return [
                 'date' => $dateStr, 'schedules_found' => 0, 'sessions_created' => 0, 'sessions_existing' => 0, 'substitutions_applied' => 0,
                 'is_holiday' => true, 'holiday_name' => $holiday->name,
-            ], 'message' => "Tanggal {$dateStr} libur ({$holiday->name}); sesi latihan tidak dibuat."]);
+            ];
         }
 
         $schedules = ExtracurricularSchedule::with('extracurricular')->where('is_active', true)->where('day_of_week', $date->dayOfWeek)->get()
@@ -217,7 +235,7 @@ class TrainerApiController extends Controller
                 $existing++;
                 continue;
             }
-            $primary = $this->primaryStaffId($sch->extracurricular, $dateStr);
+            $primary = self::primaryStaffId($sch->extracurricular, $dateStr);
             $sub = TrainerSubstitution::where('extracurricular_id', $sch->extracurricular_id)->whereDate('date', $dateStr)->where('status', 'active')->latest('id')->first();
             if ($sub) $subs++;
             TrainingSession::create([
@@ -232,10 +250,10 @@ class TrainerApiController extends Controller
             $created++;
         }
 
-        return response()->json(['success' => true, 'data' => [
+        return [
             'date' => $dateStr, 'schedules_found' => $schedules->count(), 'sessions_created' => $created,
             'sessions_existing' => $existing, 'substitutions_applied' => $subs, 'is_holiday' => false,
-        ]]);
+        ];
     }
 
     /** Presensi pelatih lewat kartu RFID / QR / nomor induk: tap pertama = mulai melatih, tap kedua = selesai. */
@@ -259,8 +277,16 @@ class TrainerApiController extends Controller
         if (!$staff) {
             return ApiResponse::error('STAFF_NOT_FOUND', 'Data staf/pelatih tidak ditemukan dengan identitas tersebut.', null, 404);
         }
+        $canManage = $this->canManageAll($request);
+        if (!$canManage && (int) $staff->user_id !== (int) $request->user()->id) {
+            return ApiResponse::error('FORBIDDEN', 'Anda hanya dapat mencatat presensi melatih untuk diri sendiri.', null, 403);
+        }
 
         $today = today()->toDateString();
+        // Sesi hari ini belum dibuat (penjadwal belum jalan) → buat dari jadwal mingguan
+        if (empty($data['session_id']) && !TrainingSession::whereDate('session_date', $today)->exists()) {
+            self::generateFor(today());
+        }
         $session = !empty($data['session_id']) ? TrainingSession::find($data['session_id'])
             : TrainingSession::whereDate('session_date', $today)->where('status', '!=', 'cancelled')
                 ->where(fn ($q) => $q->where('actual_staff_profile_id', $staff->id)->orWhere('primary_staff_profile_id', $staff->id))
@@ -274,9 +300,23 @@ class TrainerApiController extends Controller
         if ($session->status === 'cancelled') {
             return ApiResponse::error('SESSION_CANCELLED', 'Sesi latihan ini dibatalkan.', null, 409);
         }
-
+        if (!$this->isTrainerOf($staff->id, $session)) {
+            return ApiResponse::error('NOT_ASSIGNED',
+                "{$staff->name} tidak ditugaskan melatih {$session->extracurricular?->name} pada sesi ini. Catat inval/pengganti dulu bila ia menggantikan pelatih.", null, 409);
+        }
         $method = $data['method'] ?? 'manual';
-        $result = DB::transaction(function () use ($staff, $session, $method, $request) {
+        $sessionDate = $session->session_date->toDateString();
+        $backfill = $sessionDate !== $today;
+        if ($backfill && (!$canManage || $method !== 'manual')) {
+            return ApiResponse::error('NOT_TODAY',
+                'Kartu/QR hanya untuk sesi latihan hari ini. Presensi susulan untuk tanggal lain dicatat manual oleh petugas.', null, 409);
+        }
+        if ($backfill && $sessionDate > $today) {
+            return ApiResponse::error('FUTURE_SESSION', 'Sesi latihan ini belum berlangsung.', null, 409);
+        }
+        $tolerance = \App\Services\Attendance\SessionService::toleranceFor();
+
+        $result = DB::transaction(function () use ($staff, $session, $method, $request, $backfill, $tolerance) {
             $date = $session->session_date->toDateString();
             $start = Carbon::parse($date . ' ' . $session->start_time);
             $end = Carbon::parse($date . ' ' . $session->end_time);
@@ -286,8 +326,26 @@ class TrainerApiController extends Controller
             $now = now();
             $isSub = $session->actual_staff_profile_id && $session->actual_staff_profile_id === $staff->id && $session->primary_staff_profile_id !== $staff->id;
 
+            if ($backfill) {
+                // Susulan (tanggal lampau, manual oleh petugas): dicatat hadir sesuai jadwal
+                if ($record->check_in_at && $record->status !== 'absent') {
+                    return ['mode' => 'duplicate', 'message' => "{$staff->name} sudah tercatat melatih pada sesi ini."];
+                }
+                $record->fill([
+                    'attendance_date' => $date, 'status' => 'present',
+                    'scheduled_start_at' => $start, 'scheduled_end_at' => $end,
+                    'check_in_at' => $start, 'check_in_method' => 'manual', 'check_out_at' => $end, 'check_out_method' => 'manual',
+                    'late_minutes' => 0, 'early_leave_minutes' => 0,
+                    'recorded_by' => $request->user()?->id, 'recorded_by_name' => $request->user()?->name,
+                    'notes' => 'Presensi melatih susulan oleh ' . ($request->user()?->name ?? 'petugas'),
+                    'metadata' => ['training_session_id' => $session->id, 'backfill' => true],
+                ])->save();
+                if (in_array($session->status, ['scheduled', 'ongoing'], true)) $session->update(['status' => 'completed']);
+
+                return ['mode' => 'backfill', 'message' => "{$staff->name}: presensi melatih susulan tercatat."];
+            }
             if (!$record->check_in_at || $record->status === 'absent') {
-                $late = $now->gt($start->copy()->addMinutes(self::GRACE_MINUTES)) ? (int) floor($start->diffInMinutes($now, true)) : 0;
+                $late = $now->gt($start->copy()->addMinutes($tolerance)) ? (int) floor($start->diffInMinutes($now, true)) : 0;
                 $record->fill([
                     'attendance_date' => $date, 'status' => $late > 0 ? 'late' : 'present',
                     'scheduled_start_at' => $start, 'scheduled_end_at' => $end,
@@ -318,6 +376,12 @@ class TrainerApiController extends Controller
 
     public function journal(Request $request, TrainingSession $session): JsonResponse
     {
+        if (!$this->canManageAll($request)) {
+            $me = $this->myStaff($request);
+            if (!$me || !$this->isTrainerOf($me->id, $session)) {
+                return ApiResponse::error('FORBIDDEN', 'Jurnal latihan hanya dapat diisi oleh pelatih sesi ini atau petugas.', null, 403);
+            }
+        }
         $data = $request->validate([
             'topic' => 'required|string|max:255',
             'student_present_count' => 'nullable|integer|min:0|max:5000',
@@ -336,31 +400,79 @@ class TrainerApiController extends Controller
     public function finalize(Request $request): JsonResponse
     {
         $data = $request->validate(['date' => 'required|date']);
-        $date = Carbon::parse($data['date'])->toDateString();
-        $count = 0;
-        foreach (TrainingSession::whereDate('session_date', $date)->where('status', '!=', 'cancelled')->get() as $s) {
-            $staffId = $s->actual_staff_profile_id ?? $s->primary_staff_profile_id;
-            if (!$staffId) continue;
-            $exists = StaffAttendanceRecord::where('staff_profile_id', $staffId)->where('attendance_type', 'training')
-                ->where('context_key', 'training:' . $s->id)->exists();
-            if ($exists) continue;
-            StaffAttendanceRecord::create([
-                'staff_profile_id' => $staffId, 'attendance_date' => $date, 'attendance_type' => 'training', 'context_key' => 'training:' . $s->id,
-                'status' => 'absent', 'scheduled_start_at' => Carbon::parse("$date {$s->start_time}"), 'scheduled_end_at' => Carbon::parse("$date {$s->end_time}"),
-                'recorded_by' => $request->user()?->id, 'recorded_by_name' => $request->user()?->name,
-                'notes' => 'Difinalisasi: tidak ada presensi melatih', 'metadata' => ['training_session_id' => $s->id, 'auto_finalized' => true],
-            ]);
-            $count++;
-        }
+        $count = self::finalizeFor(Carbon::parse($data['date'])->toDateString(), $request->user());
 
         return response()->json(['success' => true, 'message' => $count > 0
             ? "Finalisasi selesai: {$count} sesi tanpa presensi pelatih ditandai alpa."
             : 'Finalisasi selesai: semua sesi latihan sudah memiliki presensi pelatih.', 'data' => ['absent_created' => $count]]);
     }
 
+    /** Sesi latihan (bukan dibatalkan) tanpa presensi pelatih → pelatih ditandai alpa. */
+    public static function finalizeFor(string $date, $user = null): int
+    {
+        $count = 0;
+        foreach (TrainingSession::whereDate('session_date', $date)->where('status', '!=', 'cancelled')->get() as $s) {
+            $staffId = $s->actual_staff_profile_id ?? $s->primary_staff_profile_id;
+            if (!$staffId) continue;
+            // Latihan yang belum selesai jangan ditandai alpa
+            if (Carbon::parse("$date {$s->end_time}")->isFuture()) continue;
+            $exists = StaffAttendanceRecord::where('staff_profile_id', $staffId)->where('attendance_type', 'training')
+                ->where('context_key', 'training:' . $s->id)->exists();
+            if ($exists) continue;
+            StaffAttendanceRecord::create([
+                'staff_profile_id' => $staffId, 'attendance_date' => $date, 'attendance_type' => 'training', 'context_key' => 'training:' . $s->id,
+                'status' => 'absent', 'scheduled_start_at' => Carbon::parse("$date {$s->start_time}"), 'scheduled_end_at' => Carbon::parse("$date {$s->end_time}"),
+                'recorded_by' => $user?->id, 'recorded_by_name' => $user?->name ?? 'Sistem (otomatis)',
+                'notes' => 'Difinalisasi: tidak ada presensi melatih', 'metadata' => ['training_session_id' => $s->id, 'auto_finalized' => true],
+            ]);
+            $count++;
+        }
+
+        return $count;
+    }
+
     // ================================================================== Helper
 
-    private function primaryStaffId(Extracurricular $e, string $date): ?int
+    /** Petugas ekskul / SDM boleh mencatat untuk siapa saja; pelatih biasa hanya untuk dirinya. */
+    private function canManageAll(Request $request): bool
+    {
+        $u = $request->user();
+
+        return (bool) $u && ($u->can('extracurriculars.manage') || $u->can('staff.attendance') || $u->can('staff.edit'));
+    }
+
+    private function canViewAll(Request $request): bool
+    {
+        $u = $request->user();
+
+        return $this->canManageAll($request) || ((bool) $u && ($u->can('staff.reports') || $u->can('extracurriculars.manage')));
+    }
+
+    private function myStaff(Request $request): ?StaffProfile
+    {
+        $uid = $request->user()?->id;
+
+        return $uid ? StaffProfile::where('user_id', $uid)->where('is_active', true)->first() : null;
+    }
+
+    /** @return int[] */
+    private function assignedEkskulIds(int $staffId): array
+    {
+        return ExtracurricularStaffAssignment::where('staff_profile_id', $staffId)->where('is_active', true)
+            ->pluck('extracurricular_id')->map(fn ($v) => (int) $v)->all();
+    }
+
+    /** Pelatih sesi: pelatih utama/pengganti sesi itu, atau ditugaskan aktif di ekskulnya. */
+    private function isTrainerOf(int $staffId, TrainingSession $session): bool
+    {
+        if ((int) $session->actual_staff_profile_id === $staffId || (int) $session->primary_staff_profile_id === $staffId) {
+            return true;
+        }
+
+        return in_array((int) $session->extracurricular_id, $this->assignedEkskulIds($staffId), true);
+    }
+
+    private static function primaryStaffId(Extracurricular $e, string $date): ?int
     {
         $base = ExtracurricularStaffAssignment::where('extracurricular_id', $e->id)->where('is_active', true)
             ->where(fn ($q) => $q->whereNull('start_date')->orWhereDate('start_date', '<=', $date))

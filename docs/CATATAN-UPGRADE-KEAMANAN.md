@@ -948,3 +948,41 @@ Pemeriksaan menyeluruh: 161 tes otomatis lulus di SQLite **dan** MariaDB (seluru
 | Tombol "Kirim Sinyal Ping Heartbeat" di Device Management | Membuat alat tampak online padahal tidak | Tombol dihapus (status online hanya dari alat sungguhan) |
 | Dua berkas backup uji coba ikut masuk repositori & paket update | Berkas data uji di folder backup Anda | Dihapus; folder `storage/app/backups` dikecualikan dari repositori |
 | Berkas tampilan lama menumpuk di `public/assets` setiap update | ±60 MB berkas tak terpakai | `jalankan-siuba.bat` menjalankan `php artisan siuba:bersihkan-aset` |
+
+---
+
+# Update 27 — Tahap 23: Presensi melatih (pelatih & pembina ekskul) dirapikan
+
+## Satu sumber data
+- **Presensi SDM & Guru** kini punya tab **Presensi Melatih (Ekskul)** — isinya sama dengan menu **Presensi Pelatih**,
+  semuanya dari server.
+- Halaman-halaman presensi melatih lama yang tidak tampil di menu dan masih membaca data di browser (dengan jadwal
+  latihan contoh yang tertanam di kode: Panahan Senin, Tapak Suci Selasa, dst.) dihapus.
+- Laporan Melatih: daftar pelatih kini mencakup semua staf yang punya penugasan ekskul (banyak ustadz/guru juga
+  melatih), bukan hanya staf berjenis "pelatih".
+
+## Aturan presensi melatih (server)
+| Aturan | Sebelumnya | Sekarang |
+|---|---|---|
+| Siapa yang boleh dicatat | Siapa saja oleh siapa saja | Pelatih hanya untuk dirinya; petugas ekskul/SDM untuk semua |
+| Sesi yang boleh dicatat | Sesi mana pun | Hanya pelatih utama/pengganti sesi itu atau yang ditugaskan di ekskulnya |
+| Kartu/QR | Bisa untuk sesi tanggal lain | Hanya sesi hari ini |
+| Presensi susulan | Tidak ada (jam tercatat = jam klik) | Petugas mencatat manual → hadir sesuai jadwal, ditandai "susulan" |
+| Batas terlambat | Tetap 15 menit | Ikut Pengaturan → Aturan Absensi → Toleransi Terlambat |
+| Jurnal latihan | Siapa saja | Pelatih sesi itu atau petugas |
+| Pelatih biasa melihat | Semua sesi & semua staf | Hanya sesi/ekskul miliknya |
+| Pembuatan sesi | Harus klik tombol | Otomatis tiap 00:20 (penjadwal) dan saat scan pertama hari itu |
+| Finalisasi alpa | Manual; bisa menandai alpa latihan yang belum selesai | Otomatis tiap 00:40 untuk kemarin; latihan yang belum selesai tidak ditandai |
+
+Perintah manual: `php artisan trainer:generate --date=YYYY-MM-DD`, `php artisan trainer:finalize --date=YYYY-MM-DD`.
+
+## Tampilan
+- Kartu **Latihan Saya** untuk pelatih yang login (tombol Mulai/Selesai Melatih).
+- Tombol "Simulasi Tap Cepat" (mencatat presensi asli dengan label RFID) diganti **Catat Manual oleh Petugas**
+  per sesi latihan.
+- Tombol kelola (buat sesi, finalisasi, inval, penugasan, jadwal) hanya tampil untuk petugas.
+- Tombol "Cetak / Export Laporan" yang hanya memunculkan pesan kini benar-benar mengunduh rekap (CSV, bisa dibuka di Excel).
+
+## Langkah setelah update
+Tidak ada migrasi baru. Jalankan `jalankan-siuba.bat`, lalu Ctrl+F5. Pastikan penjadwal Windows terpasang
+(`pasang-penjadwal-windows.bat`) agar sesi latihan dibuat & difinalisasi otomatis.

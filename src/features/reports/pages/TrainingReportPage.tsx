@@ -66,8 +66,16 @@ export const TrainingReportPage: React.FC<Props> = ({
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
 
+  // Pelatih = staf yang punya penugasan ekskul (banyak ustadz/guru juga melatih), plus staf berjenis pelatih
   const trainers = useMemo(() => {
-    return StaffIdentityResolver.getStaffList().filter((s) => s.is_active && s.staff_type === 'trainer');
+    let assigned = new Set<number>();
+    try {
+      const raw = localStorage.getItem('siuba_extracurricular_staff_assignments');
+      assigned = new Set((raw ? JSON.parse(raw) : []).map((a: any) => Number(a.staff_id)));
+    } catch {
+      /* cache rusak */
+    }
+    return StaffIdentityResolver.getStaffList().filter((s) => s.is_active && (s.staff_type === 'trainer' || assigned.has(Number(s.id))));
   }, [serverDataVersion]);
 
   const ekskuls = useMemo(() => {

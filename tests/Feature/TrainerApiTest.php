@@ -87,6 +87,9 @@ class TrainerApiTest extends TestCase
         $this->postJson('/api/v1/trainer/schedules', ['extracurricular_id' => $eks->id, 'day_of_week' => 1, 'start_time' => '16:00', 'end_time' => '17:00'])->assertCreated();
         $this->postJson('/api/v1/trainer/assignments', ['extracurricular_id' => $eks->id, 'staff_id' => $coach->id])->assertCreated();
         $this->postJson('/api/v1/trainer/generate', ['date' => '2026-11-16'])->assertOk();
+        // Latihan belum selesai → belum boleh ditandai alpa
+        $this->postJson('/api/v1/trainer/finalize', ['date' => '2026-11-16'])->assertOk()->assertJsonPath('data.absent_created', 0);
+        $this->travelTo(Carbon::parse('2026-11-16 17:30:00'));
         $this->postJson('/api/v1/trainer/finalize', ['date' => '2026-11-16'])->assertOk()->assertJsonPath('data.absent_created', 1);
         $this->assertSame('absent', StaffAttendanceRecord::first()->status);
 

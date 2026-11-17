@@ -170,6 +170,24 @@ Artisan::command('siuba:bersihkan-aset', function () {
     return 0;
 })->purpose('Hapus berkas tampilan (JS/CSS) lama yang tertinggal dari update sebelumnya');
 
+Artisan::command('trainer:generate {--date= : Tanggal (YYYY-MM-DD), bawaan hari ini}', function () {
+    $date = $this->option('date') ? \Carbon\Carbon::parse($this->option('date')) : today();
+    $r = \App\Http\Controllers\Api\TrainerApiController::generateFor($date);
+    if (!empty($r['is_holiday'])) {
+        $this->line("Tanggal {$r['date']} libur ({$r['holiday_name']}); sesi latihan tidak dibuat.");
+        return 0;
+    }
+    $this->info("✓ {$r['date']}: {$r['sessions_created']} sesi latihan dibuat, {$r['sessions_existing']} sudah ada (dari {$r['schedules_found']} jadwal).");
+    return 0;
+})->purpose('Buat sesi latihan ekskul dari jadwal mingguan');
+
+Artisan::command('trainer:finalize {--date= : Tanggal (YYYY-MM-DD), bawaan kemarin}', function () {
+    $date = $this->option('date') ?: today()->subDay()->toDateString();
+    $n = \App\Http\Controllers\Api\TrainerApiController::finalizeFor($date);
+    $this->info("✓ {$date}: {$n} sesi latihan tanpa presensi pelatih ditandai alpa.");
+    return 0;
+})->purpose('Tandai alpa pelatih yang tidak presensi pada sesi latihan yang sudah lewat');
+
 // Bersihkan log perangkat > 60 hari setiap malam (butuh cron: * * * * * php artisan schedule:run)
 Schedule::command('model:prune', ['--model' => [\App\Models\AttendanceDeviceLog::class, \App\Models\AuditLog::class]])->dailyAt('02:15');
 
@@ -182,3 +200,7 @@ Schedule::call(fn () => \App\Services\System\SystemHealthService::recordSchedule
 
 // Tutup otomatis sesi absensi yang sudah lewat waktu selesai + N menit (0 = nonaktif)
 Schedule::command('attendance:auto-close')->everyFiveMinutes()->withoutOverlapping();
+
+// Sesi latihan ekskul hari ini dibuat otomatis dari jadwal mingguan; latihan kemarin difinalisasi
+Schedule::command('trainer:generate')->dailyAt('00:20')->withoutOverlapping();
+Schedule::command('trainer:finalize')->dailyAt('00:40')->withoutOverlapping();

@@ -51,13 +51,16 @@ import { PersonAvatar } from './common/PersonAvatar';
 
 interface TrainerAttendanceViewProps {
   currentUser?: User;
+  /** Ditampilkan sebagai tab di Presensi SDM: judul besar disembunyikan */
+  embedded?: boolean;
 }
 
 type TabType = 'MONITORING' | 'ASSIGNMENTS' | 'SUBSTITUTIONS' | 'JOURNAL' | 'SCANNER' | 'RECONCILIATION';
 
-export const TrainerAttendanceView: React.FC<TrainerAttendanceViewProps> = ({
-  currentUser = { id: 1, name: 'Pembina Ekskul', role: 'admin', email: 'pembina@pesantren.id', username: 'pembina', is_active: true }
-}) => {
+export const TrainerAttendanceView: React.FC<TrainerAttendanceViewProps> = ({ embedded = false }) => {
+  // Hak akses dari server: petugas mengelola semua; pelatih biasa hanya presensi & jurnal miliknya
+  const [me, setMe] = useState<{ staff_id: number; name: string } | null>(null);
+  const [canManage, setCanManage] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<TabType>('MONITORING');
   const [isTabDropdownOpen, setIsTabDropdownOpen] = useState<boolean>(false);
   const [selectedDate, setSelectedDate] = useState<string>(todayLocalDate());
@@ -93,13 +96,13 @@ export const TrainerAttendanceView: React.FC<TrainerAttendanceViewProps> = ({
   const [subOriginalStaffId, setSubOriginalStaffId] = useState<number>(1);
   const [subSubstituteStaffId, setSubSubstituteStaffId] = useState<number>(2);
   const [subDate, setSubDate] = useState<string>(selectedDate);
-  const [subReason, setSubReason] = useState<string>('Tugas dinas luar pesantren');
+  const [subReason, setSubReason] = useState<string>('');
 
   // Journal Modal
   const [showJournalModal, setShowJournalModal] = useState<boolean>(false);
   const [selectedSessionForJournal, setSelectedSessionForJournal] = useState<TrainingSession | null>(null);
   const [journalTopic, setJournalTopic] = useState<string>('');
-  const [journalStudentCount, setJournalStudentCount] = useState<number>(20);
+  const [journalStudentCount, setJournalStudentCount] = useState<number>(0);
   const [journalNotes, setJournalNotes] = useState<string>('');
 
   // ===== Data dari server (sebelumnya disimpan di browser dengan jadwal contoh tertanam) =====
@@ -123,6 +126,8 @@ export const TrainerAttendanceView: React.FC<TrainerAttendanceViewProps> = ({
     try {
       const res: any = await apiClient.get('/trainer/overview', { date: selectedDate });
       const d = res?.data || {};
+      setMe(d.me || null);
+      setCanManage(Boolean(d.can_manage));
       setStaffList(d.staff || []);
       setTrainingSessions(d.sessions || []);
       setAssignments(d.assignments || []);
@@ -187,7 +192,7 @@ export const TrainerAttendanceView: React.FC<TrainerAttendanceViewProps> = ({
   };
 
   // Presensi pelatih (RFID / QR / nomor induk / tombol cepat)
-  const handleProcessScan = async (method: 'qr' | 'rfid', overrideStaffId?: number) => {
+  const handleProcessScan = async (method: 'qr' | 'rfid' | 'manual', overrideStaffId?: number, overrideSessionId?: number) => {
     if (!overrideStaffId && !scannerInput.trim()) return;
     setIsProcessingScan(true);
     setScanFeedback(null);
@@ -195,7 +200,7 @@ export const TrainerAttendanceView: React.FC<TrainerAttendanceViewProps> = ({
       const res: any = await apiClient.post('/trainer/scan', {
         identifier: overrideStaffId ? undefined : scannerInput.trim(),
         staff_id: overrideStaffId,
-        session_id: selectedSessionForScan || undefined,
+        session_id: overrideSessionId || selectedSessionForScan || undefined,
         method,
       });
       AudioFeedbackService.playSuccess();
@@ -307,18 +312,44 @@ export const TrainerAttendanceView: React.FC<TrainerAttendanceViewProps> = ({
 
   const DAY_NAMES = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
 
+  // Rekap rekonsiliasi tanggal terpilih → CSV (dibuka di Excel)
+  const handleExportReconciliation = () => {
+    const esc = (v: any) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const rows = [
+      ['Tanggal', 'Ekskul', 'Pelatih', 'Pelatih Hadir', 'Santri Hadir', 'Anggota Aktif', 'Jurnal', 'Perlu Tinjauan', 'Alasan'],
+      ...reconciliationItems.map((r: any) => [
+        selectedDate, r.extracurricular_name, r.trainer_name, r.trainer_attended ? 'Ya' : 'Tidak',
+        r.students_present, r.students_eligible, r.realization_status === 'submitted' ? 'Terisi' : 'Belum',
+        r.needs_review ? 'Ya' : 'Tidak', r.review_reason || '',
+      ]),
+    ];
+    const csv = '\ufeff' + rows.map((r) => r.map(esc).join(';')).join('\r\n');
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `rekap-latihan-ekskul-${selectedDate}.csv`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+
+  // Sesi latihan milik pengguna yang login (pelatih utama / pengganti)
+  const mySessions = me
+    ? trainingSessions.filter((s: any) => s.actual_primary_staff_id === me.staff_id || s.primary_staff_id === me.staff_id)
+    : [];
+  const isToday = selectedDate === todayLocalDate();
+
   return (
     <div id="trainer-attendance-container" className="space-y-6 pb-12">
       {loadError && (
         <div className="p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold">{loadError}</div>
       )}
       {/* Header Banner */}
-      <div className="bg-gradient-to-br from-[#1F5C45] via-[#1A503C] to-[#12382A] text-white rounded-3xl p-6 shadow-md border border-[#164735]">
-        <div>
+      <div className={`bg-gradient-to-br from-[#1F5C45] via-[#1A503C] to-[#12382A] text-white rounded-3xl shadow-md border border-[#164735] ${embedded ? 'p-4' : 'p-6'}`}>
+        <div className={embedded ? 'hidden' : ''}>
           <div className="flex items-center gap-2 mb-1.5 flex-wrap">
             <span className="bg-white/15 border border-white/20 text-emerald-100 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1 backdrop-blur-xs">
               <Award className="w-3 h-3 text-[#C9A227]" />
-              SIUBA v1.1.3 PRODUCTION
+              Ekstrakurikuler
             </span>
             <span className="text-[11px] text-emerald-100 font-bold bg-black/25 px-2.5 py-0.5 rounded-full border border-white/15 backdrop-blur-xs">
               Presensi & Inval Pelatih Ekstrakurikuler
@@ -328,7 +359,7 @@ export const TrainerAttendanceView: React.FC<TrainerAttendanceViewProps> = ({
             Presensi Pelatih & Pembina Ekstrakurikuler
           </h1>
           <p className="text-xs text-emerald-100/90 mt-1 max-w-3xl leading-relaxed">
-            Manajemen komprehensif kehadiran pelatih, asisten pembina, pergantian pelatih (inval/substitusi), jurnal realisasi materi, verifikasi RFID/QR scanner, dan rekonsiliasi honorarium.
+            Kehadiran pelatih & pembina ekskul (kartu RFID/QR atau manual), inval/pengganti, jurnal materi latihan, dan rekap kesesuaian presensi dengan jurnal.
           </p>
         </div>
 
@@ -338,15 +369,15 @@ export const TrainerAttendanceView: React.FC<TrainerAttendanceViewProps> = ({
             { id: 'MONITORING' as TabType, label: 'Monitoring Sesi Latihan', desc: 'Pantau status sesi, jam masuk pelatih & absensi santri', icon: Clock, badge: `${summary.total_sessions} Sesi` },
             { id: 'ASSIGNMENTS' as TabType, label: 'Penugasan Pelatih & Pembina', desc: 'Matriks penugasan pelatih utama, asisten & jenis ekskul', icon: Users, badge: `${assignments.length} Penugasan` },
             { id: 'SUBSTITUTIONS' as TabType, label: 'Inval / Pengganti Pelatih', desc: 'Penggantian pelatih berhalangan & pelimpahan wewenang', icon: ArrowRightLeft, badge: `${substitutions.length} Inval` },
-            { id: 'JOURNAL' as TabType, label: 'Jurnal Realisasi Materi', desc: 'Catatan materi latihan, foto dokumentasi & verifikasi', icon: BookOpen, badge: `${summary.realized_sessions} Jurnal` },
+            { id: 'JOURNAL' as TabType, label: 'Jurnal Realisasi Materi', desc: 'Catatan materi latihan & jumlah santri hadir', icon: BookOpen, badge: `${summary.realized_sessions} Jurnal` },
             { id: 'SCANNER' as TabType, label: 'Terminal Scan Cepat (QR/RFID)', desc: 'Terminal pemindai presensi cepat pelatih di lapangan', icon: QrCode, badge: 'Fast-Tap' },
-            { id: 'RECONCILIATION' as TabType, label: 'Rekonsiliasi & Audit Honor', desc: 'Audit jam melatih, validasi honorarium & ekspor rekap', icon: ShieldCheck, badge: 'Audit Valid' },
+            { id: 'RECONCILIATION' as TabType, label: 'Rekap & Rekonsiliasi', desc: 'Kesesuaian presensi pelatih dengan jurnal & unduh rekap', icon: ShieldCheck, badge: 'Audit Valid' },
           ];
           const currentTabInfo = TRAINER_TABS.find(t => t.id === activeTab) || TRAINER_TABS[0];
           const CurrentTabIcon = currentTabInfo.icon;
 
           return (
-            <div className="mt-5 pt-4 border-t border-white/15">
+            <div className={embedded ? "" : "mt-5 pt-4 border-t border-white/15"}>
               {/* Single Unified White Toolbar Bar (Side-by-Side) */}
               <div className="bg-white rounded-2xl p-2 shadow-lg border border-white/30 flex flex-row items-center justify-between gap-3 relative flex-wrap sm:flex-nowrap">
                 {/* Left: Dropdown Selector Trigger */}
@@ -453,14 +484,14 @@ export const TrainerAttendanceView: React.FC<TrainerAttendanceViewProps> = ({
                       className="bg-transparent text-slate-900 font-bold text-xs focus:outline-none cursor-pointer"
                     />
                   </div>
-                  <button 
+                  {canManage && <button 
                     onClick={handleGenerateSessions}
                     title="Generate / Sinkronkan Sesi Latihan Hari Ini"
                     className="px-3.5 py-1.5 bg-[#1F5C45] hover:bg-[#12372A] text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-xs cursor-pointer min-h-[32px] active:scale-95 whitespace-nowrap"
                   >
                     <Sparkles className="w-3.5 h-3.5 text-[#EADAA2]" />
-                    <span>Generate Sesi</span>
-                  </button>
+                    <span>Buat Sesi dari Jadwal</span>
+                  </button>}
                   <button 
                     onClick={refreshData}
                     title="Refresh Data"
@@ -558,7 +589,7 @@ export const TrainerAttendanceView: React.FC<TrainerAttendanceViewProps> = ({
               </select>
             </div>
 
-            <div className="flex items-center gap-2.5 shrink-0 flex-wrap sm:flex-nowrap">
+            {canManage && <div className="flex items-center gap-2.5 shrink-0 flex-wrap sm:flex-nowrap">
               <button
                 onClick={handleFinalizeAttendance}
                 className="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer active:scale-95 shadow-xs"
@@ -576,8 +607,41 @@ export const TrainerAttendanceView: React.FC<TrainerAttendanceViewProps> = ({
                 <ArrowRightLeft className="w-4 h-4 text-[#C9A227]" />
                 <span>Tambah Inval Pelatih</span>
               </button>
-            </div>
+            </div>}
           </div>
+
+          {/* Presensi melatih milik pengguna yang login */}
+          {me && mySessions.length > 0 && (
+            <div id="trainer-my-sessions" className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 space-y-2">
+              <h4 className="text-xs font-black text-emerald-900">Latihan Saya — {me.name}</h4>
+              {mySessions.map((s: any) => {
+                const st = s.trainer_attendance_status;
+                const label = st === 'unrecorded' || st === 'absent' ? 'Mulai Melatih' : 'Selesai Melatih';
+                return (
+                  <div key={s.id} className="flex items-center justify-between gap-3 bg-white rounded-xl border border-emerald-100 p-3">
+                    <div className="text-xs">
+                      <div className="font-bold text-slate-900">{s.extracurricular_name}</div>
+                      <div className="text-slate-500">{s.start_time}–{s.end_time} &bull; {s.location || '-'} &bull; Status: {st === 'unrecorded' ? 'belum presensi' : st}</div>
+                    </div>
+                    {isToday ? (
+                      <button
+                        disabled={isProcessingScan || s.status === 'cancelled'}
+                        onClick={() => handleProcessScan('manual', me.staff_id, s.id)}
+                        className="px-3 py-1.5 rounded-lg bg-[#1F5C45] text-white text-xs font-bold disabled:opacity-50 cursor-pointer"
+                      >
+                        {label}
+                      </button>
+                    ) : (
+                      <span className="text-[11px] text-slate-500">Presensi hanya pada hari latihan</span>
+                    )}
+                  </div>
+                );
+              })}
+              {scanFeedback && (
+                <p className={`text-xs font-semibold ${scanFeedback.success ? 'text-emerald-800' : 'text-rose-700'}`}>{scanFeedback.message}</p>
+              )}
+            </div>
+          )}
 
           {/* Training Sessions Table */}
           <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-sm overflow-hidden">
@@ -724,7 +788,7 @@ export const TrainerAttendanceView: React.FC<TrainerAttendanceViewProps> = ({
                                 onClick={() => {
                                   setSelectedSessionForJournal(session);
                                   setJournalTopic(session.topic || '');
-                                  setJournalStudentCount(session.student_present_count || 20);
+                                  setJournalStudentCount(session.student_present_count ?? 0);
                                   setJournalNotes(session.activity_notes || '');
                                   setShowJournalModal(true);
                                 }}
@@ -761,13 +825,13 @@ export const TrainerAttendanceView: React.FC<TrainerAttendanceViewProps> = ({
                 Pemetaan resmi SDM pelatih utama, instruktur luar, asisten pembina, dan pembina pendamping per ekstrakurikuler.
               </p>
             </div>
-            <button
+            {canManage && <button
               onClick={() => setShowAssignModal(true)}
               className="px-3.5 py-1.5 bg-[#1F5C45] hover:bg-[#12372A] text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm cursor-pointer min-h-[36px]"
             >
               <UserPlus className="w-3.5 h-3.5" />
               Tambah Penugasan Baru
-            </button>
+            </button>}
           </div>
 
           <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-sm overflow-hidden">
@@ -818,7 +882,7 @@ export const TrainerAttendanceView: React.FC<TrainerAttendanceViewProps> = ({
                       {a.start_date || '-'} s.d {a.end_date || 'Aktif'}
                     </td>
                     <td className="py-3 px-4 text-center">
-                      {a.is_active && (
+                      {a.is_active && canManage && (
                         <button onClick={() => handleRemoveAssignment(a.id)} className="text-[11px] font-bold text-rose-700 hover:underline cursor-pointer">
                           Nonaktifkan
                         </button>
@@ -844,7 +908,7 @@ export const TrainerAttendanceView: React.FC<TrainerAttendanceViewProps> = ({
                 Sesi latihan harian dibuat dari jadwal ini lewat tombol Sinkronisasi Sesi.
               </p>
             </div>
-            <form onSubmit={handleAddSchedule} className="grid grid-cols-2 md:grid-cols-6 gap-2 text-xs">
+            {canManage && <form onSubmit={handleAddSchedule} className="grid grid-cols-2 md:grid-cols-6 gap-2 text-xs">
               <select value={newSchEkskulId} onChange={(e) => setNewSchEkskulId(Number(e.target.value))} className="md:col-span-2 bg-zinc-50 border border-zinc-300 rounded-xl px-3 py-2" aria-label="Ekstrakurikuler">
                 {extracurriculars.length === 0 && <option value={0}>Belum ada ekskul</option>}
                 {extracurriculars.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
@@ -858,7 +922,7 @@ export const TrainerAttendanceView: React.FC<TrainerAttendanceViewProps> = ({
                 Tambah Jadwal
               </button>
               <input value={newSchLocation} onChange={(e) => setNewSchLocation(e.target.value)} placeholder="Lokasi (opsional)" className="col-span-2 md:col-span-6 bg-zinc-50 border border-zinc-300 rounded-xl px-3 py-2" />
-            </form>
+            </form>}
             <div className="divide-y divide-zinc-100 text-xs">
               {trainingSchedules.length === 0 ? (
                 <div className="py-4 text-center text-zinc-400">Belum ada jadwal latihan.</div>
@@ -866,7 +930,7 @@ export const TrainerAttendanceView: React.FC<TrainerAttendanceViewProps> = ({
                 <div key={sch.id} className="py-2 flex items-center justify-between gap-2">
                   <span className="font-bold text-zinc-900">{sch.extracurricular_name}</span>
                   <span className="text-zinc-600">{sch.day_name}, {sch.start_time}–{sch.end_time}{sch.location ? ` · ${sch.location}` : ''}</span>
-                  <button onClick={() => handleDeleteSchedule(sch.id)} className="text-[11px] font-bold text-rose-700 hover:underline cursor-pointer">Hapus</button>
+                  {canManage && <button onClick={() => handleDeleteSchedule(sch.id)} className="text-[11px] font-bold text-rose-700 hover:underline cursor-pointer">Hapus</button>}
                 </div>
               ))}
             </div>
@@ -889,13 +953,13 @@ export const TrainerAttendanceView: React.FC<TrainerAttendanceViewProps> = ({
                 Pengalihan hak presensi dan honorarium mengajar kepada pelatih pengganti saat pelatih utama berhalangan hadir.
               </p>
             </div>
-            <button
+            {canManage && <button
               onClick={() => setShowSubModal(true)}
               className="px-3.5 py-1.5 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700 transition flex items-center gap-1.5 shadow-md shadow-indigo-500/20"
             >
               <Plus className="w-3.5 h-3.5" />
               Daftarkan Inval Baru
-            </button>
+            </button>}
           </div>
 
           <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-sm overflow-hidden">
@@ -940,7 +1004,7 @@ export const TrainerAttendanceView: React.FC<TrainerAttendanceViewProps> = ({
                         }`}>
                           {sub.status === 'active' ? 'Aktif Berlaku' : 'Dibatalkan'}
                         </span>
-                        {sub.status === 'active' && (
+                        {sub.status === 'active' && canManage && (
                           <button onClick={() => handleCancelSubstitution(sub.id)} className="ml-2 text-[11px] font-bold text-rose-700 hover:underline cursor-pointer">
                             Batalkan
                           </button>
@@ -1008,7 +1072,7 @@ export const TrainerAttendanceView: React.FC<TrainerAttendanceViewProps> = ({
                   onClick={() => {
                     setSelectedSessionForJournal(session);
                     setJournalTopic(session.topic || '');
-                    setJournalStudentCount(session.student_present_count || 20);
+                    setJournalStudentCount(session.student_present_count ?? 0);
                     setJournalNotes(session.activity_notes || '');
                     setShowJournalModal(true);
                   }}
@@ -1109,29 +1173,43 @@ export const TrainerAttendanceView: React.FC<TrainerAttendanceViewProps> = ({
               )}
             </div>
 
-            {/* Quick Tap Simulator */}
-            <div className="bg-white p-6 rounded-3xl border border-zinc-200/80 shadow-md">
-              <h4 className="text-xs font-black text-zinc-900 uppercase tracking-wider mb-3">
-                Simulasi Tap Cepat Pelatih Ekstrakurikuler
-              </h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {staffList.filter(s => s.staff_type === 'trainer' || s.staff_type === 'teacher').slice(0, 6).map(staff => (
-                  <button
-                    key={staff.id}
-                    onClick={() => handleProcessScan('rfid', staff.id)}
-                    className="p-3 bg-zinc-50 hover:bg-indigo-50/60 border border-zinc-200/80 rounded-2xl text-left transition flex items-center justify-between group"
-                  >
-                    <div>
-                      <div className="font-bold text-xs text-zinc-900 group-hover:text-indigo-700">{staff.name}</div>
-                      <div className="text-[10px] font-mono text-zinc-500">NIP: {staff.staff_number} | {staff.staff_type.toUpperCase()}</div>
-                    </div>
-                    <span className="text-[10px] font-bold text-indigo-600 bg-indigo-100 px-2 py-1 rounded-lg">
-                      Tap Kartu
-                    </span>
-                  </button>
-                ))}
+            {/* Catat manual oleh petugas: pelatih sesi hari ini (tanpa kartu) */}
+            {canManage && (
+              <div id="trainer-manual-record" className="bg-white p-6 rounded-3xl border border-zinc-200/80 shadow-md">
+                <h4 className="text-xs font-black text-zinc-900 uppercase tracking-wider mb-1">
+                  Catat Manual oleh Petugas
+                </h4>
+                <p className="text-[11px] text-zinc-500 mb-3">
+                  Untuk pelatih yang lupa membawa kartu. Tanggal lampau dicatat sebagai presensi susulan (hadir sesuai jadwal).
+                </p>
+                {trainingSessions.filter((s: any) => s.status !== 'cancelled').length === 0 ? (
+                  <p className="text-xs text-zinc-500 italic">Belum ada sesi latihan pada tanggal ini.</p>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {trainingSessions.filter((s: any) => s.status !== 'cancelled').map((s: any) => {
+                      const trainerId = s.actual_primary_staff_id || s.primary_staff_id;
+                      const trainerName = s.actual_primary_staff_name || s.primary_staff_name || 'Belum ada pelatih';
+                      return (
+                        <button
+                          key={s.id}
+                          disabled={!trainerId || isProcessingScan}
+                          onClick={() => trainerId && handleProcessScan('manual', trainerId, s.id)}
+                          className="p-3 bg-zinc-50 hover:bg-emerald-50/60 border border-zinc-200/80 rounded-2xl text-left transition flex items-center justify-between gap-2 group disabled:opacity-50 cursor-pointer"
+                        >
+                          <div className="min-w-0">
+                            <div className="font-bold text-xs text-zinc-900 truncate">{s.extracurricular_name}</div>
+                            <div className="text-[10px] text-zinc-500 truncate">{trainerName} &bull; {s.start_time}–{s.end_time}</div>
+                          </div>
+                          <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-1 rounded-lg shrink-0">
+                            {s.trainer_attendance_status === 'unrecorded' || s.trainer_attendance_status === 'absent' ? 'Catat Hadir' : 'Catat Selesai'}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
-            </div>
+            )}
           </div>
 
           {/* Today's Trainer Attendance Stream */}
@@ -1186,15 +1264,16 @@ export const TrainerAttendanceView: React.FC<TrainerAttendanceViewProps> = ({
                 Rekonsiliasi Realisasi Latihan vs Presensi Pelatih
               </h3>
               <p className="text-xs text-zinc-500 mt-0.5">
-                Audit otomatis untuk memastikan kesesuaian antara kehadiran fisik pelatih, keterisian jurnal, dan kelayakan honorarium.
+                Pemeriksaan kesesuaian kehadiran pelatih, keterisian jurnal, dan jumlah santri hadir — dasar perhitungan honor.
               </p>
             </div>
             <button
-              onClick={() => alert('Laporan rekonsiliasi siap diexport ke format Excel/PDF.')}
+              onClick={handleExportReconciliation}
+              disabled={reconciliationItems.length === 0}
               className="px-3.5 py-1.5 bg-zinc-800 text-white rounded-xl text-xs font-bold hover:bg-zinc-900 transition flex items-center gap-1.5"
             >
               <Printer className="w-3.5 h-3.5" />
-              Cetak / Export Laporan
+              Unduh Rekap (CSV)
             </button>
           </div>
 

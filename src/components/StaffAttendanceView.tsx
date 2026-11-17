@@ -59,13 +59,14 @@ import { StaffWorkScheduleResolver } from '../services/staffWorkScheduleResolver
 import { AudioFeedbackService } from '../services/audioFeedbackService';
 import { todayLocalDate } from '../utils/today';
 import { TeachingAttendanceModule } from '../features/staff-attendance/pages/TeachingAttendanceModule';
+import { TrainerAttendanceView } from './TrainerAttendanceView';
 
 interface StaffAttendanceViewProps {
   currentUser?: User;
   sessions?: AttendanceSession[];
 }
 
-type TabType = 'DASHBOARD' | 'DAILY' | 'TEACHING' | 'LEAVE' | 'SCHEDULES' | 'MASTER' | 'REPORTS' | 'ROADMAP';
+type TabType = 'DASHBOARD' | 'DAILY' | 'TEACHING' | 'TRAINING' | 'LEAVE' | 'SCHEDULES' | 'MASTER' | 'REPORTS' | 'ROADMAP';
 
 export const StaffAttendanceView: React.FC<StaffAttendanceViewProps> = ({
   currentUser = { id: 1, name: 'Admin', role: 'admin', email: 'admin@pesantren.id', username: 'admin', is_active: true },
@@ -652,6 +653,7 @@ export const StaffAttendanceView: React.FC<StaffAttendanceViewProps> = ({
             { id: 'DASHBOARD' as TabType, label: 'Dashboard & Scanner', desc: 'Ringkasan presensi harian & fast scanning RFID/QR', icon: Layers, badge: 'Live Fast-Tap' },
             { id: 'DAILY' as TabType, label: 'Kehadiran Hari Ini', desc: 'Daftar absensi pegawai, log tap, jam masuk & pulang', icon: UserCheck, badge: `${dailySummary.present + dailySummary.late}/${dailySummary.total_staff} Hadir` },
             { id: 'TEACHING' as TabType, label: 'Presensi Mengajar (KBM)', desc: 'Kehadiran guru per jam pelajaran, jurnal mengajar & guru pengganti', icon: BookOpen, badge: 'KBM' },
+            { id: 'TRAINING' as TabType, label: 'Presensi Melatih (Ekskul)', desc: 'Kehadiran pelatih & pembina ekskul, inval & jurnal latihan', icon: Award, badge: 'Ekskul' },
             { id: 'LEAVE' as TabType, label: 'Izin, Sakit & Cuti', desc: 'Pengajuan & verifikasi dispensasi kerja SDM', icon: FileText, badge: `${absenceRequests.length} Pengajuan` },
             { id: 'SCHEDULES' as TabType, label: 'Jadwal Kerja', desc: 'Pengaturan shift reguler, piket & asrama', icon: Clock, badge: '5 Shift Kerja' },
             { id: 'MASTER' as TabType, label: 'Master SDM & Kartu', desc: 'Database profil ustadz, guru & cetak kartu RFID/QR', icon: Users, badge: `${staffList.length} Pegawai` },
@@ -1172,6 +1174,10 @@ export const StaffAttendanceView: React.FC<StaffAttendanceViewProps> = ({
       {/* ========================================================================= */}
       {activeTab === 'TEACHING' && (
         <TeachingAttendanceModule currentUser={currentUser as User} staffList={staffList} />
+      )}
+
+      {activeTab === 'TRAINING' && (
+        <TrainerAttendanceView currentUser={currentUser as User} embedded />
       )}
 
       {activeTab === 'LEAVE' && (
