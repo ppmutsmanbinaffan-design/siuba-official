@@ -78,52 +78,7 @@ import {
   RfidMonitoringPage,
   AttendanceMonitoringPage
 } from './features/attendance';
-import { 
-  INITIAL_ACADEMIC_CALENDAR_EVENTS,
-  INITIAL_ACADEMIC_SCHEDULES,
-  INITIAL_ACADEMIC_SESSION_CONTEXTS,
-  INITIAL_ACADEMIC_SUBSTITUTIONS,
-  INITIAL_ACADEMIC_YEARS,
-  INITIAL_ACTIVITIES, 
-  INITIAL_ACTIVITY_PARTICIPANTS, 
-  INITIAL_ACTIVITY_SUPERVISORS,
-  INITIAL_ACTIVITY_PARTICIPANT_RULES,
-  INITIAL_CATEGORIES, 
-  INITIAL_CLASSROOMS, 
-  INITIAL_CLASS_HISTORIES, 
-  INITIAL_DEVICES, 
-  INITIAL_DEVICE_LOGS,
-  INITIAL_DORMITORIES, 
-  INITIAL_DORMITORY_ROOMS, 
-  INITIAL_DUTY_ROSTERS,
-  INITIAL_EVENT_ORGANIZERS,
-  INITIAL_EVENT_REGISTRATIONS,
-  INITIAL_EVENT_SESSIONS,
-  INITIAL_EXTRACURRICULARS, 
-  INITIAL_EXTRACURRICULAR_MEMBERS, 
-  INITIAL_HALAQAHS,
-  INITIAL_HALAQAH_MEMBERS,
-  INITIAL_LESSON_PERIODS,
-  INITIAL_PRAYER_CALENDARS,
-  INITIAL_RECORDS, 
-  INITIAL_RECORD_HISTORIES,
-  INITIAL_ROOM_HISTORIES, 
-  INITIAL_ROUTINE_OVERRIDES,
-  INITIAL_ROUTINE_SCHEDULES,
-  INITIAL_SPECIAL_EVENTS,
-  INITIAL_WALK_IN_AUDIT_LOGS,
-  INITIAL_SEMESTERS,
-  INITIAL_SESSIONS, 
-  INITIAL_SESSION_PARTICIPANTS, 
-  INITIAL_STUDENTS, 
-  INITIAL_STUDENT_EXCUSALS,
-  INITIAL_STUDENT_GROUPS, 
-  INITIAL_STUDENT_GROUP_MEMBERS, 
-  INITIAL_SUBJECTS,
-  INITIAL_TEACHERS,
-  INITIAL_TEACHING_ASSIGNMENTS,
-  INITIAL_USERS 
-} from './data/initialData';
+import { INITIAL_CATEGORIES } from './data/initialData';
 import { 
   AcademicCalendarEvent,
   AcademicSchedule,
@@ -222,39 +177,25 @@ export function App() {
   };
 
   const [users, setUsers] = useState<User[]>(() => {
+    // Daftar pengguna berasal dari server (cache terakhir); tidak lagi dicampur akun contoh.
     try {
       const saved = localStorage.getItem('siuba_custom_users_v1');
-      if (saved !== null) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          // Merge with INITIAL_USERS to ensure any newly added default accounts (such as panitia.psb) are always present
-          const merged = [...parsed];
-          for (const iu of INITIAL_USERS) {
-            const idx = merged.findIndex((u) => u.username === iu.username || u.id === iu.id);
-            if (idx === -1) {
-              merged.push(iu);
-            } else if (iu.roles && (!merged[idx].roles || merged[idx].roles.length === 0)) {
-              merged[idx] = { ...merged[idx], roles: iu.roles };
-            }
-          }
-          return merged;
-        }
-      }
+      const parsed = saved ? JSON.parse(saved) : [];
+      return Array.isArray(parsed) ? parsed : [];
     } catch {
-      // fallback
+      return [];
     }
-    return INITIAL_USERS;
   });
 
   // Daftar pengguna kini dimuat dari server setelah login (lihat efek hidrasi server di bawah)
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [students, setStudents] = useState<Student[]>(() => loadPersistentCollection('siuba_master_students', INITIAL_STUDENTS));
-  const [classrooms, setClassrooms] = useState<Classroom[]>(() => loadPersistentCollection('siuba_master_classrooms', INITIAL_CLASSROOMS));
-  const [dormitories, setDormitories] = useState<Dormitory[]>(() => loadPersistentCollection('siuba_master_dormitories', INITIAL_DORMITORIES));
-  const [dormitoryRooms, setDormitoryRooms] = useState<DormitoryRoom[]>(() => loadPersistentCollection('siuba_master_dormitory_rooms', INITIAL_DORMITORY_ROOMS));
-  const [categories, setCategories] = useState(INITIAL_CATEGORIES);
-  const [activities, setActivities] = useState<Activity[]>(() => loadPersistentCollection('siuba_master_activities', INITIAL_ACTIVITIES));
-  const [sessions, setSessions] = useState<AttendanceSession[]>(() => loadPersistentCollection('siuba_attendance_sessions_cache', INITIAL_SESSIONS));
+  const [students, setStudents] = useState<Student[]>(() => loadPersistentCollection('siuba_master_students', []));
+  const [classrooms, setClassrooms] = useState<Classroom[]>(() => loadPersistentCollection('siuba_master_classrooms', []));
+  const [dormitories, setDormitories] = useState<Dormitory[]>(() => loadPersistentCollection('siuba_master_dormitories', []));
+  const [dormitoryRooms, setDormitoryRooms] = useState<DormitoryRoom[]>(() => loadPersistentCollection('siuba_master_dormitory_rooms', []));
+  const [categories, setCategories] = useState(() => loadPersistentCollection('siuba_activity_categories', INITIAL_CATEGORIES));
+  const [activities, setActivities] = useState<Activity[]>(() => loadPersistentCollection('siuba_master_activities', []));
+  const [sessions, setSessions] = useState<AttendanceSession[]>(() => loadPersistentCollection('siuba_attendance_sessions_cache', []));
 
   useEffect(() => {
     const handleCacheUpdate = (e: any) => {
@@ -275,22 +216,22 @@ export function App() {
     window.addEventListener('siuba:cache-updated', handleCacheUpdate);
     return () => window.removeEventListener('siuba:cache-updated', handleCacheUpdate);
   }, []);
-  const [records, setRecords] = useState<AttendanceRecord[]>(() => loadPersistentCollection('siuba_attendance_records_cache', INITIAL_RECORDS));
-  const [devices, setDevices] = useState<AttendanceDevice[]>(INITIAL_DEVICES);
-  const [deviceLogs, setDeviceLogs] = useState<AttendanceDeviceLog[]>(INITIAL_DEVICE_LOGS);
+  const [records, setRecords] = useState<AttendanceRecord[]>(() => loadPersistentCollection('siuba_attendance_records_cache', []));
+  const [devices, setDevices] = useState<AttendanceDevice[]>([]);
+  const [deviceLogs, setDeviceLogs] = useState<AttendanceDeviceLog[]>([]);
   
   // Sprint 2 State
-  const [extracurriculars, setExtracurriculars] = useState<Extracurricular[]>(INITIAL_EXTRACURRICULARS);
-  const [extracurricularMembers, setExtracurricularMembers] = useState<ExtracurricularMember[]>(INITIAL_EXTRACURRICULAR_MEMBERS);
-  const [studentGroups, setStudentGroups] = useState<StudentGroup[]>(INITIAL_STUDENT_GROUPS);
-  const [studentGroupMembers, setStudentGroupMembers] = useState<StudentGroupMember[]>(INITIAL_STUDENT_GROUP_MEMBERS);
-  const [classHistories, setClassHistories] = useState<StudentClassHistory[]>(INITIAL_CLASS_HISTORIES);
-  const [roomHistories, setRoomHistories] = useState<StudentRoomHistory[]>(INITIAL_ROOM_HISTORIES);
-  const [sessionParticipants, setSessionParticipants] = useState<AttendanceSessionParticipant[]>(() => loadPersistentCollection('siuba_session_participants_cache', INITIAL_SESSION_PARTICIPANTS));
-  const [activityParticipants, setActivityParticipants] = useState<ActivityParticipant[]>(INITIAL_ACTIVITY_PARTICIPANTS);
+  const [extracurriculars, setExtracurriculars] = useState<Extracurricular[]>([]);
+  const [extracurricularMembers, setExtracurricularMembers] = useState<ExtracurricularMember[]>([]);
+  const [studentGroups, setStudentGroups] = useState<StudentGroup[]>([]);
+  const [studentGroupMembers, setStudentGroupMembers] = useState<StudentGroupMember[]>([]);
+  const [classHistories, setClassHistories] = useState<StudentClassHistory[]>([]);
+  const [roomHistories, setRoomHistories] = useState<StudentRoomHistory[]>([]);
+  const [sessionParticipants, setSessionParticipants] = useState<AttendanceSessionParticipant[]>(() => loadPersistentCollection('siuba_session_participants_cache', []));
+  const [activityParticipants, setActivityParticipants] = useState<ActivityParticipant[]>([]);
 
   // Sprint 3 State: Excusals & Record Audit Histories
-  const [excusals, setExcusals] = useState<StudentExcusal[]>(() => loadPersistentCollection('siuba_student_excusals_v1', INITIAL_STUDENT_EXCUSALS));
+  const [excusals, setExcusals] = useState<StudentExcusal[]>(() => loadPersistentCollection('siuba_student_excusals_v1', []));
 
   useEffect(() => {
     try {
@@ -299,40 +240,40 @@ export function App() {
       // ignore
     }
   }, [excusals]);
-  const [recordHistories, setRecordHistories] = useState<AttendanceRecordHistory[]>(INITIAL_RECORD_HISTORIES);
+  const [recordHistories, setRecordHistories] = useState<AttendanceRecordHistory[]>([]);
 
   // Sprint 6 State: Academic / KBM Domain
-  const [academicYears, setAcademicYears] = useState<AcademicYear[]>(INITIAL_ACADEMIC_YEARS);
-  const [semesters, setSemesters] = useState<Semester[]>(INITIAL_SEMESTERS);
-  const [subjects, setSubjects] = useState<Subject[]>(INITIAL_SUBJECTS);
-  const [teachers, setTeachers] = useState<Teacher[]>(INITIAL_TEACHERS);
-  const [teachingAssignments, setTeachingAssignments] = useState<TeachingAssignment[]>(INITIAL_TEACHING_ASSIGNMENTS);
-  const [lessonPeriods, setLessonPeriods] = useState<LessonPeriod[]>(INITIAL_LESSON_PERIODS);
-  const [academicSchedules, setAcademicSchedules] = useState<AcademicSchedule[]>(INITIAL_ACADEMIC_SCHEDULES);
-  const [academicSubstitutions, setAcademicSubstitutions] = useState<AcademicSubstitution[]>(INITIAL_ACADEMIC_SUBSTITUTIONS);
-  const [academicCalendarEvents, setAcademicCalendarEvents] = useState<AcademicCalendarEvent[]>(INITIAL_ACADEMIC_CALENDAR_EVENTS);
-  const [academicSessionContexts, setAcademicSessionContexts] = useState<AcademicSessionContext[]>(INITIAL_ACADEMIC_SESSION_CONTEXTS);
+  const [academicYears, setAcademicYears] = useState<AcademicYear[]>([]);
+  const [semesters, setSemesters] = useState<Semester[]>([]);
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [teachers, setTeachers] = useState<Teacher[]>([]);
+  const [teachingAssignments, setTeachingAssignments] = useState<TeachingAssignment[]>([]);
+  const [lessonPeriods, setLessonPeriods] = useState<LessonPeriod[]>([]);
+  const [academicSchedules, setAcademicSchedules] = useState<AcademicSchedule[]>([]);
+  const [academicSubstitutions, setAcademicSubstitutions] = useState<AcademicSubstitution[]>([]);
+  const [academicCalendarEvents, setAcademicCalendarEvents] = useState<AcademicCalendarEvent[]>([]);
+  const [academicSessionContexts, setAcademicSessionContexts] = useState<AcademicSessionContext[]>([]);
 
   // Sprint 7 State: Routine Activities, Prayers, Dormitory, Halaqah
-  const [halaqahs, setHalaqahs] = useState<Halaqah[]>(INITIAL_HALAQAHS);
-  const [halaqahMembers, setHalaqahMembers] = useState<HalaqahMember[]>(INITIAL_HALAQAH_MEMBERS);
-  const [dutyRosters, setDutyRosters] = useState<DutyRoster[]>(INITIAL_DUTY_ROSTERS);
-  const [routineSchedules, setRoutineSchedules] = useState<RoutineSchedule[]>(INITIAL_ROUTINE_SCHEDULES);
-  const [routineOverrides, setRoutineOverrides] = useState<RoutineScheduleOverride[]>(INITIAL_ROUTINE_OVERRIDES);
-  const [prayerCalendars, setPrayerCalendars] = useState<PrayerTimeCalendar[]>(INITIAL_PRAYER_CALENDARS);
-  const [activitySupervisors, setActivitySupervisors] = useState<ActivitySupervisor[]>(INITIAL_ACTIVITY_SUPERVISORS);
+  const [halaqahs, setHalaqahs] = useState<Halaqah[]>([]);
+  const [halaqahMembers, setHalaqahMembers] = useState<HalaqahMember[]>([]);
+  const [dutyRosters, setDutyRosters] = useState<DutyRoster[]>([]);
+  const [routineSchedules, setRoutineSchedules] = useState<RoutineSchedule[]>([]);
+  const [routineOverrides, setRoutineOverrides] = useState<RoutineScheduleOverride[]>([]);
+  const [prayerCalendars, setPrayerCalendars] = useState<PrayerTimeCalendar[]>([]);
+  const [activitySupervisors, setActivitySupervisors] = useState<ActivitySupervisor[]>([]);
 
   // Sprint 8 State: Events, Participant Rules, Walk-In Audit
-  const [specialEvents, setSpecialEvents] = useState<SpecialEvent[]>(INITIAL_SPECIAL_EVENTS);
-  const [eventSessions, setEventSessions] = useState<EventSession[]>(INITIAL_EVENT_SESSIONS);
-  const [eventRegistrations, setEventRegistrations] = useState<EventRegistration[]>(INITIAL_EVENT_REGISTRATIONS);
-  const [eventOrganizers, setEventOrganizers] = useState<EventOrganizer[]>(INITIAL_EVENT_ORGANIZERS);
-  const [participantRules, setParticipantRules] = useState<ActivityParticipantRule[]>(INITIAL_ACTIVITY_PARTICIPANT_RULES);
+  const [specialEvents, setSpecialEvents] = useState<SpecialEvent[]>([]);
+  const [eventSessions, setEventSessions] = useState<EventSession[]>([]);
+  const [eventRegistrations, setEventRegistrations] = useState<EventRegistration[]>([]);
+  const [eventOrganizers, setEventOrganizers] = useState<EventOrganizer[]>([]);
+  const [participantRules, setParticipantRules] = useState<ActivityParticipantRule[]>([]);
   const [serverActivities, setServerActivities] = useState<Activity[]>([]);
   const halaqahDirty = useRef(false);
   const routineDirty = useRef(false);
   const dutyDirty = useRef(false);
-  const [walkInAuditLogs, setWalkInAuditLogs] = useState<WalkInAuditLog[]>(INITIAL_WALK_IN_AUDIT_LOGS);
+  const [walkInAuditLogs, setWalkInAuditLogs] = useState<WalkInAuditLog[]>([]);
 
   // ===================================================================
   // HIDRASI DARI SERVER: setelah login, isi state dengan data MySQL (Laravel)
@@ -349,6 +290,8 @@ export function App() {
     if (snap.participants) setSessionParticipants(snap.participants);
     if (snap.records) setRecords(snap.records);
     if (snap.devices) setDevices(snap.devices);
+    if (snap.deviceLogs) setDeviceLogs(snap.deviceLogs);
+    if (snap.recordHistories) setRecordHistories(snap.recordHistories);
     if (snap.excusals) setExcusals(snap.excusals);
     if (snap.academic) {
       const a = snap.academic;

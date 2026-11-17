@@ -34,7 +34,7 @@ import { AttendanceActionMenu } from '../components/AttendanceActionMenu';
 import { ParticipantAttendanceCard } from '../components/ParticipantAttendanceCard';
 import { AttendanceCorrectionModal } from '../components/AttendanceCorrectionModal';
 import { PersonAvatar } from '../../../components/common/PersonAvatar';
-import { INITIAL_CLASSROOMS, INITIAL_USERS } from '../../../data/initialData';
+import { getCachedClassrooms } from '../../../services/masterCache';
 import { AudioFeedbackService } from '../../../services/audioFeedbackService';
 import { formatAttendanceTime } from '../utils/attendanceUtils';
 
@@ -402,7 +402,7 @@ export const ManualAttendancePage: React.FC<ManualAttendancePageProps> = ({
             className="bg-white text-xs font-bold text-slate-900 px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-[#1F5C45] focus:border-[#1F5C45] focus:outline-none min-h-[40px] shadow-2xs cursor-pointer"
           >
             <option value="all">Semua Kelas</option>
-            {INITIAL_CLASSROOMS.map((c) => (
+            {getCachedClassrooms().map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
               </option>

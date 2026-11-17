@@ -141,6 +141,7 @@ Route::prefix('v1')->group(function () {
         Route::post('/attendance/sessions', [RoutineApiController::class, 'storeSession'])->middleware('permission:attendance.sessions.create');
 
         // Pengaturan sistem (identitas lembaga, aturan absensi, desain kartu, info server)
+        Route::get('/audit-logs', [\App\Http\Controllers\Api\AuditLogApiController::class, 'index'])->middleware('permission:system.security_audit');
         Route::get('/settings', [AppSettingsApiController::class, 'index']);
         Route::get('/settings/card-templates', [AppSettingsApiController::class, 'cardTemplates']);
         Route::put('/settings/card-templates', [AppSettingsApiController::class, 'saveCardTemplates'])->middleware('permission:students.cards|system.settings');
@@ -265,6 +266,7 @@ Route::prefix('v1')->group(function () {
 
             // Perangkat RFID (bentuk data untuk aplikasi React)
             Route::get('/devices', [DeviceManagementApiController::class, 'spaIndex'])->middleware('permission:devices.view|devices.manage|attendance.monitoring');
+            Route::get('/device-logs', [DeviceManagementApiController::class, 'spaLogs'])->middleware('permission:devices.view|devices.manage|attendance.monitoring');
             Route::get('/devices/logs', [DeviceManagementApiController::class, 'logs'])->middleware('permission:devices.view|devices.manage');
             Route::get('/devices/{device}/logs', [DeviceManagementApiController::class, 'logs'])->middleware('permission:devices.view|devices.manage');
         });

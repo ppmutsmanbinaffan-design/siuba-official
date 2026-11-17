@@ -30,7 +30,7 @@ import { AttendanceSession, SessionFilterOptions, SessionStatus } from '../types
 import { SessionStatusBadge } from '../components/SessionStatusBadge';
 import { AttendanceMethodBadge } from '../components/AttendanceMethodBadge';
 import { SessionCard } from '../components/SessionCard';
-import { INITIAL_ACTIVITIES, INITIAL_CATEGORIES } from '../../../data/initialData';
+import { getCachedActivities, getCachedCategories } from '../../../services/masterCache';
 import { formatAttendanceTime, formatIndonesianDate } from '../utils/attendanceUtils';
 import { todayLocalDate } from '../../../utils/today';
 
@@ -279,7 +279,7 @@ export const SessionListPage: React.FC<SessionListPageProps> = ({
               className="w-full bg-white text-xs font-bold text-slate-900 px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-[#1F5C45] focus:border-[#1F5C45] focus:outline-none min-h-[40px] shadow-2xs cursor-pointer"
             >
               <option value="all">Semua Kategori</option>
-              {INITIAL_CATEGORIES.map((cat) => (
+              {getCachedCategories().map((cat) => (
                 <option key={cat.id} value={cat.id}>
                   {cat.name}
                 </option>
@@ -333,7 +333,7 @@ export const SessionListPage: React.FC<SessionListPageProps> = ({
           {/* Mobile View: Cards Grid */}
           <div className="grid grid-cols-1 md:hidden gap-3.5">
             {sessions.map((session) => {
-              const act = INITIAL_ACTIVITIES.find((a) => a.id === session.activity_id);
+              const act = getCachedActivities().find((a) => a.id === session.activity_id);
               return (
                 <SessionCard
                   key={session.id}

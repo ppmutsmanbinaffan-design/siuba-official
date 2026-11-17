@@ -30,7 +30,6 @@ import {
   User 
 } from '../types';
 import { AudioFeedbackService } from '../../../services/audioFeedbackService';
-import { INITIAL_USERS } from '../../../data/initialData';
 import { formatAttendanceTime, getAttendanceErrorMessage } from '../utils/attendanceUtils';
 
 interface QrScannerPageProps {

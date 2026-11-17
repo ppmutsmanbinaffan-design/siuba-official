@@ -22,15 +22,6 @@ import {
   Student, 
   User 
 } from '../types';
-import { 
-  INITIAL_ACTIVITIES, 
-  INITIAL_DEVICES as INITIAL_ATTENDANCE_DEVICES, 
-  INITIAL_DEVICE_LOGS as INITIAL_ATTENDANCE_DEVICE_LOGS, 
-  INITIAL_RECORDS as INITIAL_ATTENDANCE_RECORDS, 
-  INITIAL_SESSIONS as INITIAL_ATTENDANCE_SESSIONS, 
-  INITIAL_SESSION_PARTICIPANTS as INITIAL_ATTENDANCE_SESSION_PARTICIPANTS, 
-  INITIAL_STUDENTS 
-} from '../../../data/initialData';
 import { AttendanceEngine } from '../../../services/attendanceEngine';
 import { QrAttendanceService } from '../../../services/qrAttendanceService';
 import { RfidAttendanceService } from '../../../services/rfidAttendanceService';

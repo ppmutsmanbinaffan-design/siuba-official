@@ -2,7 +2,6 @@ import { apiClient, isOfflineError } from '../../../services/apiClient';
 import { ensureLegacyDataPreserved } from '../../../services/localDataGuard';
 import { Staff, StaffType, StaffEmploymentStatus, User } from '../../../types';
 import { StaffIdentityResolver } from '../../../services/staffIdentityResolver';
-import { INITIAL_USERS } from '../../../data/initialData';
 import { isDevelopmentToolsEnabled } from '../../../utils/devTools';
 
 export interface StaffListParams {
@@ -342,6 +341,12 @@ export const staffApi = {
     } catch (err: any) {
       if (!isOfflineError(err)) throw err;
     }
-    return INITIAL_USERS;
+    // Offline: daftar pengguna terakhir dari server
+    try {
+      const cached = JSON.parse(localStorage.getItem('siuba_custom_users_v1') || '[]');
+      return Array.isArray(cached) ? cached : [];
+    } catch {
+      return [];
+    }
   },
 };

@@ -28,7 +28,7 @@ import { AttendanceSession, AttendanceTodayKpi, OpenSessionMonitoringData } from
 import { SessionSummaryKpi } from '../components/SessionSummaryKpi';
 import { SessionCard } from '../components/SessionCard';
 import { OpenSessionMonitoringCard } from '../components/OpenSessionMonitoringCard';
-import { INITIAL_ACTIVITIES } from '../../../data/initialData';
+import { getCachedActivities } from '../../../services/masterCache';
 import { formatIndonesianDate } from '../utils/attendanceUtils';
 import { todayLocalDate } from '../../../utils/today';
 
@@ -331,7 +331,7 @@ export const AttendanceDashboardPage: React.FC<AttendanceDashboardPageProps> = (
         {/* Sessions Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
           {filteredSessions.map((session) => {
-            const act = INITIAL_ACTIVITIES.find((a) => a.id === session.activity_id);
+            const act = getCachedActivities().find((a) => a.id === session.activity_id);
             return (
               <SessionCard
                 key={session.id}

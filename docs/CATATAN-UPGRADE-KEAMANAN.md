@@ -759,3 +759,31 @@ hanya diunduh sekali lalu disimpan di cache browser.
 php artisan optimize:clear
 ```
 Tidak ada migrasi baru. Muat ulang browser (Ctrl+F5).
+
+---
+
+# Update 21 — Tahap 18: Tidak ada lagi data contoh yang tampil sebagai data asli
+
+Sebagian layar masih memakai data contoh bawaan (santri, perangkat, log, pengguna, kelas, audit) bila cache browser
+kosong atau data tertentu tidak pernah dikirim server. Perbaikan:
+
+- **Log perangkat** kini dari server (`GET /attendance/device-logs`) — Laporan Perangkat & Monitoring RFID SDM tidak lagi
+  menampilkan perangkat/log contoh (Monitoring RFID SDM sebelumnya membaca cache yang tak pernah terisi).
+- **Riwayat koreksi presensi** ikut dikirim di snapshot absensi.
+- **Audit Keamanan**: log audit contoh ("KH. Abdullah Syukri", dsb.) dihapus dan dibersihkan dari cache browser;
+  log kini dari server (`GET /audit-logs`, izin `system.security_audit`) digabung dengan log perangkat.
+- **Tombol "Buat Backup" di Audit Keamanan** dulu hanya mencatat "backup berhasil" tanpa membuat file — kini membuat
+  backup sungguhan di server. "Drill pemulihan" rekaan diganti petunjuk ke Maintenance Hub → Pusat Backup.
+- **Filter kelas** di Absensi Manual & Detail Sesi, **filter kategori** dan nama kegiatan di Sesi Absensi & Dashboard
+  Absensi kini memakai data server (sebelumnya daftar kelas/kegiatan contoh).
+- Data awal aplikasi, daftar santri, kelas, kamar, dan pengguna tidak lagi diisi data contoh sebelum/ tanpa sinkron
+  server (perangkat baru menampilkan daftar kosong sampai tersambung ke server).
+- Hari libur untuk jadwal kerja SDM kini dari kalender akademik server (bukan kalender contoh).
+- Fungsi reset lokal lama yang mengisi ulang data contoh dihapus (reset kini hanya lewat server).
+
+## Langkah setelah update
+
+```bash
+php artisan optimize:clear
+```
+Tidak ada migrasi baru. Muat ulang browser (Ctrl+F5).

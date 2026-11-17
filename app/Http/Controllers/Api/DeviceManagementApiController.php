@@ -83,6 +83,27 @@ class DeviceManagementApiController extends Controller
     }
 
     /**
+     * Log perangkat terbaru untuk halaman Laporan Perangkat & monitoring (maks. 500, terbaru dulu).
+     */
+    public function spaLogs(Request $request): JsonResponse
+    {
+        $request->validate([
+            'limit' => 'nullable|integer|min:1|max:500',
+            'device_id' => 'nullable|integer',
+        ]);
+
+        $logs = \App\Models\AttendanceDeviceLog::query()
+            ->when($request->filled('device_id'), fn ($q) => $q->where('attendance_device_id', $request->integer('device_id')))
+            ->orderByDesc('id')
+            ->limit($request->integer('limit', 300))
+            ->get()
+            ->map(fn ($l) => SpaTransformer::deviceLog($l))
+            ->values();
+
+        return response()->json(['success' => true, 'data' => $logs]);
+    }
+
+    /**
      * Riwayat kejadian perangkat (200 terbaru).
      * Route: GET /api/v1/attendance/devices/logs, GET /api/v1/attendance/devices/{device}/logs
      */

@@ -445,6 +445,14 @@ class AttendanceSessionApiController extends Controller
             'sessions' => $sessions->map(fn ($s) => SpaTransformer::session($s, $stats[$s->id] ?? []))->values(),
             'participants' => $participants->map(fn ($p) => SpaTransformer::participant($p))->values(),
             'records' => $records->map(fn ($r) => SpaTransformer::record($r))->values(),
+            // Riwayat koreksi status presensi (untuk audit & laporan koreksi)
+            'record_histories' => \App\Models\AttendanceRecordHistory::whereIn('attendance_record_id', $records->pluck('id'))
+                ->with('student:id,name')
+                ->orderByDesc('id')
+                ->limit(5000)
+                ->get()
+                ->map(fn ($h) => SpaTransformer::history($h, $h->student?->name))
+                ->values(),
         ]]);
     }
 

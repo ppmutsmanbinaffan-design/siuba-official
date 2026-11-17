@@ -42,7 +42,7 @@ import { ParticipantAttendanceCard } from '../components/ParticipantAttendanceCa
 import { AttendanceActionMenu } from '../components/AttendanceActionMenu';
 import { AttendanceCorrectionModal } from '../components/AttendanceCorrectionModal';
 import { PersonAvatar } from '../../../components/common/PersonAvatar';
-import { INITIAL_CLASSROOMS, INITIAL_USERS } from '../../../data/initialData';
+import { getCachedClassrooms } from '../../../services/masterCache';
 import { formatAttendanceTime, formatIndonesianDate } from '../utils/attendanceUtils';
 
 interface SessionDetailPageProps {
@@ -399,7 +399,7 @@ export const SessionDetailPage: React.FC<SessionDetailPageProps> = ({
               className="bg-zinc-900 text-xs font-semibold text-zinc-200 px-3 py-2 rounded-xl border border-zinc-800 focus:border-[#1F5C45] focus:outline-none min-h-[38px]"
             >
               <option value="all">Semua Kelas</option>
-              {INITIAL_CLASSROOMS.map((c) => (
+              {getCachedClassrooms().map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
                 </option>

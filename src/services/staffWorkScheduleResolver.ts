@@ -1,5 +1,4 @@
 import { Staff, StaffWorkSchedule, DayOfWeek, AcademicCalendarEvent } from '../types';
-import { INITIAL_ACADEMIC_CALENDAR_EVENTS } from '../data/initialData';
 import { AuditService } from './auditService';
 
 export class StaffWorkScheduleResolver {
@@ -66,7 +65,8 @@ export class StaffWorkScheduleResolver {
     try {
       // Check stored custom holidays first
       const storedHolidays = localStorage.getItem(this.HOLIDAYS_KEY);
-      const customEvents: AcademicCalendarEvent[] = storedHolidays ? JSON.parse(storedHolidays) : INITIAL_ACADEMIC_CALENDAR_EVENTS;
+      // Kalender akademik dari server (diisi saat sinkronisasi); tanpa data → tidak ada hari libur khusus.
+      const customEvents: AcademicCalendarEvent[] = storedHolidays ? JSON.parse(storedHolidays) : [];
       
       const match = customEvents.find(e => {
         if (e.type !== 'holiday') return false;

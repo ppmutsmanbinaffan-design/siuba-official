@@ -5,6 +5,8 @@
 import { apiClient, isOfflineError } from './apiClient';
 import { ensureLegacyDataPreserved } from './localDataGuard';
 import type {
+  AttendanceDeviceLog,
+  AttendanceRecordHistory,
   AttendanceDevice,
   AttendanceRecord,
   AttendanceSession,
@@ -68,6 +70,8 @@ export interface ServerSnapshot {
   participants?: AttendanceSessionParticipant[];
   records?: AttendanceRecord[];
   devices?: AttendanceDevice[];
+  deviceLogs?: AttendanceDeviceLog[];
+  recordHistories?: AttendanceRecordHistory[];
   staff?: Staff[];
   users?: User[];
   excusals?: StudentExcusal[];
@@ -113,6 +117,10 @@ async function attempt<T>(label: string, fn: () => Promise<T>, errors: string[])
   }
 }
 
+async function fetchDeviceLogs(): Promise<AttendanceDeviceLog[]> {
+  return ((await apiClient.get<AttendanceDeviceLog[]>('/attendance/device-logs', { limit: 300 })) as any).data as AttendanceDeviceLog[];
+}
+
 export async function loadServerSnapshot(options: { attendanceOnly?: boolean } = {}): Promise<ServerSnapshot> {
   const errors: string[] = [];
 
@@ -132,13 +140,15 @@ export async function loadServerSnapshot(options: { attendanceOnly?: boolean } =
       attempt('Perangkat', async () => ((await apiClient.get<AttendanceDevice[]>('/attendance/devices')) as any).data as AttendanceDevice[], errors),
       dailyExtras(),
     ]);
+    const deviceLogs = await attempt('Log perangkat', fetchDeviceLogs, errors);
     return {
       sessions: attendance?.sessions, participants: attendance?.participants, records: attendance?.records, devices,
+      deviceLogs, recordHistories: attendance?.record_histories,
       excusals, staffDaily, staffAbsences, academic, community, routine, errors,
     };
   }
 
-  const [[academic, excusals, staffDaily, staffAbsences, routine, community], students, classrooms, dormitories, dormitoryRooms, attendance, devices, staff, users] = await Promise.all([
+  const [[academic, excusals, staffDaily, staffAbsences, routine, community], students, classrooms, dormitories, dormitoryRooms, attendance, devices, staff, users, deviceLogs] = await Promise.all([
     dailyExtras(),
     attempt('Santri', fetchAllStudents, errors),
     attempt('Kelas', async () => ((await apiClient.get<Classroom[]>('/classrooms')) as any).data as Classroom[], errors),
@@ -151,6 +161,7 @@ export async function loadServerSnapshot(options: { attendanceOnly?: boolean } =
       const res: any = await apiClient.get<User[]>('/users');
       return (Array.isArray(res?.users) ? res.users : res?.data) as User[];
     }, errors),
+    attempt('Log perangkat', fetchDeviceLogs, errors),
   ]);
 
   return {
@@ -162,6 +173,8 @@ export async function loadServerSnapshot(options: { attendanceOnly?: boolean } =
     participants: attendance?.participants,
     records: attendance?.records,
     devices,
+    deviceLogs,
+    recordHistories: attendance?.record_histories,
     staff,
     users,
     excusals,
@@ -196,6 +209,17 @@ export function persistSnapshotToCache(snap: ServerSnapshot): void {
   write('siuba_session_participants_cache', snap.participants);
   write('siuba_attendance_records_cache', snap.records);
   write('siuba_attendance_devices_cache', snap.devices);
+  write('siuba_attendance_device_logs_cache', snap.deviceLogs);
+  write('siuba_record_histories_cache', snap.recordHistories);
+  if (snap.academic?.calendar_events) {
+    // Hari libur & kalender akademik untuk penentuan jadwal kerja SDM dan sesi latihan
+    write('siuba_calendar_holidays', snap.academic.calendar_events);
+    write('siuba_academic_calendar_events', snap.academic.calendar_events);
+  }
+  if (snap.routine) {
+    write('siuba_master_activities', snap.routine.activities);
+    if (Array.isArray(snap.routine.categories) && snap.routine.categories.length) write('siuba_activity_categories', snap.routine.categories);
+  }
   write('siuba_master_staff', snap.staff);
   write('siuba_student_excusals_v1', snap.excusals);
   write('siuba_staff_absence_requests', snap.staffAbsences);

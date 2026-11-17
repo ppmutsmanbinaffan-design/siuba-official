@@ -1,7 +1,6 @@
 import { apiClient, ApiResponse, isOfflineError } from '../../../services/apiClient';
 import { ensureLegacyDataPreserved } from '../../../services/localDataGuard';
 import { Student, StudentStatus, Classroom, DormitoryRoom } from '../../../types';
-import { INITIAL_STUDENTS, INITIAL_CLASSROOMS, INITIAL_DORMITORY_ROOMS } from '../../../data/initialData';
 import { StudentIdentityService } from '../../../services/studentIdentityService';
 import { isDevelopmentToolsEnabled } from '../../../utils/devTools';
 
@@ -57,17 +56,13 @@ const LOCAL_ROOMS_KEY = 'siuba_master_dormitory_rooms';
 
 // Internal helpers for persistence fallback
 function getLocalStudents(): Student[] {
-  if (typeof window === 'undefined') return INITIAL_STUDENTS;
+  // Cache santri dari server; kosong bila perangkat belum pernah sinkron (tidak lagi diisi data contoh).
+  if (typeof window === 'undefined') return [];
   try {
-    const raw = localStorage.getItem(LOCAL_STUDENTS_KEY);
-    if (raw === null) {
-      localStorage.setItem(LOCAL_STUDENTS_KEY, JSON.stringify(INITIAL_STUDENTS));
-      return INITIAL_STUDENTS;
-    }
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : INITIAL_STUDENTS;
+    const parsed = JSON.parse(localStorage.getItem(LOCAL_STUDENTS_KEY) || '[]');
+    return Array.isArray(parsed) ? parsed : [];
   } catch {
-    return INITIAL_STUDENTS;
+    return [];
   }
 }
 
@@ -254,10 +249,10 @@ export const studentApi = {
     // Resolve class & room names
     const classrooms: Classroom[] = typeof window !== 'undefined' && localStorage.getItem(LOCAL_CLASSROOMS_KEY)
       ? JSON.parse(localStorage.getItem(LOCAL_CLASSROOMS_KEY)!)
-      : INITIAL_CLASSROOMS;
+      : [];
     const rooms: DormitoryRoom[] = typeof window !== 'undefined' && localStorage.getItem(LOCAL_ROOMS_KEY)
       ? JSON.parse(localStorage.getItem(LOCAL_ROOMS_KEY)!)
-      : INITIAL_DORMITORY_ROOMS;
+      : [];
 
     const matchedClass = classrooms.find((c) => c.id === payload.classroom_id);
     const matchedRoom = rooms.find((r) => r.id === payload.dormitory_room_id);
@@ -354,10 +349,10 @@ export const studentApi = {
     // Resolve class & room names if changed
     const classrooms: Classroom[] = typeof window !== 'undefined' && localStorage.getItem(LOCAL_CLASSROOMS_KEY)
       ? JSON.parse(localStorage.getItem(LOCAL_CLASSROOMS_KEY)!)
-      : INITIAL_CLASSROOMS;
+      : [];
     const rooms: DormitoryRoom[] = typeof window !== 'undefined' && localStorage.getItem(LOCAL_ROOMS_KEY)
       ? JSON.parse(localStorage.getItem(LOCAL_ROOMS_KEY)!)
-      : INITIAL_DORMITORY_ROOMS;
+      : [];
 
     const matchedClass = payload.classroom_id ? classrooms.find((c) => c.id === payload.classroom_id) : undefined;
     const matchedRoom = payload.dormitory_room_id ? rooms.find((r) => r.id === payload.dormitory_room_id) : undefined;
@@ -400,7 +395,7 @@ export const studentApi = {
     } catch (err: any) {
       if (!isOfflineError(err)) throw err;
     }
-    return readCachedList<Classroom>(LOCAL_CLASSROOMS_KEY, INITIAL_CLASSROOMS);
+    return readCachedList<Classroom>(LOCAL_CLASSROOMS_KEY, []);
   },
 
   /**
@@ -416,6 +411,6 @@ export const studentApi = {
     } catch (err: any) {
       if (!isOfflineError(err)) throw err;
     }
-    return readCachedList<DormitoryRoom>(LOCAL_ROOMS_KEY, INITIAL_DORMITORY_ROOMS);
+    return readCachedList<DormitoryRoom>(LOCAL_ROOMS_KEY, []);
   },
 };

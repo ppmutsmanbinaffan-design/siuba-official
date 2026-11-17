@@ -53,6 +53,7 @@ import {
   DatabaseBackupMeta
 } from '../types';
 import { AuditService } from '../services/auditService';
+import { apiClient } from '../services/apiClient';
 import { DataIntegrityAuditService } from '../services/dataIntegrityAuditService';
 import { SystemHealthService } from '../services/systemHealthService';
 import { SecurityConfigService } from '../services/securityConfigService';
@@ -143,8 +144,20 @@ export const SecurityAuditView: React.FC<SecurityAuditViewProps> = ({
     return () => clearInterval(timer);
   }, [safeDevices, safeUsers]);
 
+  // Muat log audit server saat halaman dibuka (lalu gabung dengan log lokal)
+  useEffect(() => {
+    let cancelled = false;
+    AuditService.syncFromServer().then((ok) => {
+      if (!cancelled && ok) setAuditLogs(AuditService.getLogs());
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   // Handle Refresh Audit Logs
-  const handleRefreshAuditLogs = () => {
+  const handleRefreshAuditLogs = async () => {
+    await AuditService.syncFromServer();
     setAuditLogs(AuditService.getLogs({
       event: auditEventFilter as any,
       auditable_type: auditEntityFilter,
@@ -208,68 +221,34 @@ export const SecurityAuditView: React.FC<SecurityAuditViewProps> = ({
   };
 
   // Handle Create Verified Backup
-  const handleCreateVerifiedBackup = () => {
+  const handleCreateVerifiedBackup = async () => {
+    // Backup sungguhan di server (dulu hanya mencatat log "backup berhasil" tanpa membuat file apa pun)
     setIsCreatingBackup(true);
-    setTimeout(() => {
-      const backupId = 'bkp_' + new Date().toISOString().replace(/[-:T.]/g, '').substring(0, 14);
-      const filename = `siuba_prod_backup_${backupId}.sql.gz`;
-      const fakeChecksum = 'sha256:' + Math.random().toString(36).substring(2) + Math.random().toString(36).substring(2);
-
-      AuditService.log({
-        event: 'backup_created',
-        auditable_type: 'SystemBackup',
-        auditable_id: backupId,
-        auditable_name: filename,
-        new_values: {
-          filename,
-          size: '15.2 MB',
-          checksum_sha256: fakeChecksum,
-          student_count: students.length,
-          session_count: sessions.length,
-          record_count: records.length,
-          storage_location: '/storage/app/backups/' + filename
-        },
-        reason: 'Pembuatan backup terverifikasi manual oleh admin dengan kalkulasi SHA-256 Checksum',
-        user: currentUser
-      });
-
-      setIsCreatingBackup(false);
+    try {
+      const res: any = await apiClient.post('/maintenance/backups', { notes: 'Backup dari Audit Keamanan' });
+      await AuditService.syncFromServer();
       setAuditLogs(AuditService.getLogs());
+      onShowToast(res?.message || `Backup ${res?.data?.backup_id || ''} berhasil dibuat di server.`, 'success');
+    } catch (err: any) {
+      onShowToast(
+        err?.status === 403
+          ? 'Anda tidak memiliki izin membuat backup (system.backup).'
+          : `Backup gagal: ${err?.message || 'server tidak terjangkau'}`,
+        'error'
+      );
+    } finally {
+      setIsCreatingBackup(false);
       setHealthReport(SystemHealthService.getHealthReport({ devices, users }));
-      onShowToast(`✓ Backup Terverifikasi "${filename}" berhasil dibuat (Checksum SHA-256 Valid).`, 'success');
-    }, 1200);
+    }
   };
 
   // Handle Execute Disaster Recovery Drill / Restore
   const handleExecuteRestoreDrill = () => {
-    if (restoreConfirmText.trim().toUpperCase() !== 'RESTORE') {
-      onShowToast('Ketik "RESTORE" persis untuk mengonfirmasi tindakan pemulihan.', 'error');
-      return;
-    }
-
-    setIsExecutingRestore(true);
-    setTimeout(() => {
-      AuditService.log({
-        event: 'restore_completed',
-        auditable_type: 'SystemRestoreEngine',
-        auditable_id: 'DRILL_SNAPSHOT_LATEST',
-        auditable_name: 'Simulasi Drill Pemulihan Bencana & Restore Snapshot',
-        new_values: {
-          status: 'SUCCESS',
-          integrity_post_check: 'PASS_0_ERRORS',
-          rto_achieved: '45 detik',
-          operator: currentUser.name
-        },
-        reason: 'Uji Coba Rutin / Disaster Recovery Drill Kesiapsiagaan Operasional Pesantren',
-        user: currentUser
-      });
-
-      setIsExecutingRestore(false);
-      setShowRestoreModal(false);
-      setRestoreConfirmText('');
-      setAuditLogs(AuditService.getLogs());
-      onShowToast('✓ Drill Pemulihan Bencana BERHASIL: Integritas database 100% konsisten, RTO < 1 menit.', 'success');
-    }, 1500);
+    // Pemulihan database sungguhan hanya dilakukan di Maintenance Hub → Pusat Backup (khusus Super Admin,
+    // dengan backup pengaman otomatis). Halaman ini tidak lagi menampilkan hasil "drill" rekaan.
+    setShowRestoreModal(false);
+    setRestoreConfirmText('');
+    onShowToast('Pemulihan database dilakukan di menu Maintenance Hub → Pusat Backup (khusus Super Admin).', 'success');
   };
 
   // Handle Save Security Config
@@ -1042,16 +1021,16 @@ export const SecurityAuditView: React.FC<SecurityAuditViewProps> = ({
                   className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-[#1F5C45] hover:bg-[#12372A] text-white text-xs font-bold shadow-xs transition-all active:scale-95 disabled:opacity-50 cursor-pointer min-h-[40px]"
                 >
                   <Database className="w-4 h-4" />
-                  <span>{isCreatingBackup ? 'Memproses...' : 'Buat Snapshot Terverifikasi'}</span>
+                  <span>{isCreatingBackup ? 'Membuat backup...' : 'Buat Backup Server Sekarang'}</span>
                 </button>
 
                 <button
                   id="btn-open-restore-drill"
-                  onClick={() => setShowRestoreModal(true)}
+                  onClick={handleExecuteRestoreDrill}
                   className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-rose-50 hover:bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300 border border-rose-200 dark:border-rose-500/40 text-xs font-bold transition-all active:scale-95 cursor-pointer min-h-[40px]"
                 >
                   <AlertOctagon className="w-4 h-4 text-rose-600" />
-                  <span>Uji Coba Restore Drill</span>
+                  <span>Pemulihan Database</span>
                 </button>
               </div>
             </div>

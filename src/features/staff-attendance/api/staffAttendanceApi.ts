@@ -26,7 +26,6 @@ import { TrainerSubstitutionService } from '../../../services/trainerSubstitutio
 import { TrainingRealizationService } from '../../../services/trainingRealizationService';
 import { StaffIdentityResolver } from '../../../services/staffIdentityResolver';
 import { AuditService } from '../../../services/auditService';
-import { INITIAL_DEVICES, INITIAL_DEVICE_LOGS } from '../../../data/initialData';
 
 import { apiClient, isOfflineError } from '../../../services/apiClient';
 
@@ -995,17 +994,18 @@ export class StaffAttendanceApi {
   // ==========================================
   public static async getStaffRfidDevices(): Promise<{ data: AttendanceDevice[]; error?: string }> {
     try {
-      const stored = localStorage.getItem('siuba_devices');
+      // Cache perangkat dari server (diisi saat sinkronisasi)
+      const stored = localStorage.getItem('siuba_attendance_devices_cache');
       if (stored) return { data: JSON.parse(stored) };
     } catch (_) {}
-    return { data: INITIAL_DEVICES };
+    return { data: [] };
   }
 
   public static async getStaffRfidLogs(): Promise<{ data: AttendanceDeviceLog[]; error?: string }> {
     try {
-      const stored = localStorage.getItem('siuba_device_logs');
+      const stored = localStorage.getItem('siuba_attendance_device_logs_cache');
       if (stored) return { data: JSON.parse(stored) };
     } catch (_) {}
-    return { data: INITIAL_DEVICE_LOGS };
+    return { data: [] };
   }
 }
