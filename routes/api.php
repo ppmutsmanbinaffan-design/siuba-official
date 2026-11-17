@@ -123,6 +123,8 @@ Route::prefix('v1')->group(function () {
             Route::post('/daily/scan', [StaffAttendanceApiController::class, 'scan'])->middleware('permission:staff.attendance');
             Route::post('/daily/manual', [StaffAttendanceApiController::class, 'manual'])->middleware('permission:staff.attendance');
             Route::post('/daily/finalize', [StaffAttendanceApiController::class, 'finalize'])->middleware('permission:staff.edit|staff.reports');
+            Route::get('/work-schedule', [StaffAttendanceApiController::class, 'workSchedule'])->middleware('permission:staff.attendance|staff.reports|staff.view');
+            Route::put('/work-schedule', [StaffAttendanceApiController::class, 'updateWorkSchedule'])->middleware('permission:staff.edit|system.settings');
             Route::post('/records/{record}/correct', [StaffAttendanceApiController::class, 'correct'])->middleware('permission:staff.attendance|staff.edit');
             Route::get('/absences', [StaffAttendanceApiController::class, 'absences'])->middleware('permission:staff.attendance|staff.reports|staff.view');
             Route::post('/absences', [StaffAttendanceApiController::class, 'storeAbsence'])->middleware('permission:staff.attendance');
@@ -150,6 +152,7 @@ Route::prefix('v1')->group(function () {
             Route::post('/settings/clear-cache', [AppSettingsApiController::class, 'clearCache']);
             Route::put('/settings/{key}', [AppSettingsApiController::class, 'update'])->where('key', 'institution|attendance');
         });
+        Route::put('/settings/security', [AppSettingsApiController::class, 'updateSecurity'])->middleware('permission:system.security_audit');
 
         // Data laporan SDM (harian, mengajar, melatih, izin) untuk rentang tanggal
         Route::get('/reports/staff-dataset', [ReportDatasetApiController::class, 'staff'])

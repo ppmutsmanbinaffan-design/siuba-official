@@ -31,7 +31,14 @@ class AppSettingsApiController extends Controller
         return response()->json(['success' => true, 'data' => [
             'institution' => AppSetting::get('institution'),
             'attendance' => AppSetting::get('attendance'),
+            'security' => AppSetting::get('security'),
         ]]);
+    }
+
+    /** Kebijakan keamanan (izin system.security_audit). */
+    public function updateSecurity(Request $request): JsonResponse
+    {
+        return $this->update($request, 'security');
     }
 
     public function update(Request $request, string $key): JsonResponse
@@ -49,13 +56,28 @@ class AppSettingsApiController extends Controller
                 'rfid_debounce_seconds' => 'required|integer|min:0|max:300', 'allow_self_excusal' => 'boolean',
                 'enable_kiosk_fullscreen' => 'boolean', 'enable_audio_chime' => 'boolean',
             ],
+            'security' => [
+                'session_timeout_minutes' => 'required|integer|min:0|max:1440',
+                'max_login_attempts_before_lockout' => 'required|integer|min:3|max:20',
+                'lockout_duration_minutes' => 'required|integer|min:1|max:1440',
+                'min_password_length' => 'required|integer|min:6|max:64',
+                'require_numbers' => 'boolean',
+                'require_special_char' => 'boolean',
+                'allow_concurrent_sessions' => 'boolean',
+                'audit_retention_days' => 'required|integer|min:30|max:3650',
+            ],
             default => null,
         };
         if ($rules === null) {
             return ApiResponse::error('UNKNOWN_SETTING', 'Jenis pengaturan tidak dikenal.', null, 404);
         }
         $data = $request->validate($rules, ['name.required' => 'Nama lembaga wajib diisi.']);
-        AppSetting::put($key, array_merge(AppSetting::get($key), $data), $request->user()?->id);
+        $old = AppSetting::get($key);
+        AppSetting::put($key, array_merge($old, $data), $request->user()?->id);
+        if ($key === 'security') {
+            \App\Services\Security\AuditService::log(event: 'security_policy_updated', auditableType: 'SecurityPolicy', auditableId: 0,
+                oldValues: $old, newValues: AppSetting::get('security'), reason: 'Perubahan kebijakan keamanan', userId: $request->user()?->id);
+        }
 
         return response()->json(['success' => true, 'message' => 'Pengaturan tersimpan di server dan berlaku untuk semua perangkat.', 'data' => AppSetting::get($key)]);
     }

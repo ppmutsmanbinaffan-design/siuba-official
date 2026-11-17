@@ -253,15 +253,28 @@ export const SecurityAuditView: React.FC<SecurityAuditViewProps> = ({
   };
 
   // Handle Save Security Config
-  const handleSaveSecurityConfig = () => {
+  const handleSaveSecurityConfig = async () => {
     setIsSavingConfig(true);
-    setTimeout(() => {
-      SecurityConfigService.updateConfig(securityConfig, currentUser, 'Pembaruan konfigurasi hardening kebijakan keamanan sistem');
-      setIsSavingConfig(false);
+    const res = await SecurityConfigService.saveToServer(securityConfig);
+    setIsSavingConfig(false);
+    if (res.success && res.config) {
+      setSecurityConfig(res.config);
+      await AuditService.syncFromServer();
       setAuditLogs(AuditService.getLogs());
-      onShowToast('✓ Kebijakan keamanan & session security berhasil disimpan dan diterapkan.', 'success');
-    }, 500);
+    }
+    onShowToast(res.message, res.success ? 'success' : 'error');
   };
+
+  // Kebijakan keamanan dari server saat halaman dibuka
+  useEffect(() => {
+    let cancelled = false;
+    SecurityConfigService.syncFromServer().then((cfg) => {
+      if (!cancelled && cfg) setSecurityConfig(cfg);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Filtered Integrity Issues
   const filteredIssues = (integritySummary?.issues || []).filter(issue => {
@@ -1196,7 +1209,7 @@ export const SecurityAuditView: React.FC<SecurityAuditViewProps> = ({
                   Konfigurasi Kebijakan & Hardening Keamanan
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1">
-                  Pengaturan parameter otentikasi, masa berlaku sesi, kebijakan password santri/petugas, dan retensi data.
+                  Disimpan di server dan langsung ditegakkan untuk semua perangkat: batas sesi, penguncian login, aturan kata sandi akun baru/ganti sandi, dan masa simpan log audit.
                 </p>
               </div>
 
@@ -1226,6 +1239,7 @@ export const SecurityAuditView: React.FC<SecurityAuditViewProps> = ({
                       onChange={(e) => setSecurityConfig({ ...securityConfig, session_timeout_minutes: Number(e.target.value) })}
                       className="w-full px-3.5 py-2.5 rounded-2xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 text-xs text-slate-900 dark:text-zinc-200 font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-2xs"
                     >
+                      <option value={0}>Nonaktif (sesi tidak berakhir otomatis — cocok untuk perangkat scanner)</option>
                       <option value={15}>15 Menit (Super Ketat)</option>
                       <option value={30}>30 Menit</option>
                       <option value={60}>60 Menit (Standar Operasional)</option>
@@ -1244,6 +1258,20 @@ export const SecurityAuditView: React.FC<SecurityAuditViewProps> = ({
                       <option value={3}>3 Kali Percobaan</option>
                       <option value={5}>5 Kali Percobaan (Rekomendasi)</option>
                       <option value={10}>10 Kali Percobaan</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] text-slate-600 dark:text-zinc-400 block mb-1 font-bold">Lama Akun Dikunci Setelah Melewati Batas</label>
+                    <select
+                      value={securityConfig.lockout_duration_minutes}
+                      onChange={(e) => setSecurityConfig({ ...securityConfig, lockout_duration_minutes: Number(e.target.value) })}
+                      className="w-full px-3.5 py-2.5 rounded-2xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 text-xs text-slate-900 dark:text-zinc-200 font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-2xs"
+                    >
+                      <option value={5}>5 Menit</option>
+                      <option value={15}>15 Menit (Rekomendasi)</option>
+                      <option value={30}>30 Menit</option>
+                      <option value={60}>60 Menit</option>
                     </select>
                   </div>
 

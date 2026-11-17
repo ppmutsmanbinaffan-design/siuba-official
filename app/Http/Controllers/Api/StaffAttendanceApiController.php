@@ -165,14 +165,68 @@ class StaffAttendanceApiController extends Controller
         ]]);
     }
 
+    /** Jadwal kerja mingguan SDM + hari libur 60 hari ke depan. */
+    public function workSchedule(): JsonResponse
+    {
+        $from = today();
+        $holidays = \App\Models\AcademicCalendarEvent::where('type', 'holiday')
+            ->whereDate('end_date', '>=', $from->toDateString())
+            ->whereDate('start_date', '<=', $from->copy()->addDays(60)->toDateString())
+            ->orderBy('start_date')->get()
+            ->map(fn ($e) => ['name' => $e->name, 'start_date' => $e->start_date?->toDateString(), 'end_date' => $e->end_date?->toDateString()])
+            ->values();
+
+        return response()->json(['success' => true, 'data' => [
+            'days' => $this->service->weeklySchedule(),
+            'upcoming_holidays' => $holidays,
+            'customized' => \App\Models\AppSetting::get('staff_schedule') !== null,
+        ]]);
+    }
+
+    /** Simpan jadwal kerja mingguan (berlaku untuk perhitungan terlambat di server). */
+    public function updateWorkSchedule(Request $request): JsonResponse
+    {
+        $rules = [];
+        foreach (StaffDailyAttendanceService::DAYS as $d) {
+            $rules["days.$d"] = 'required|array';
+            $rules["days.$d.working"] = 'required|boolean';
+            foreach (StaffDailyAttendanceService::SCHEDULE_FIELDS as $f) {
+                $rules["days.$d.$f"] = 'required|date_format:H:i';
+            }
+        }
+        $data = $request->validate($rules);
+
+        $labels = ['monday' => 'Senin', 'tuesday' => 'Selasa', 'wednesday' => 'Rabu', 'thursday' => 'Kamis', 'friday' => 'Jumat', 'saturday' => 'Sabtu', 'sunday' => 'Ahad'];
+        $clean = [];
+        foreach (StaffDailyAttendanceService::DAYS as $d) {
+            $row = $data['days'][$d];
+            $seq = array_map(fn ($f) => $row[$f], StaffDailyAttendanceService::SCHEDULE_FIELDS);
+            $sorted = $seq;
+            sort($sorted);
+            if ($row['working'] && $seq !== $sorted) {
+                return ApiResponse::error('INVALID_SCHEDULE', "Jadwal {$labels[$d]} tidak urut: buka presensi ≤ jam masuk ≤ batas terlambat ≤ jam pulang ≤ tutup presensi.", null, 422);
+            }
+            $clean[$d] = ['working' => (bool) $row['working']] + array_combine(StaffDailyAttendanceService::SCHEDULE_FIELDS, $seq);
+        }
+
+        $old = $this->service->weeklySchedule();
+        \App\Models\AppSetting::put('staff_schedule', $clean, $request->user()?->id);
+        AuditService::log(event: 'staff_work_schedule_updated', auditableType: 'StaffWorkSchedule', auditableId: 0, oldValues: $old, newValues: $clean, reason: 'Perubahan jadwal kerja SDM', userId: $request->user()?->id);
+
+        return response()->json(['success' => true, 'message' => 'Jadwal kerja SDM disimpan dan langsung berlaku untuk presensi.', 'data' => ['days' => $this->service->weeklySchedule()]]);
+    }
+
     /** Tandai alpa SDM yang wajib hadir tetapi tidak punya catatan pada tanggal tersebut. */
     public function finalize(Request $request): JsonResponse
     {
         $data = $request->validate(['date' => 'required|date|before_or_equal:today']);
         $date = Carbon::parse($data['date'])->startOfDay();
 
-        if (empty($this->service->schedule($date)['working'])) {
-            return response()->json(['success' => true, 'data' => ['marked' => 0], 'message' => 'Bukan hari kerja; tidak ada yang ditandai alpa.']);
+        $sch = $this->service->schedule($date);
+        if (empty($sch['working'])) {
+            return response()->json(['success' => true, 'data' => ['marked' => 0], 'message' => !empty($sch['holiday'])
+                ? "Hari libur ({$sch['holiday']}); tidak ada yang ditandai alpa."
+                : 'Bukan hari kerja; tidak ada yang ditandai alpa.']);
         }
 
         $done = StaffAttendanceRecord::whereDate('attendance_date', $date)->where('attendance_type', 'daily')->pluck('staff_profile_id');

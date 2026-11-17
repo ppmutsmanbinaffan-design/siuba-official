@@ -30,7 +30,31 @@ class AuthService {
     this.init();
   }
 
+  private sessionExpiryListenerAttached = false;
+
+  /** Server menolak token (sesi berakhir karena tidak aktif, login di perangkat lain, atau dicabut). */
+  private attachSessionExpiryListener() {
+    if (this.sessionExpiryListenerAttached || typeof window === 'undefined') return;
+    this.sessionExpiryListenerAttached = true;
+    window.addEventListener('siuba:session-expired', (e: Event) => {
+      if (this.state.status !== 'authenticated') return;
+      localStorage.removeItem(AUTH_TOKEN_KEY);
+      localStorage.removeItem(AUTH_USER_KEY);
+      sessionStorage.removeItem(AUTH_TOKEN_KEY);
+      sessionStorage.removeItem(AUTH_USER_KEY);
+      const detail = (e as CustomEvent).detail || {};
+      this.state = {
+        status: 'unauthenticated',
+        user: null,
+        token: null,
+        error: `${detail.message || 'Sesi Anda telah berakhir.'} (Sesi berakhir karena tidak aktif terlalu lama atau akun ini login di perangkat lain.)`,
+      };
+      this.notify();
+    });
+  }
+
   private async init() {
+    this.attachSessionExpiryListener();
     if (typeof window === 'undefined') return;
 
     try {
@@ -106,7 +130,9 @@ class AuthService {
         status: 'unauthenticated',
         user: null,
         token: null,
-        error: null,
+        error: response.status === 401
+          ? 'Sesi Anda telah berakhir (tidak aktif terlalu lama atau akun ini login di perangkat lain). Silakan login kembali.'
+          : null,
       };
       apiClient.setToken(null);
       this.notify();

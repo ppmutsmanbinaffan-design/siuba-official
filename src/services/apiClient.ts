@@ -166,7 +166,14 @@ class ApiClientService {
 
       // Handle 401 Unauthorized
       if (response.status === 401) {
+        const hadToken = Boolean(this.getToken());
         this.setToken(null);
+        // Sesi yang sedang berjalan ditolak server (berakhir/dicabut): beri tahu authService agar kembali ke login
+        if (hadToken && typeof window !== 'undefined' && !String(url).includes('/auth/login')) {
+          window.dispatchEvent(new CustomEvent('siuba:session-expired', {
+            detail: { message: json?.error?.message || json?.message || 'Sesi Anda telah berakhir. Silakan login kembali.' },
+          }));
+        }
         throw new ApiClientError({
           status: 401,
           code: json?.error?.code || 'UNAUTHENTICATED',

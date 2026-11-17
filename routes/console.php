@@ -135,7 +135,7 @@ Artisan::command('siuba:device-deactivate {code}', function () {
 })->purpose('Nonaktifkan perangkat RFID (tap dari alat ini akan ditolak)');
 
 // Bersihkan log perangkat > 60 hari setiap malam (butuh cron: * * * * * php artisan schedule:run)
-Schedule::command('model:prune', ['--model' => [\App\Models\AttendanceDeviceLog::class]])->dailyAt('02:15');
+Schedule::command('model:prune', ['--model' => [\App\Models\AttendanceDeviceLog::class, \App\Models\AuditLog::class]])->dailyAt('02:15');
 
 // Backup database harian (bila server memakai cron / Task Scheduler). Di XAMPP, start-siuba-offline.bat juga
 // membuat backup saat aplikasi dinyalakan bila backup terakhir lebih dari 20 jam lalu.

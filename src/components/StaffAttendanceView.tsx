@@ -593,23 +593,24 @@ export const StaffAttendanceView: React.FC<StaffAttendanceViewProps> = ({
   };
 
   // Save Schedule
-  const handleSaveSchedule = (e: React.FormEvent) => {
+  const handleSaveSchedule = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingSchedule) return;
 
-    const res = StaffWorkScheduleResolver.updateSchedule(editingSchedule.id, {
+    // Disimpan di server: langsung berlaku untuk perhitungan terlambat presensi SDM
+    const res = await StaffWorkScheduleResolver.saveDayToServer(editingSchedule.id, {
       check_in_open_at: scheduleCheckInOpen,
       scheduled_start_at: scheduleStartAt,
       late_after: scheduleLateAfter,
       check_out_open_at: scheduleCheckOutOpen,
       scheduled_end_at: scheduleEndAt,
       is_working_day: scheduleIsWorkDay
-    }, currentUser?.name || 'Admin');
+    });
 
     if (res.success) {
       setShowScheduleModal(false);
       refreshData();
-      alert(`Jadwal kerja hari ${editingSchedule.day_of_week.toUpperCase()} diperbarui di tampilan ini.\n\nCatatan: perhitungan terlambat di server memakai jadwal di config/siuba.php — minta tim IT menyesuaikannya juga.`);
+      alert(`Jadwal kerja hari ${({ monday: 'Senin', tuesday: 'Selasa', wednesday: 'Rabu', thursday: 'Kamis', friday: 'Jumat', saturday: 'Sabtu', sunday: 'Ahad' } as Record<string, string>)[editingSchedule.day_of_week] || editingSchedule.day_of_week} disimpan di server dan langsung berlaku untuk presensi SDM.`);
     } else {
       alert(`Gagal: ${res.message}`);
     }
@@ -1282,7 +1283,7 @@ export const StaffAttendanceView: React.FC<StaffAttendanceViewProps> = ({
                 <div key={sch.id} className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 hover:border-teal-300 transition flex flex-col justify-between">
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <span className="font-bold text-slate-800 capitalize">{sch.day_of_week}</span>
+                      <span className="font-bold text-slate-800">{({ monday: 'Senin', tuesday: 'Selasa', wednesday: 'Rabu', thursday: 'Kamis', friday: 'Jumat', saturday: 'Sabtu', sunday: 'Ahad' } as Record<string, string>)[sch.day_of_week] || sch.day_of_week}</span>
                       {sch.is_working_day ? (
                         <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-semibold">
                           Hari Kerja

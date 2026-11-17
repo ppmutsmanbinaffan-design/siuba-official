@@ -1,5 +1,6 @@
 import { Staff, StaffWorkSchedule, DayOfWeek, AcademicCalendarEvent } from '../types';
 import { AuditService } from './auditService';
+import { apiClient, isOfflineError } from './apiClient';
 
 export class StaffWorkScheduleResolver {
   private static STORAGE_KEY = 'siuba_staff_work_schedules';
@@ -41,9 +42,80 @@ export class StaffWorkScheduleResolver {
     } catch (e) {
       console.warn('Failed to parse work schedules', e);
     }
-    const initial = this.getInitialSchedules();
-    this.saveSchedules(initial);
-    return initial;
+    // Belum pernah sinkron: jadwal bawaan (sama dengan bawaan server); tidak disimpan agar data server menggantikannya.
+    return this.getInitialSchedules();
+  }
+
+  /** Terapkan jadwal mingguan dari server (GET /staff-attendance/work-schedule) ke cache perangkat. */
+  public static applyServerSchedule(days: Record<string, any> | null | undefined): StaffWorkSchedule[] | null {
+    if (!days || typeof days !== 'object') return null;
+    const order: DayOfWeek[] = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+    const current = this.getSchedules();
+    const toMin = (hm: string) => {
+      const [h, m] = String(hm || '00:00').split(':').map(Number);
+      return h * 60 + m;
+    };
+    const list = order.map((day, idx) => {
+      const d = days[day] || {};
+      const prev = current.find((c) => c.day_of_week === day && (c.staff_group || 'all') === 'all');
+      return {
+        ...(prev || {}),
+        id: prev?.id ?? idx + 1,
+        staff_group: 'all',
+        day_of_week: day,
+        check_in_open_at: d.check_in_open_at ?? prev?.check_in_open_at ?? '06:00',
+        scheduled_start_at: d.scheduled_start_at ?? prev?.scheduled_start_at ?? '07:00',
+        late_after: d.late_after ?? prev?.late_after ?? '07:15',
+        check_out_open_at: prev?.check_out_open_at ?? '15:30',
+        scheduled_end_at: d.scheduled_end_at ?? prev?.scheduled_end_at ?? '16:00',
+        check_out_close_at: d.check_out_close_at ?? prev?.check_out_close_at ?? '21:00',
+        is_working_day: Boolean(d.working),
+        grace_period_minutes: Math.max(0, toMin(d.late_after) - toMin(d.scheduled_start_at)),
+        priority: 1,
+        is_active: true,
+      } as StaffWorkSchedule;
+    });
+    // Jadwal kelompok khusus (bila ada) dipertahankan
+    const others = current.filter((c) => (c.staff_group || 'all') !== 'all');
+    this.saveSchedules([...list, ...others]);
+    return list;
+  }
+
+  /**
+   * Simpan perubahan satu hari ke server (berlaku untuk perhitungan terlambat di server).
+   */
+  public static async saveDayToServer(
+    id: number,
+    data: Partial<StaffWorkSchedule>
+  ): Promise<{ success: boolean; message: string }> {
+    const all = this.getSchedules().filter((c) => (c.staff_group || 'all') === 'all');
+    const target = all.find((c) => c.id === id);
+    if (!target) return { success: false, message: 'Jadwal kerja tidak ditemukan.' };
+    const days: Record<string, any> = {};
+    for (const c of all) {
+      const row = c.id === id ? { ...c, ...data } : c;
+      days[row.day_of_week] = {
+        working: Boolean(row.is_working_day),
+        check_in_open_at: row.check_in_open_at,
+        scheduled_start_at: row.scheduled_start_at,
+        late_after: row.late_after,
+        scheduled_end_at: row.scheduled_end_at,
+        check_out_close_at: row.check_out_close_at || '21:00',
+      };
+    }
+    try {
+      const res: any = await apiClient.put('/staff-attendance/work-schedule', { days });
+      this.applyServerSchedule(res?.data?.days);
+      // check_out_open_at hanya dipakai tampilan; simpan lokal
+      if (data.check_out_open_at) {
+        const list = this.getSchedules().map((c) => (c.id === id ? { ...c, check_out_open_at: data.check_out_open_at as string } : c));
+        this.saveSchedules(list);
+      }
+      return { success: true, message: res?.message || 'Jadwal kerja disimpan.' };
+    } catch (err: any) {
+      if (isOfflineError(err)) return { success: false, message: 'Server tidak terjangkau. Jadwal kerja hanya bisa diubah saat terhubung ke server.' };
+      return { success: false, message: err?.message || 'Gagal menyimpan jadwal kerja.' };
+    }
   }
 
   public static saveSchedules(schedules: StaffWorkSchedule[]): void {

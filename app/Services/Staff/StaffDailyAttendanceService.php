@@ -2,6 +2,8 @@
 
 namespace App\Services\Staff;
 
+use App\Models\AcademicCalendarEvent;
+use App\Models\AppSetting;
 use App\Models\AttendanceDevice;
 use App\Models\StaffAbsenceRequest;
 use App\Models\StaffAttendanceRecord;
@@ -19,11 +21,50 @@ use Illuminate\Support\Facades\DB;
  */
 class StaffDailyAttendanceService
 {
+    public const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+
+    public const SCHEDULE_FIELDS = ['check_in_open_at', 'scheduled_start_at', 'late_after', 'scheduled_end_at', 'check_out_close_at'];
+
+    /**
+     * Jadwal kerja mingguan efektif: bawaan config/siuba.php, ditimpa pengaturan yang disimpan admin
+     * (menu Presensi SDM → Jadwal Kerja, tersimpan di app_settings "staff_schedule").
+     *
+     * @return array<string, array<string, mixed>>
+     */
+    public function weeklySchedule(): array
+    {
+        $custom = AppSetting::get('staff_schedule');
+        $out = [];
+        foreach (self::DAYS as $day) {
+            $base = config("siuba.staff_schedule.{$day}") ?? ['working' => false];
+            $override = is_array($custom) && is_array($custom[$day] ?? null) ? $custom[$day] : [];
+            $out[$day] = array_merge($base, array_intersect_key($override, array_flip([...self::SCHEDULE_FIELDS, 'working'])));
+            $out[$day]['working'] = (bool) ($out[$day]['working'] ?? false);
+        }
+
+        return $out;
+    }
+
+    /** Hari libur kalender akademik (tipe "holiday") yang mencakup tanggal ini. */
+    public function holidayOn(Carbon $date): ?AcademicCalendarEvent
+    {
+        return AcademicCalendarEvent::where('type', 'holiday')
+            ->whereDate('start_date', '<=', $date->toDateString())
+            ->whereDate('end_date', '>=', $date->toDateString())
+            ->orderBy('start_date')
+            ->first();
+    }
+
     public function schedule(Carbon $date): array
     {
         $day = strtolower($date->englishDayOfWeek);
+        $sch = $this->weeklySchedule()[$day] ?? ['working' => false];
+        if (!empty($sch['working']) && ($holiday = $this->holidayOn($date))) {
+            $sch['working'] = false;
+            $sch['holiday'] = $holiday->name;
+        }
 
-        return config("siuba.staff_schedule.{$day}") ?? ['working' => false];
+        return $sch;
     }
 
     /**
@@ -60,7 +101,7 @@ class StaffDailyAttendanceService
             // ---------- CHECK-IN ----------
             if (!$record || !$record->check_in_at) {
                 if (empty($sch['working'])) {
-                    return $this->fail('NOT_WORKING_DAY', 'Hari ini bukan hari kerja.', $staff);
+                    return $this->fail('NOT_WORKING_DAY', !empty($sch['holiday']) ? "Hari ini libur: {$sch['holiday']}." : 'Hari ini bukan hari kerja.', $staff);
                 }
                 $absence = StaffAbsenceRequest::where('staff_profile_id', $staff->id)->where('status', 'approved')
                     ->where('start_at', '<=', $date->copy()->endOfDay())->where('end_at', '>=', $date)->first();

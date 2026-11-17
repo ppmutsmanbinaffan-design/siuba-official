@@ -820,3 +820,36 @@ php artisan migrate --force
 php artisan optimize:clear
 ```
 (`jalankan-siuba.bat` menjalankan keduanya otomatis.) Muat ulang browser (Ctrl+F5).
+
+---
+
+# Update 23 — Tahap 20: Jadwal kerja SDM & Kebijakan Keamanan benar-benar berlaku di server
+
+## Jadwal kerja SDM
+- Tab **Presensi SDM & Guru → Jadwal Kerja** kini menyimpan ke server (`PUT /staff-attendance/work-schedule`).
+  Sebelumnya perubahan hanya tersimpan di browser, sementara server tetap memakai jadwal tetap di `config/siuba.php`.
+- Jam buka presensi, jam masuk, batas terlambat, jam pulang, tutup presensi, dan hari kerja per hari langsung dipakai
+  untuk scan/presensi manual, finalisasi alpa, dan ringkasan. Urutan jam divalidasi; perubahan dicatat di log audit.
+- **Hari libur kalender akademik** (Jadwal Pelajaran → kalender, tipe "libur") kini dianggap bukan hari kerja SDM:
+  scan menampilkan "Hari ini libur: …" dan finalisasi tidak menandai alpa.
+- Nama hari di kartu jadwal kini dalam Bahasa Indonesia.
+
+## Kebijakan Keamanan (Audit Keamanan → Kebijakan Keamanan)
+Disimpan di server (`PUT /settings/security`, khusus pemegang izin Audit Keamanan / Super Admin) dan DITEGAKKAN:
+- Batas waktu sesi tidak aktif (0 = nonaktif, bawaan; disarankan tetap nonaktif untuk perangkat scanner gerbang).
+- Penguncian akun setelah N kali login gagal, selama X menit.
+- Aturan kata sandi (panjang minimal, wajib angka, wajib simbol) untuk akun baru & ganti kata sandi.
+- Izin login multi-sesi (bawaan: login baru mengakhiri sesi di perangkat lain — sama seperti sebelumnya).
+- Masa simpan log audit (log lebih lama dibersihkan otomatis tiap malam bersama log perangkat).
+Nilai bawaan sama dengan perilaku sebelumnya, jadi tidak ada yang berubah sampai admin mengubahnya.
+
+## Lain-lain
+- Bila sesi login ditolak server (berakhir / login di perangkat lain), aplikasi kini kembali ke halaman login
+  dengan pesan penjelasan (sebelumnya token terhapus diam-diam dan layar penuh pesan galat).
+
+## Langkah setelah update
+
+```bash
+php artisan optimize:clear
+```
+Tidak ada migrasi baru. Muat ulang browser (Ctrl+F5).

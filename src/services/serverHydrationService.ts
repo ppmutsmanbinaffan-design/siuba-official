@@ -4,6 +4,7 @@
  */
 import { apiClient, isOfflineError } from './apiClient';
 import { ensureLegacyDataPreserved } from './localDataGuard';
+import { StaffWorkScheduleResolver } from './staffWorkScheduleResolver';
 import type {
   AttendanceDeviceLog,
   AttendanceRecordHistory,
@@ -78,6 +79,7 @@ export interface ServerSnapshot {
   excusals?: StudentExcusal[];
   staffDaily?: StaffAttendanceRecord[];
   staffAbsences?: StaffAbsenceRequest[];
+  staffSchedule?: { days: Record<string, any>; upcoming_holidays?: any[] };
   academic?: AcademicMaster;
   community?: CommunityMaster;
   routine?: RoutineMaster;
@@ -133,10 +135,11 @@ export async function loadServerSnapshot(options: { attendanceOnly?: boolean } =
       attempt('Izin SDM', async () => ((await apiClient.get<StaffAbsenceRequest[]>('/staff-attendance/absences')) as any).data as StaffAbsenceRequest[], errors),
       attempt('Kegiatan & jadwal rutin', async () => ((await apiClient.get<RoutineMaster>('/routine-master')) as any).data as RoutineMaster, errors),
       attempt('Ekskul/Halaqah/Event', async () => ((await apiClient.get<CommunityMaster>('/community/master')) as any).data as CommunityMaster, errors),
+      attempt('Jadwal kerja SDM', async () => ((await apiClient.get<any>('/staff-attendance/work-schedule')) as any).data, errors),
     ] as const);
 
   if (options.attendanceOnly) {
-    const [attendance, devices, [academic, excusals, staffDaily, staffAbsences, routine, community]] = await Promise.all([
+    const [attendance, devices, [academic, excusals, staffDaily, staffAbsences, routine, community, staffSchedule]] = await Promise.all([
       attempt('Absensi', async () => ((await apiClient.get<any>('/attendance/snapshot')) as any).data, errors),
       attempt('Perangkat', async () => ((await apiClient.get<AttendanceDevice[]>('/attendance/devices')) as any).data as AttendanceDevice[], errors),
       dailyExtras(),
@@ -145,11 +148,11 @@ export async function loadServerSnapshot(options: { attendanceOnly?: boolean } =
     return {
       sessions: attendance?.sessions, participants: attendance?.participants, records: attendance?.records, devices,
       deviceLogs, recordHistories: attendance?.record_histories,
-      excusals, staffDaily, staffAbsences, academic, community, routine, errors,
+      excusals, staffDaily, staffAbsences, staffSchedule, academic, community, routine, errors,
     };
   }
 
-  const [[academic, excusals, staffDaily, staffAbsences, routine, community], students, classrooms, dormitories, dormitoryRooms, attendance, devices, staff, users, deviceLogs] = await Promise.all([
+  const [[academic, excusals, staffDaily, staffAbsences, routine, community, staffSchedule], students, classrooms, dormitories, dormitoryRooms, attendance, devices, staff, users, deviceLogs] = await Promise.all([
     dailyExtras(),
     attempt('Santri', fetchAllStudents, errors),
     attempt('Kelas', async () => ((await apiClient.get<Classroom[]>('/classrooms')) as any).data as Classroom[], errors),
@@ -181,6 +184,7 @@ export async function loadServerSnapshot(options: { attendanceOnly?: boolean } =
     excusals,
     staffDaily,
     staffAbsences,
+    staffSchedule,
     academic,
     community,
     routine,
@@ -212,6 +216,7 @@ export function persistSnapshotToCache(snap: ServerSnapshot): void {
   write('siuba_attendance_devices_cache', snap.devices);
   write('siuba_attendance_device_logs_cache', snap.deviceLogs);
   write('siuba_record_histories_cache', snap.recordHistories);
+  if (snap.staffSchedule?.days) StaffWorkScheduleResolver.applyServerSchedule(snap.staffSchedule.days);
   if (snap.academic?.calendar_events) {
     // Hari libur & kalender akademik untuk penentuan jadwal kerja SDM dan sesi latihan
     write('siuba_calendar_holidays', snap.academic.calendar_events);

@@ -35,6 +35,17 @@ class AppSetting extends Model
             'enable_kiosk_fullscreen' => false,
             'enable_audio_chime' => true,
         ],
+        // Kebijakan keamanan yang DITEGAKKAN server (tahap 20). Nilai bawaan = perilaku sebelumnya.
+        'security' => [
+            'session_timeout_minutes' => 0,          // 0 = nonaktif; >0 = token login berakhir bila tidak dipakai sekian menit
+            'max_login_attempts_before_lockout' => 5, // per akun
+            'lockout_duration_minutes' => 15,
+            'min_password_length' => 8,
+            'require_numbers' => false,
+            'require_special_char' => false,
+            'allow_concurrent_sessions' => false,     // false = login baru mengakhiri sesi di perangkat lain
+            'audit_retention_days' => 365,
+        ],
     ];
 
     public static function get(string $key): mixed
