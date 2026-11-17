@@ -27,6 +27,7 @@ import { TeachingSessionService } from './teachingSessionService';
 import { TrainingSessionService } from './trainingSessionService';
 import { StaffAttendanceMetricService } from './staffAttendanceMetricService';
 import { ExtracurricularStaffAssignmentService } from './extracurricularStaffAssignmentService';
+import { todayLocalDate } from '../utils/today';
 
 export class StaffReportQueryService {
   /**
@@ -67,7 +68,7 @@ export class StaffReportQueryService {
   // =========================================================================
   public static getDailyAttendanceReport(filters: StaffAnalyticsFilters, user?: User): StaffDailyOperationalItem[] {
     const staffList = this.filterStaffList(filters, user);
-    const dateStr = filters.date_from || new Date().toISOString().substring(0, 10);
+    const dateStr = filters.date_from || todayLocalDate();
     const records = StaffAttendanceService.getRecords().filter(
       r => r.attendance_date === dateStr && r.attendance_type === 'daily'
     );
@@ -733,7 +734,7 @@ export class StaffReportQueryService {
   // =========================================================================
   public static getStaffCrossDomainSummary(filters: StaffAnalyticsFilters, user?: User): StaffCrossDomainSummaryItem[] {
     const staffList = this.filterStaffList(filters, user);
-    const today = filters.date_from || new Date().toISOString().substring(0, 10);
+    const today = filters.date_from || todayLocalDate();
     const currentMonth = today.substring(0, 7);
 
     const allDailyRecords = StaffAttendanceService.getRecords().filter(r => r.attendance_type === 'daily');

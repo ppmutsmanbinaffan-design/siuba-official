@@ -57,6 +57,7 @@ import { apiClient } from '../services/apiClient';
 import { DataIntegrityAuditService } from '../services/dataIntegrityAuditService';
 import { SystemHealthService } from '../services/systemHealthService';
 import { SecurityConfigService } from '../services/securityConfigService';
+import { todayLocalDate } from '../utils/today';
 
 interface SecurityAuditViewProps {
   sessions: AttendanceSession[];
@@ -634,7 +635,7 @@ export const SecurityAuditView: React.FC<SecurityAuditViewProps> = ({
                   const url = URL.createObjectURL(blob);
                   const a = document.createElement('a');
                   a.href = url;
-                  a.download = `siuba_audit_trail_${new Date().toISOString().substring(0, 10)}.json`;
+                  a.download = `siuba_audit_trail_${todayLocalDate()}.json`;
                   a.click();
                   onShowToast('✓ File Audit Trail (JSON) berhasil diunduh.', 'success');
                 }}

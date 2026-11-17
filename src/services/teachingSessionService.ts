@@ -10,18 +10,12 @@ import {
   TeachingSessionGenerationResult, 
   TeachingSessionStatus 
 } from '../types';
-import { 
-  INITIAL_ACADEMIC_CALENDAR_EVENTS, 
-  INITIAL_ACADEMIC_SCHEDULES, 
-  INITIAL_CLASSROOMS, 
-  INITIAL_LESSON_PERIODS, 
-  INITIAL_SUBJECTS, 
-  INITIAL_TEACHERS 
-} from '../data/initialData';
+import { INITIAL_ACADEMIC_CALENDAR_EVENTS, INITIAL_ACADEMIC_SCHEDULES, INITIAL_CLASSROOMS, INITIAL_LESSON_PERIODS, INITIAL_SUBJECTS, INITIAL_TEACHERS } from '../data/initialData';
 import { AcademicScheduleService } from './academicScheduleService';
 import { TeacherSubstitutionService } from './teacherSubstitutionService';
 import { StaffIdentityResolver } from './staffIdentityResolver';
 import { AuditService } from './auditService';
+import { todayLocalDate } from '../utils/today';
 
 export class TeachingSessionService {
   private static STORAGE_KEY = 'siuba_teaching_sessions';
@@ -63,7 +57,7 @@ export class TeachingSessionService {
    * Generates initial seed data for teaching sessions
    */
   public static getInitialSessions(): TeachingSession[] {
-    const today = new Date().toISOString().substring(0, 10);
+    const today = todayLocalDate();
     const dayOfWeek = AcademicScheduleService.resolveDayOfWeek(today);
 
     const activeSchedules = INITIAL_ACADEMIC_SCHEDULES.filter(s => s.is_active && (s.day_of_week === dayOfWeek || s.day_of_week === 'monday'));
@@ -125,14 +119,10 @@ export class TeachingSessionService {
     let sessions: TeachingSession[] = [];
     try {
       const data = localStorage.getItem(this.STORAGE_KEY);
-      if (!data) {
-        sessions = this.getInitialSessions();
-        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(sessions));
-      } else {
-        sessions = JSON.parse(data);
-      }
+      // Data dari server (laporan SDM); tanpa data → kosong (tidak lagi diisi jadwal contoh)
+      sessions = data ? JSON.parse(data) : [];
     } catch (_) {
-      sessions = this.getInitialSessions();
+      sessions = [];
     }
 
     if (date) {

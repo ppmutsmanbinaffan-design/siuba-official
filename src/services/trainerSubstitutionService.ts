@@ -1,5 +1,4 @@
 import { TrainerSubstitution, Staff } from '../types';
-import { INITIAL_TRAINER_SUBSTITUTIONS } from '../data/initialData';
 import { AuditService } from './auditService';
 import { StaffIdentityResolver } from './staffIdentityResolver';
 
@@ -13,7 +12,7 @@ export class TrainerSubstitutionService {
         return JSON.parse(stored);
       }
     } catch (_) {}
-    return INITIAL_TRAINER_SUBSTITUTIONS;
+    return [];
   }
 
   public static saveSubstitutions(subs: TrainerSubstitution[]): void {

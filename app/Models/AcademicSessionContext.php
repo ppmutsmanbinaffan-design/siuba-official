@@ -21,6 +21,16 @@ class AcademicSessionContext extends Model
         'scheduled_teacher_id',
         'teaching_teacher_id',
         'topic',
+        'journal_notes',
+        'student_present_count',
+        'realization_status',
+        'journal_submitted_by',
+        'journal_submitted_at',
+    ];
+
+    protected $casts = [
+        'journal_submitted_at' => 'datetime',
+        'student_present_count' => 'integer',
     ];
 
     public function session(): BelongsTo

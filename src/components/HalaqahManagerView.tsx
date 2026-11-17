@@ -22,6 +22,7 @@ import {
   Award,
   Sparkles
 } from 'lucide-react';
+import { todayLocalDate } from '../utils/today';
 
 interface HalaqahManagerViewProps {
   halaqahs?: Halaqah[];
@@ -124,7 +125,7 @@ export const HalaqahManagerView: React.FC<HalaqahManagerViewProps> = ({
       student_id: st.id,
       student_name: st.name,
       student_number: st.student_number,
-      joined_at: new Date().toISOString().slice(0, 10),
+      joined_at: todayLocalDate(),
       is_active: true,
     };
 
@@ -149,7 +150,7 @@ export const HalaqahManagerView: React.FC<HalaqahManagerViewProps> = ({
   const handleRemoveMember = (memberId: number) => {
     const updatedMembers = halaqahMembers.map((m) => {
       if (m.id === memberId) {
-        return { ...m, is_active: false, left_at: new Date().toISOString().slice(0, 10) };
+        return { ...m, is_active: false, left_at: todayLocalDate() };
       }
       return m;
     });

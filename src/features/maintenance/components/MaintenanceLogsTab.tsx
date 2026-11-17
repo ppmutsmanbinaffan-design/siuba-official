@@ -18,6 +18,7 @@ import {
 import { MaintenanceLogEntry } from '../types';
 import { MaintenanceService } from '../services/maintenanceService';
 import { User } from '../../../types';
+import { todayLocalDate } from '../../../utils/today';
 
 interface MaintenanceLogsTabProps {
   currentUser: User;
@@ -65,7 +66,7 @@ export const MaintenanceLogsTab: React.FC<MaintenanceLogsTabProps> = ({
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `maintenance_logs_${new Date().toISOString().slice(0, 10)}.csv`;
+      a.download = `maintenance_logs_${todayLocalDate()}.csv`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);

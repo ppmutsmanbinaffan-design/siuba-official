@@ -24,6 +24,7 @@ import { StaffNeedsReviewCard } from '../components/StaffNeedsReviewCard';
 import { Button } from '../../../components/ui/Button';
 import { LoadingState } from '../../../components/ui/LoadingState';
 import { formatDateIndonesian } from '../utils/staffAttendanceUtils';
+import { todayLocalDate } from '../../../utils/today';
 
 interface StaffAttendanceDashboardPageProps {
   currentUser: User;
@@ -36,7 +37,7 @@ export const StaffAttendanceDashboardPage: React.FC<StaffAttendanceDashboardPage
   onNavigate,
   showToast,
 }) => {
-  const today = new Date().toISOString().substring(0, 10);
+  const today = todayLocalDate();
   const [selectedDate, setSelectedDate] = useState<string>(today);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [dailySummary, setDailySummary] = useState<StaffDailySummary | null>(null);

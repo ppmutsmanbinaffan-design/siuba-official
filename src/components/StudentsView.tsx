@@ -45,6 +45,7 @@ import {
 import { StudentIdentityService } from '../services/studentIdentityService';
 import { QrCardModal } from './QrCardModal';
 import { DataImportModal } from './common/DataImportModal';
+import { todayLocalDate } from '../utils/today';
 
 interface StudentsViewProps {
   students?: Student[];
@@ -397,7 +398,7 @@ export const StudentsView: React.FC<StudentsViewProps> = ({
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `SIUBA_Master_Santri_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute('download', `SIUBA_Master_Santri_${todayLocalDate()}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

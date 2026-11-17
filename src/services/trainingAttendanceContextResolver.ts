@@ -3,6 +3,7 @@ import { TrainingSessionService } from './trainingSessionService';
 import { ExtracurricularStaffAssignmentService } from './extracurricularStaffAssignmentService';
 import { TrainerSubstitutionService } from './trainerSubstitutionService';
 import { StaffAttendanceService } from './staffAttendanceService';
+import { todayLocalDate } from '../utils/today';
 
 export class TrainingAttendanceContextResolver {
   public static readonly DEFAULT_GRACE_PERIOD_MINUTES = 15;
@@ -59,7 +60,7 @@ export class TrainingAttendanceContextResolver {
     }
 
     // Check assignment: active assignment for this extracurricular OR formal substitute
-    const sessionDate = session.session_date || new Date().toISOString().substring(0, 10);
+    const sessionDate = session.session_date || todayLocalDate();
     const activeAssignments = ExtracurricularStaffAssignmentService.getActiveAssignmentsForDate(
       session.extracurricular_id,
       sessionDate

@@ -6,12 +6,6 @@ import {
   Extracurricular, 
   AcademicCalendarEvent 
 } from '../types';
-import { 
-  INITIAL_TRAINING_SESSIONS, 
-  INITIAL_EXTRACURRICULARS, 
-  INITIAL_ACADEMIC_CALENDAR_EVENTS, 
-  INITIAL_EXTRACURRICULAR_MEMBERS 
-} from '../data/initialData';
 import { ExtracurricularStaffAssignmentService } from './extracurricularStaffAssignmentService';
 import { TrainerSubstitutionService } from './trainerSubstitutionService';
 import { AuditService } from './auditService';
@@ -21,7 +15,7 @@ export class TrainingSessionService {
   private static STORAGE_KEY = 'siuba_training_sessions';
 
   public static getTrainingSessions(dateStr?: string): TrainingSession[] {
-    let sessions: TrainingSession[] = INITIAL_TRAINING_SESSIONS;
+    let sessions: TrainingSession[] = [];
     try {
       const stored = localStorage.getItem(this.STORAGE_KEY);
       if (stored) {
@@ -50,7 +44,7 @@ export class TrainingSessionService {
       const stored = localStorage.getItem('siuba_extracurriculars');
       if (stored) return JSON.parse(stored);
     } catch (_) {}
-    return INITIAL_EXTRACURRICULARS;
+    return [];
   }
 
   public static getCalendarEvents(): AcademicCalendarEvent[] {
@@ -58,7 +52,7 @@ export class TrainingSessionService {
       const stored = localStorage.getItem('siuba_academic_calendar_events');
       if (stored) return JSON.parse(stored);
     } catch (_) {}
-    return INITIAL_ACADEMIC_CALENDAR_EVENTS;
+    return [];
   }
 
   /**
@@ -155,7 +149,7 @@ export class TrainingSessionService {
       }
 
       // Count registered active student members
-      let members = INITIAL_EXTRACURRICULAR_MEMBERS;
+      let members: any[] = [];
       try {
         const storedMembers = localStorage.getItem('siuba_extracurricular_members');
         if (storedMembers) members = JSON.parse(storedMembers);

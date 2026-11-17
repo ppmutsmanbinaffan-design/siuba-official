@@ -29,6 +29,7 @@ import {
 import { StaffIntegratedDashboardData, Staff, User, StaffType } from '../types';
 import { StaffAnalyticsQueryService } from '../services/staffAnalyticsQueryService';
 import { DataImportModal } from './common/DataImportModal';
+import { todayLocalDate } from '../utils/today';
 
 interface StaffIntegratedDashboardViewProps {
   currentUser: User;
@@ -39,7 +40,7 @@ export const StaffIntegratedDashboardView: React.FC<StaffIntegratedDashboardView
   currentUser,
   onNavigateTab,
 }) => {
-  const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().substring(0, 10));
+  const [selectedDate, setSelectedDate] = useState<string>(todayLocalDate());
   const [activeOperationalTab, setActiveOperationalTab] = useState<'not_checked_in' | 'not_checked_out' | 'late' | 'absence' | 'teaching_review' | 'training_review'>('not_checked_in');
   const [drilldownModal, setDrilldownModal] = useState<{ title: string; type: string; data: any[] } | null>(null);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -102,9 +103,9 @@ export const StaffIntegratedDashboardView: React.FC<StaffIntegratedDashboardView
         <div className="flex items-center gap-3 flex-wrap">
           <div className="flex items-center bg-black/25 p-1 rounded-2xl border border-white/15 backdrop-blur-xs">
             <button
-              onClick={() => setSelectedDate(new Date().toISOString().substring(0, 10))}
+              onClick={() => setSelectedDate(todayLocalDate())}
               className={`px-3 py-1.5 text-xs font-semibold rounded-xl transition-all cursor-pointer ${
-                selectedDate === new Date().toISOString().substring(0, 10)
+                selectedDate === todayLocalDate()
                   ? 'bg-white text-[#12372A] font-bold shadow-xs'
                   : 'text-emerald-100 hover:text-white'
               }`}

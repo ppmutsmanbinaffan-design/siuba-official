@@ -28,6 +28,7 @@ import { Select } from '../../../components/ui/Select';
 import { LoadingState, EmptyState } from '../../../components/ui/LoadingState';
 import { PersonAvatar } from '../../../components/common/PersonAvatar';
 import { formatTeachingSessionStatus, formatDateIndonesian, formatTimeWib } from '../utils/staffAttendanceUtils';
+import { todayLocalDate } from '../../../utils/today';
 
 interface TeachingAttendancePageProps {
   currentUser: User;
@@ -44,7 +45,7 @@ export const TeachingAttendancePage: React.FC<TeachingAttendancePageProps> = ({
   showToast,
   initialFilterStatus,
 }) => {
-  const today = new Date().toISOString().substring(0, 10);
+  const today = todayLocalDate();
   const [selectedDate, setSelectedDate] = useState<string>(today);
   const [sessions, setSessions] = useState<TeachingSession[]>([]);
   const [summary, setSummary] = useState<TeachingAttendanceSummary | null>(null);
@@ -62,6 +63,8 @@ export const TeachingAttendancePage: React.FC<TeachingAttendancePageProps> = ({
 
   // Modal
   const [manualSessionModal, setManualSessionModal] = useState<TeachingSession | null>(null);
+  const [loadError, setLoadError] = useState<string>('');
+  const [isFinalizing, setIsFinalizing] = useState<boolean>(false);
 
   const loadTeachingData = useCallback(async () => {
     setIsLoading(true);
@@ -73,6 +76,7 @@ export const TeachingAttendancePage: React.FC<TeachingAttendancePageProps> = ({
 
       if (sessionsRes.data) setSessions(sessionsRes.data);
       if (summaryRes.data) setSummary(summaryRes.data);
+      setLoadError(sessionsRes.error || '');
     } catch (err: any) {
       showToast('Gagal memuat data kehadiran mengajar: ' + err.message, 'error');
     } finally {
@@ -83,6 +87,15 @@ export const TeachingAttendancePage: React.FC<TeachingAttendancePageProps> = ({
   useEffect(() => {
     loadTeachingData();
   }, [loadTeachingData]);
+
+  const handleFinalize = async () => {
+    if (!window.confirm(`Finalisasi presensi mengajar tanggal ${selectedDate}? Sesi KBM yang gurunya belum presensi akan ditandai ALPA.`)) return;
+    setIsFinalizing(true);
+    const res = await StaffAttendanceApi.finalizeTeachingDay(selectedDate);
+    setIsFinalizing(false);
+    showToast(res.message, res.success ? 'success' : 'error');
+    if (res.success) loadTeachingData();
+  };
 
   // Extract unique classrooms for filter
   const classrooms = useMemo(() => {
@@ -122,6 +135,8 @@ export const TeachingAttendancePage: React.FC<TeachingAttendancePageProps> = ({
       if (filters.status !== 'all') {
         if (filters.status === 'unrecorded') {
           if (s.teacher_attendance_status && s.teacher_attendance_status !== 'unrecorded') return false;
+        } else if (filters.status === 'substituted') {
+          if (!s.is_substituted) return false;
         } else if (s.teacher_attendance_status !== filters.status) {
           return false;
         }
@@ -145,7 +160,7 @@ export const TeachingAttendancePage: React.FC<TeachingAttendancePageProps> = ({
           <div className="font-mono text-xs font-bold text-[#1F5C45] dark:text-[#2F7D5A]">
             {s.start_time} – {s.end_time}
           </div>
-          <div className="text-xs text-zinc-300 font-semibold">{s.classroom_name}</div>
+          <div className="text-xs text-slate-700 font-semibold">{s.classroom_name}</div>
         </div>
       ),
     },
@@ -153,7 +168,7 @@ export const TeachingAttendancePage: React.FC<TeachingAttendancePageProps> = ({
       key: 'subject',
       header: 'Mata Pelajaran',
       render: (s) => (
-        <div className="font-bold text-zinc-100 text-xs">
+        <div className="font-bold text-slate-900 text-xs">
           {s.subject_name}
         </div>
       ),
@@ -163,11 +178,11 @@ export const TeachingAttendancePage: React.FC<TeachingAttendancePageProps> = ({
       header: 'Guru Terjadwal vs Aktual',
       render: (s) => (
         <div className="space-y-0.5">
-          <div className="text-xs text-zinc-300 font-medium">
+          <div className="text-xs text-slate-700 font-medium">
             {s.teacher_name}
           </div>
           {(s.is_substituted || s.substitute_teacher_id) && (
-            <div className="text-[11px] text-cyan-400 font-bold flex items-center gap-1">
+            <div className="text-[11px] text-cyan-700 font-bold flex items-center gap-1">
               <Users className="w-3 h-3" />
               <span>Pengganti: {s.actual_teacher_name || `Staf #${s.substitute_teacher_id}`}</span>
             </div>
@@ -180,9 +195,9 @@ export const TeachingAttendancePage: React.FC<TeachingAttendancePageProps> = ({
       header: 'Waktu Masuk',
       render: (s) => (
         <div className="font-mono text-xs">
-          <div className="text-zinc-200">{s.teacher_check_in_at ? s.teacher_check_in_at.substring(11, 16) + ' WIB' : '—'}</div>
+          <div className="text-slate-800">{s.teacher_check_in_at ? s.teacher_check_in_at.substring(11, 16) + ' WIB' : '—'}</div>
           {s.late_minutes && s.late_minutes > 0 ? (
-            <span className="text-[10px] text-amber-400 font-sans">Terlambat {s.late_minutes}m</span>
+            <span className="text-[10px] text-amber-700 font-sans">Terlambat {s.late_minutes}m</span>
           ) : null}
         </div>
       ),
@@ -214,7 +229,7 @@ export const TeachingAttendancePage: React.FC<TeachingAttendancePageProps> = ({
             size="sm"
             variant="secondary"
             onClick={() => onNavigate('teaching-session-detail', { sessionId: s.id })}
-            className="text-xs bg-zinc-800 hover:bg-zinc-700 text-zinc-200 py-1 px-2.5 h-auto"
+            className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-800 py-1 px-2.5 h-auto"
           >
             <Eye className="w-3 h-3 mr-1" />
             Detail
@@ -237,7 +252,7 @@ export const TeachingAttendancePage: React.FC<TeachingAttendancePageProps> = ({
               size="sm"
               variant="default"
               onClick={() => setManualSessionModal(s)}
-              className="text-xs bg-zinc-800 hover:bg-zinc-700 text-zinc-200 py-1 px-2 h-auto"
+              className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-800 py-1 px-2 h-auto"
               title="Presensi Manual"
             >
               <CheckCircle2 className="w-3 h-3" />
@@ -251,17 +266,17 @@ export const TeachingAttendancePage: React.FC<TeachingAttendancePageProps> = ({
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-10">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-3xl bg-zinc-900/90 border border-zinc-800/90 shadow-xl">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-3xl bg-white border border-slate-200/90 shadow-xl">
         <div>
           <div className="flex items-center gap-2">
-            <div className="p-2 rounded-2xl bg-blue-500/10 text-blue-400">
+            <div className="p-2 rounded-2xl bg-blue-500/10 text-blue-700">
               <BookOpen className="w-5 h-5" />
             </div>
             <div>
-              <h1 className="text-xl sm:text-2xl font-black text-zinc-100 tracking-tight">
+              <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
                 Presensi Guru Mengajar (KBM)
               </h1>
-              <p className="text-xs text-zinc-400 mt-0.5">
+              <p className="text-xs text-slate-600 mt-0.5">
                 Pantau kehadiran guru pada setiap jam pelajaran, kelas, dan penugasan guru pengganti.
               </p>
             </div>
@@ -273,14 +288,14 @@ export const TeachingAttendancePage: React.FC<TeachingAttendancePageProps> = ({
             type="date"
             value={selectedDate}
             onChange={(e) => setSelectedDate(e.target.value)}
-            className="px-3 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-zinc-200 font-mono focus:outline-none focus:ring-2 focus:ring-[#1F5C45]/40"
+            className="px-3 py-2 rounded-xl bg-white border border-slate-200 text-xs text-slate-800 font-mono focus:outline-none focus:ring-2 focus:ring-[#1F5C45]/40"
           />
 
           <Button
             size="sm"
             variant="secondary"
             onClick={loadTeachingData}
-            className="bg-zinc-800 hover:bg-zinc-700 text-zinc-300"
+            className="bg-slate-100 hover:bg-slate-200 text-slate-700"
           >
             <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${isLoading ? 'animate-spin' : ''}`} />
             Refresh
@@ -290,13 +305,29 @@ export const TeachingAttendancePage: React.FC<TeachingAttendancePageProps> = ({
             size="sm"
             variant="outline"
             onClick={() => onNavigate('teacher-substitution')}
-            className="border-cyan-500/40 text-cyan-400 hover:bg-cyan-500/10 font-bold"
+            className="border-cyan-500/40 text-cyan-700 hover:bg-cyan-500/10 font-bold"
           >
             <Users className="w-4 h-4 mr-1.5" />
             Guru Pengganti
           </Button>
+
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleFinalize}
+            disabled={isFinalizing || sessions.length === 0}
+            className="border-rose-500/40 text-rose-700 hover:bg-rose-500/10 font-bold"
+          >
+            {isFinalizing ? 'Memproses…' : 'Finalisasi Hari Ini'}
+          </Button>
         </div>
       </div>
+
+      {loadError && (
+        <div id="teaching-load-error" className="px-4 py-3 rounded-2xl border border-amber-500/40 bg-amber-500/10 text-amber-700 text-xs font-semibold">
+          {loadError}
+        </div>
+      )}
 
       {/* Summary KPI */}
       {summary && (
@@ -309,7 +340,7 @@ export const TeachingAttendancePage: React.FC<TeachingAttendancePageProps> = ({
       {/* Search & Filter Bar */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
         <div className="relative flex-1 max-w-md">
-          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500" />
+          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
           <Input
             value={filters.search}
             onChange={(e) => setFilters((prev) => ({ ...prev, search: e.target.value }))}
@@ -341,6 +372,9 @@ export const TeachingAttendancePage: React.FC<TeachingAttendancePageProps> = ({
               <option value="all">Semua Status Guru</option>
               <option value="present">Hadir</option>
               <option value="late">Terlambat</option>
+              <option value="permission">Izin</option>
+              <option value="sick">Sakit</option>
+              <option value="absent">Alpa</option>
               <option value="substituted">Digantikan</option>
               <option value="unrecorded">Belum Tercatat</option>
             </Select>
@@ -350,7 +384,7 @@ export const TeachingAttendancePage: React.FC<TeachingAttendancePageProps> = ({
             size="sm"
             variant="secondary"
             onClick={() => setIsFilterDrawerOpen(true)}
-            className="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 relative text-xs"
+            className="bg-slate-100 hover:bg-slate-200 text-slate-700 relative text-xs"
           >
             <Filter className="w-3.5 h-3.5 mr-1.5" />
             Filter
@@ -370,7 +404,7 @@ export const TeachingAttendancePage: React.FC<TeachingAttendancePageProps> = ({
           description={
             filters.search || filters.classroomId !== 'all' || filters.status !== 'all'
               ? 'Tidak ditemukan sesi mengajar yang sesuai kriteria filter Anda.'
-              : 'Tidak ada jadwal KBM yang terdaftar untuk tanggal ini.'
+              : 'Belum ada sesi KBM untuk tanggal ini. Buat sesinya di menu Jadwal Pelajaran → tombol Generate Sesi, lalu tekan Refresh.'
           }
         />
       ) : (
@@ -406,7 +440,7 @@ export const TeachingAttendancePage: React.FC<TeachingAttendancePageProps> = ({
       >
         <div className="space-y-4 text-xs">
           <div>
-            <label className="text-xs font-bold text-zinc-300 block mb-1.5">Kelas</label>
+            <label className="text-xs font-bold text-slate-700 block mb-1.5">Kelas</label>
             <Select
               value={filters.classroomId}
               onChange={(e) => setFilters((prev) => ({ ...prev, classroomId: e.target.value }))}
@@ -422,7 +456,7 @@ export const TeachingAttendancePage: React.FC<TeachingAttendancePageProps> = ({
           </div>
 
           <div>
-            <label className="text-xs font-bold text-zinc-300 block mb-1.5">Status Presensi Guru</label>
+            <label className="text-xs font-bold text-slate-700 block mb-1.5">Status Presensi Guru</label>
             <Select
               value={filters.status}
               onChange={(e) => setFilters((prev) => ({ ...prev, status: e.target.value }))}
@@ -431,13 +465,16 @@ export const TeachingAttendancePage: React.FC<TeachingAttendancePageProps> = ({
               <option value="all">Semua Status</option>
               <option value="present">Hadir Tepat Waktu</option>
               <option value="late">Terlambat</option>
+              <option value="permission">Izin</option>
+              <option value="sick">Sakit</option>
+              <option value="absent">Alpa</option>
               <option value="substituted">Digantikan</option>
               <option value="unrecorded">Belum Tercatat</option>
             </Select>
           </div>
 
           <div>
-            <label className="text-xs font-bold text-zinc-300 block mb-1.5">Status Pelaksanaan Sesi</label>
+            <label className="text-xs font-bold text-slate-700 block mb-1.5">Status Pelaksanaan Sesi</label>
             <Select
               value={filters.sessionState}
               onChange={(e) => setFilters((prev) => ({ ...prev, sessionState: e.target.value }))}
@@ -457,9 +494,9 @@ export const TeachingAttendancePage: React.FC<TeachingAttendancePageProps> = ({
                 type="checkbox"
                 checked={filters.substitutionOnly}
                 onChange={(e) => setFilters((prev) => ({ ...prev, substitutionOnly: e.target.checked }))}
-                className="rounded bg-zinc-900 border-zinc-700 text-[#1F5C45] focus:ring-0"
+                className="rounded bg-white border-slate-300 text-[#1F5C45] focus:ring-0"
               />
-              <span className="text-xs font-semibold text-zinc-300">
+              <span className="text-xs font-semibold text-slate-700">
                 Hanya tampilkan sesi dengan Guru Pengganti
               </span>
             </label>

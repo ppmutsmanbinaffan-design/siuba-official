@@ -5,6 +5,7 @@ import {
   TeachingSession 
 } from '../types';
 import { TeachingSessionService } from './teachingSessionService';
+import { todayLocalDate } from '../utils/today';
 
 export class TeachingAttendanceContextResolver {
   public static readonly DEFAULT_GRACE_PERIOD_MINUTES = 5;
@@ -149,7 +150,7 @@ export class TeachingAttendanceContextResolver {
    */
   public static resolveCurrentSessionForTeacher(
     staffId: number, 
-    dateStr: string = new Date().toISOString().substring(0, 10),
+    dateStr: string = todayLocalDate(),
     timeNowStr: string = new Date().toISOString()
   ): TeachingSession | undefined {
     const todaySessions = TeachingSessionService.getTeachingSessions(dateStr, { teacherStaffId: staffId });

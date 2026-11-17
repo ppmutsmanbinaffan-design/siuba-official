@@ -34,6 +34,7 @@ import { StaffIdentityResolver } from '../services/staffIdentityResolver';
 import { StaffReportQueryService } from '../services/staffReportQueryService';
 import { TeachingSessionService } from '../services/teachingSessionService';
 import { TrainingSessionService } from '../services/trainingSessionService';
+import { todayLocalDate } from '../utils/today';
 
 interface StaffReportCenterViewProps {
   currentUser: User;
@@ -47,7 +48,7 @@ export const StaffReportCenterView: React.FC<StaffReportCenterViewProps> = ({
   onNavigateTab,
 }) => {
   // Current date & month defaults
-  const todayStr = new Date().toISOString().substring(0, 10);
+  const todayStr = todayLocalDate();
   const firstDayOfMonth = todayStr.substring(0, 7) + '-01';
 
   const [activeCategory, setActiveCategory] = useState<MainCategory>('daily');

@@ -6,6 +6,7 @@ import {
 } from '../types';
 import { TeachingSessionService } from './teachingSessionService';
 import { StaffIdentityResolver } from './staffIdentityResolver';
+import { todayLocalDate } from '../utils/today';
 
 export interface TeacherTeachingMetric {
   staff_id: number;
@@ -30,7 +31,7 @@ export class TeachingAttendanceMetricService {
   /**
    * Calculate teaching attendance summary for a specific date or list of sessions
    */
-  public static calculateDailySummary(dateStr: string = new Date().toISOString().substring(0, 10)): TeachingAttendanceSummary {
+  public static calculateDailySummary(dateStr: string = todayLocalDate()): TeachingAttendanceSummary {
     return this.calculateSummary(dateStr);
   }
 

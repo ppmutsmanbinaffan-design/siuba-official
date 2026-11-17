@@ -28,6 +28,7 @@ export const TeachingManualAttendanceModal: React.FC<TeachingManualAttendanceMod
     session ? String(session.actual_teacher_staff_id || session.teacher_staff_id) : ''
   );
   const [notes, setNotes] = useState<string>('');
+  const [status, setStatus] = useState<'present' | 'permission' | 'sick' | 'absent'>('present');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
 
@@ -50,6 +51,7 @@ export const TeachingManualAttendanceModal: React.FC<TeachingManualAttendanceMod
         sessionId: session.id,
         staffId: Number(selectedStaffId),
         substituteStaffId: session.substitute_teacher_id,
+        status,
         notes,
         operatorName: currentUser.name,
       });
@@ -77,30 +79,30 @@ export const TeachingManualAttendanceModal: React.FC<TeachingManualAttendanceMod
     >
       <form onSubmit={handleSubmit} className="space-y-4 pt-2">
         {errorMessage && (
-          <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2">
+          <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-700 text-xs flex items-center gap-2">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{errorMessage}</span>
           </div>
         )}
 
         {/* Session Context Banner */}
-        <div className="p-3.5 rounded-xl bg-zinc-950 border border-zinc-800 text-xs space-y-2">
+        <div className="p-3.5 rounded-xl bg-white border border-slate-200 text-xs space-y-2">
           <div className="flex items-center justify-between">
-            <span className="font-mono font-bold px-2 py-0.5 rounded bg-zinc-900 text-[#1F5C45] dark:text-[#2F7D5A] border border-zinc-800">
+            <span className="font-mono font-bold px-2 py-0.5 rounded bg-white text-[#1F5C45] dark:text-[#2F7D5A] border border-slate-200">
               {session.start_time} – {session.end_time} WIB
             </span>
-            <span className="text-zinc-400 font-medium">{session.classroom_name}</span>
+            <span className="text-slate-600 font-medium">{session.classroom_name}</span>
           </div>
 
-          <h4 className="text-sm font-bold text-zinc-100">{session.subject_name}</h4>
+          <h4 className="text-sm font-bold text-slate-900">{session.subject_name}</h4>
 
-          <div className="flex items-center justify-between text-zinc-400 pt-1 border-t border-zinc-800/60">
-            <span className="text-zinc-500">Guru Terjadwal:</span>
-            <span className="font-semibold text-zinc-200">{session.teacher_name}</span>
+          <div className="flex items-center justify-between text-slate-600 pt-1 border-t border-slate-200/60">
+            <span className="text-slate-500">Guru Terjadwal:</span>
+            <span className="font-semibold text-slate-800">{session.teacher_name}</span>
           </div>
 
           {session.is_substituted && (
-            <div className="flex items-center justify-between text-cyan-300 pt-1 border-t border-zinc-800/60">
+            <div className="flex items-center justify-between text-cyan-700 pt-1 border-t border-slate-200/60">
               <span className="font-bold flex items-center gap-1">
                 <Users className="w-3.5 h-3.5" /> Guru Pengganti:
               </span>
@@ -111,7 +113,7 @@ export const TeachingManualAttendanceModal: React.FC<TeachingManualAttendanceMod
 
         {/* Teacher Selector */}
         <div>
-          <label className="text-xs font-bold text-zinc-300 block mb-1.5">Guru yang Mengajar Sesi Ini</label>
+          <label className="text-xs font-bold text-slate-700 block mb-1.5">Guru yang Mengajar Sesi Ini</label>
           <Select
             value={selectedStaffId}
             onChange={(e) => {
@@ -130,9 +132,20 @@ export const TeachingManualAttendanceModal: React.FC<TeachingManualAttendanceMod
           </Select>
         </div>
 
+        {/* Status kehadiran */}
+        <div>
+          <label className="text-xs font-bold text-slate-700 block mb-1.5">Status Kehadiran Guru</label>
+          <Select value={status} onChange={(e) => setStatus(e.target.value as typeof status)} className="w-full">
+            <option value="present">Hadir mengajar (tepat waktu / terlambat dihitung otomatis)</option>
+            <option value="permission">Izin</option>
+            <option value="sick">Sakit</option>
+            <option value="absent">Alpa (tidak hadir tanpa keterangan)</option>
+          </Select>
+        </div>
+
         {/* Notes */}
         <div>
-          <label className="text-xs font-bold text-zinc-300 block mb-1.5">Catatan KBM (Opsional)</label>
+          <label className="text-xs font-bold text-slate-700 block mb-1.5">Catatan KBM (Opsional)</label>
           <Input
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
@@ -141,7 +154,7 @@ export const TeachingManualAttendanceModal: React.FC<TeachingManualAttendanceMod
         </div>
 
         {/* Modal Actions */}
-        <div className="flex items-center justify-end gap-2 pt-3 border-t border-zinc-800">
+        <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-200">
           <Button type="button" variant="secondary" onClick={onClose} disabled={isSubmitting}>
             Batal
           </Button>

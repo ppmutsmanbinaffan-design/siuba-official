@@ -133,6 +133,7 @@ import { AttendanceEngine } from './services/attendanceEngine';
 import { RfidAttendanceService } from './services/rfidAttendanceService';
 import { ActivityParticipantService } from './services/activityParticipantService';
 import { CheckCircle2, AlertTriangle, X } from 'lucide-react';
+import { todayLocalDate } from './utils/today';
 
 export function App() {
   const [authStatus, setAuthStatus] = useState<AuthStatus>('loading');
@@ -1053,7 +1054,7 @@ export function App() {
     const student = students.find((s) => s.id === data.student_id);
     if (!student || !currentUser) return;
 
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayLocalDate();
     const payload = {
       student_id: student.id,
       type: data.type || 'sick',

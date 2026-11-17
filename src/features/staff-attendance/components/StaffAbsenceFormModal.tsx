@@ -7,6 +7,7 @@ import { Input } from '../../../components/ui/Input';
 import { FileText, AlertCircle, Calendar } from 'lucide-react';
 import { StaffAttendanceApi } from '../api/staffAttendanceApi';
 import { formatStaffType } from '../utils/staffAttendanceUtils';
+import { todayLocalDate } from '../../../utils/today';
 
 interface StaffAbsenceFormModalProps {
   isOpen: boolean;
@@ -27,8 +28,8 @@ export const StaffAbsenceFormModal: React.FC<StaffAbsenceFormModalProps> = ({
   const selfStaff = staffList.find((s) => s.user_id === currentUser.id || s.email === currentUser.email);
   const [selectedStaffId, setSelectedStaffId] = useState<string>(selfStaff ? String(selfStaff.id) : '');
   const [type, setType] = useState<StaffAbsenceType>('permission');
-  const [startDate, setStartDate] = useState<string>(new Date().toISOString().substring(0, 10));
-  const [endDate, setEndDate] = useState<string>(new Date().toISOString().substring(0, 10));
+  const [startDate, setStartDate] = useState<string>(todayLocalDate());
+  const [endDate, setEndDate] = useState<string>(todayLocalDate());
   const [reason, setReason] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>('');

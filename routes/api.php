@@ -155,6 +155,20 @@ Route::prefix('v1')->group(function () {
         Route::get('/reports/staff-dataset', [ReportDatasetApiController::class, 'staff'])
             ->middleware('permission:staff.reports|kbm.reports|reports.view|trainer.attendance');
 
+        // Presensi mengajar guru per jam pelajaran (KBM) — tahap 19
+        Route::prefix('teaching')->group(function () {
+            $teachView = 'permission:kbm.monitoring|kbm.teacher_dashboard|kbm.reports|kbm.master|staff.attendance|staff.reports';
+            $teachRecord = 'permission:kbm.monitoring|kbm.teacher_dashboard|staff.attendance';
+            Route::get('/sessions', [\App\Http\Controllers\Api\TeachingApiController::class, 'sessions'])->middleware($teachView);
+            Route::get('/sessions/{session}', [\App\Http\Controllers\Api\TeachingApiController::class, 'show'])->whereNumber('session')->middleware($teachView);
+            Route::get('/substitutions', [\App\Http\Controllers\Api\TeachingApiController::class, 'substitutions'])->middleware($teachView);
+            Route::post('/scan', [\App\Http\Controllers\Api\TeachingApiController::class, 'scan'])->middleware($teachRecord);
+            Route::post('/sessions/{session}/manual', [\App\Http\Controllers\Api\TeachingApiController::class, 'manual'])->whereNumber('session')->middleware($teachRecord);
+            Route::post('/sessions/{session}/journal', [\App\Http\Controllers\Api\TeachingApiController::class, 'journal'])->whereNumber('session')->middleware($teachRecord);
+            Route::post('/finalize', [\App\Http\Controllers\Api\TeachingApiController::class, 'finalize'])->middleware('permission:kbm.monitoring|staff.attendance|staff.edit');
+            Route::post('/substitutions', [\App\Http\Controllers\Api\TeachingApiController::class, 'substitute'])->middleware('permission:kbm.master|kbm.monitoring');
+        });
+
         // Presensi pembina / pelatih ekstrakurikuler
         Route::prefix('trainer')->group(function () {
             Route::get('/overview', [TrainerApiController::class, 'overview'])

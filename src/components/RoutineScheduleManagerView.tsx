@@ -20,6 +20,7 @@ import {
   UserCheck, 
   SlidersHorizontal 
 } from 'lucide-react';
+import { todayLocalDate } from '../utils/today';
 
 interface RoutineScheduleManagerViewProps {
   activities?: Activity[];
@@ -71,7 +72,7 @@ export const RoutineScheduleManagerView: React.FC<RoutineScheduleManagerViewProp
 
   // Form State for Override
   const [overrideScheduleId, setOverrideScheduleId] = useState<number>(safeRoutineSchedules[0]?.id || 1);
-  const [overrideDate, setOverrideDate] = useState<string>(new Date().toISOString().slice(0, 10));
+  const [overrideDate, setOverrideDate] = useState<string>(todayLocalDate());
   const [overrideType, setOverrideType] = useState<'cancelled' | 'time_change'>('time_change');
   const [newStartTime, setNewStartTime] = useState<string>('04:15');
   const [newEndTime, setNewEndTime] = useState<string>('05:15');

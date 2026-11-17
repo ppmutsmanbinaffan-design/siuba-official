@@ -7,6 +7,7 @@ import { QrScannerPanel } from '../../attendance/components/QrScannerPanel';
 import { StaffScanResultCard } from '../components/StaffScanResultCard';
 import { Button } from '../../../components/ui/Button';
 import { formatDateIndonesian } from '../utils/staffAttendanceUtils';
+import { todayLocalDate } from '../../../utils/today';
 
 interface StaffDailyQrScannerPageProps {
   currentUser: User;
@@ -19,7 +20,7 @@ export const StaffDailyQrScannerPage: React.FC<StaffDailyQrScannerPageProps> = (
   onNavigate,
   showToast,
 }) => {
-  const todayStr = new Date().toISOString().substring(0, 10);
+  const todayStr = todayLocalDate();
   const [isLocked, setIsLocked] = useState<boolean>(false);
   const [cooldownActive, setCooldownActive] = useState<boolean>(false);
   const [lastResult, setLastResult] = useState<StaffScanFeedbackItem | null>(null);

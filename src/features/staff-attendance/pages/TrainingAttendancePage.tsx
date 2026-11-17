@@ -28,6 +28,7 @@ import { Input } from '../../../components/ui/Input';
 import { Select } from '../../../components/ui/Select';
 import { LoadingState, EmptyState } from '../../../components/ui/LoadingState';
 import { formatRealizationStatus, formatDateIndonesian } from '../utils/staffAttendanceUtils';
+import { todayLocalDate } from '../../../utils/today';
 
 interface TrainingAttendancePageProps {
   currentUser: User;
@@ -44,7 +45,7 @@ export const TrainingAttendancePage: React.FC<TrainingAttendancePageProps> = ({
   showToast,
   initialFilterStatus,
 }) => {
-  const today = new Date().toISOString().substring(0, 10);
+  const today = todayLocalDate();
   const [selectedDate, setSelectedDate] = useState<string>(today);
   const [sessions, setSessions] = useState<TrainingSession[]>([]);
   const [summary, setSummary] = useState<TrainingAttendanceSummary | null>(null);

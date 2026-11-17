@@ -32,6 +32,7 @@ import { ReportPagination } from '../components/ReportPagination';
 import { ReportDetailModal } from '../components/ReportDetailModal';
 import { ReportPrintView } from '../components/ReportPrintView';
 import { ActiveFilterChip, PaginationState, TrainingReportSubView } from '../types';
+import { todayLocalDate } from '../../../utils/today';
 
 interface Props {
   currentUser: User;
@@ -46,7 +47,7 @@ export const TrainingReportPage: React.FC<Props> = ({
   onBackToHub,
   onShowToast,
 }) => {
-  const todayStr = new Date().toISOString().substring(0, 10);
+  const todayStr = todayLocalDate();
   const firstDayOfMonth = todayStr.substring(0, 7) + '-01';
 
   const [subView, setSubView] = useState<TrainingReportSubView>('session_list');

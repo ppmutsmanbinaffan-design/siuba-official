@@ -4,6 +4,7 @@ import {
   ExtracurricularMember, 
   Student 
 } from '../types';
+import { todayLocalDate } from '../utils/today';
 
 export interface EligibilityResult {
   eligible: boolean;
@@ -170,7 +171,7 @@ export class ExtracurricularEligibilityService {
     }
 
     const targetToPromote = waitlistedMembers[0];
-    const nowStr = new Date().toISOString().slice(0, 10);
+    const nowStr = todayLocalDate();
 
     let promotedMemberObj: ExtracurricularMember | null = null;
 

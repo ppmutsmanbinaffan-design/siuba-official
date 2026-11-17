@@ -31,6 +31,7 @@ export * from './pages/StaffDailyQrScannerPage';
 export * from './pages/StaffRfidMonitoringPage';
 export * from './pages/StaffAbsencePage';
 export * from './pages/TeachingAttendancePage';
+export * from './pages/TeachingAttendanceModule';
 export * from './pages/TeachingSessionDetailPage';
 export * from './pages/TeachingQrScannerPage';
 export * from './pages/TeacherSubstitutionPage';

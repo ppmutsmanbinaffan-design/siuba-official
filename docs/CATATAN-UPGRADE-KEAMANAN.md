@@ -787,3 +787,36 @@ kosong atau data tertentu tidak pernah dikirim server. Perbaikan:
 php artisan optimize:clear
 ```
 Tidak ada migrasi baru. Muat ulang browser (Ctrl+F5).
+
+---
+
+# Update 22 — Tahap 19: Presensi mengajar guru (KBM) tersimpan di server
+
+Sebelumnya presensi mengajar guru hanya tersimpan di browser (diawali jadwal contoh), dan halamannya bahkan
+belum terpasang di menu mana pun.
+
+- Menu **Presensi SDM & Guru → tab "Presensi Mengajar (KBM)"**: daftar jam pelajaran per tanggal, ringkasan
+  (hadir, terlambat, izin/sakit/alpa, digantikan, belum tercatat), detail sesi, scanner QR guru, dan guru pengganti.
+- API baru `/api/v1/teaching/*`: daftar & detail sesi, scan QR/RFID guru (scan pertama = mulai mengajar,
+  scan kedua = selesai), presensi manual (hadir / izin / sakit / alpa), **jurnal mengajar** (materi, catatan,
+  jumlah santri hadir), finalisasi akhir hari (yang belum presensi → alpa), dan penetapan guru pengganti.
+- Terlambat dihitung dari jam mulai pelajaran + toleransi di Pengaturan Absensi (bawaan 15 menit).
+- Presensi mengajar dicatat sebagai presensi SDM tipe "teaching", sehingga langsung masuk Laporan SDM.
+- Guru yang hanya punya akses Dashboard Guru hanya melihat & mencatat sesinya sendiri; peran "guru" bawaan
+  (yang juga punya akses monitoring KBM) dapat memantau semua sesi seperti sebelumnya.
+- **Dashboard Guru KBM**: tombol baru "Catat Hadir Mengajar (Saya)".
+- Sesi KBM tetap dibuat dari menu **Jadwal Pelajaran → Generate Sesi**.
+- Perbaikan umum: tanggal "hari ini" di 56 tempat dihitung dengan jam UTC, sehingga sebelum pukul 07.00 WIB
+  aplikasi menganggap hari masih kemarin (presensi pagi, scanner, laporan, dashboard) — kini memakai tanggal lokal.
+- Data contoh tidak lagi dipakai sebagai cadangan di layanan latihan ekskul, guru/pelatih pengganti, dan sesi
+  mengajar lama.
+
+## Langkah setelah update
+
+Ada **1 migrasi baru** (kolom jurnal mengajar):
+
+```bash
+php artisan migrate --force
+php artisan optimize:clear
+```
+(`jalankan-siuba.bat` menjalankan keduanya otomatis.) Muat ulang browser (Ctrl+F5).

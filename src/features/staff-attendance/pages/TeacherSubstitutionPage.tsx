@@ -18,6 +18,7 @@ import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { LoadingState, EmptyState } from '../../../components/ui/LoadingState';
 import { formatDateIndonesian } from '../utils/staffAttendanceUtils';
+import { todayLocalDate } from '../../../utils/today';
 
 interface TeacherSubstitutionPageProps {
   currentUser: User;
@@ -41,7 +42,7 @@ export const TeacherSubstitutionPage: React.FC<TeacherSubstitutionPageProps> = (
   const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const today = new Date().toISOString().substring(0, 10);
+      const today = todayLocalDate();
       const [subsRes, sessionsRes] = await Promise.all([
         StaffAttendanceApi.getTeacherSubstitutions(),
         StaffAttendanceApi.getTeachingSessions(today),
@@ -87,10 +88,10 @@ export const TeacherSubstitutionPage: React.FC<TeacherSubstitutionPageProps> = (
       header: 'Tanggal & Sesi',
       render: (sub) => (
         <div>
-          <div className="font-mono text-xs font-bold text-zinc-200">
+          <div className="font-mono text-xs font-bold text-slate-800">
             {formatDateIndonesian(sub.date)}
           </div>
-          <div className="text-[11px] text-zinc-500 font-mono">Jadwal #{sub.academic_schedule_id}</div>
+          <div className="text-[11px] text-slate-500 font-mono">Jadwal #{sub.academic_schedule_id}</div>
         </div>
       ),
     },
@@ -98,7 +99,7 @@ export const TeacherSubstitutionPage: React.FC<TeacherSubstitutionPageProps> = (
       key: 'original_teacher',
       header: 'Guru Utama',
       render: (sub) => (
-        <span className="font-medium text-xs text-zinc-300">
+        <span className="font-medium text-xs text-slate-700">
           {staffMap.get(sub.original_teacher_id) || `Staf #${sub.original_teacher_id}`}
         </span>
       ),
@@ -107,13 +108,13 @@ export const TeacherSubstitutionPage: React.FC<TeacherSubstitutionPageProps> = (
       key: 'arrow',
       header: '',
       className: 'w-8 text-center',
-      render: () => <ArrowRight className="w-3.5 h-3.5 text-cyan-400 mx-auto" />,
+      render: () => <ArrowRight className="w-3.5 h-3.5 text-cyan-700 mx-auto" />,
     },
     {
       key: 'substitute_teacher',
       header: 'Guru Pengganti',
       render: (sub) => (
-        <span className="font-bold text-xs text-cyan-300">
+        <span className="font-bold text-xs text-cyan-700">
           {staffMap.get(sub.substitute_teacher_id) || `Staf #${sub.substitute_teacher_id}`}
         </span>
       ),
@@ -122,7 +123,7 @@ export const TeacherSubstitutionPage: React.FC<TeacherSubstitutionPageProps> = (
       key: 'reason',
       header: 'Alasan Penugasan',
       render: (sub) => (
-        <p className="text-xs text-zinc-300 max-w-xs truncate" title={sub.reason}>
+        <p className="text-xs text-slate-700 max-w-xs truncate" title={sub.reason}>
           {sub.reason}
         </p>
       ),
@@ -131,7 +132,7 @@ export const TeacherSubstitutionPage: React.FC<TeacherSubstitutionPageProps> = (
       key: 'assigned_by',
       header: 'Ditugaskan Oleh',
       render: (sub) => (
-        <span className="text-xs text-zinc-400">{sub.assigned_by}</span>
+        <span className="text-xs text-slate-600">{sub.assigned_by}</span>
       ),
     },
   ];
@@ -139,17 +140,17 @@ export const TeacherSubstitutionPage: React.FC<TeacherSubstitutionPageProps> = (
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-10">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-3xl bg-zinc-900/90 border border-zinc-800/90 shadow-xl">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-3xl bg-white border border-slate-200/90 shadow-xl">
         <div>
           <div className="flex items-center gap-2">
-            <div className="p-2 rounded-2xl bg-cyan-500/10 text-cyan-400">
+            <div className="p-2 rounded-2xl bg-cyan-500/10 text-cyan-700">
               <Users className="w-5 h-5" />
             </div>
             <div>
-              <h1 className="text-xl sm:text-2xl font-black text-zinc-100 tracking-tight">
+              <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
                 Delegasi Resmi Guru Pengganti
               </h1>
-              <p className="text-xs text-zinc-400 mt-0.5">
+              <p className="text-xs text-slate-600 mt-0.5">
                 Kelola penugasan guru pengganti untuk jadwal mengajar yang berhalangan hadir.
               </p>
             </div>
@@ -161,7 +162,7 @@ export const TeacherSubstitutionPage: React.FC<TeacherSubstitutionPageProps> = (
             size="sm"
             variant="secondary"
             onClick={loadData}
-            className="bg-zinc-800 hover:bg-zinc-700 text-zinc-300"
+            className="bg-slate-100 hover:bg-slate-200 text-slate-700"
           >
             <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${isLoading ? 'animate-spin' : ''}`} />
             Refresh
@@ -181,7 +182,7 @@ export const TeacherSubstitutionPage: React.FC<TeacherSubstitutionPageProps> = (
 
       {/* Search Bar */}
       <div className="relative max-w-md">
-        <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500" />
+        <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
         <Input
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}

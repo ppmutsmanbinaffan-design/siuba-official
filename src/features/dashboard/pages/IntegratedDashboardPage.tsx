@@ -291,7 +291,7 @@ export const IntegratedDashboardPage: React.FC<Props> = ({
               onClick={() => handleDatePreset('today')}
               type="button"
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                selectedDate === new Date().toISOString().substring(0, 10)
+                selectedDate === todayLocalDate()
                   ? 'bg-white text-[#12372A] shadow-xs'
                   : 'text-emerald-100 hover:text-white'
               }`}
@@ -302,7 +302,7 @@ export const IntegratedDashboardPage: React.FC<Props> = ({
               onClick={() => handleDatePreset('yesterday')}
               type="button"
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                selectedDate !== new Date().toISOString().substring(0, 10)
+                selectedDate !== todayLocalDate()
                   ? 'bg-white text-[#12372A] shadow-xs'
                   : 'text-emerald-100 hover:text-white'
               }`}

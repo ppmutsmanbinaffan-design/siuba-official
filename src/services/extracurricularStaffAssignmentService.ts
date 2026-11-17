@@ -1,5 +1,4 @@
 import { ExtracurricularStaffAssignment, ExtracurricularStaffRole, Staff } from '../types';
-import { INITIAL_EXTRACURRICULAR_STAFF_ASSIGNMENTS } from '../data/initialData';
 import { AuditService } from './auditService';
 import { StaffIdentityResolver } from './staffIdentityResolver';
 
@@ -13,7 +12,7 @@ export class ExtracurricularStaffAssignmentService {
         return JSON.parse(stored);
       }
     } catch (_) {}
-    return INITIAL_EXTRACURRICULAR_STAFF_ASSIGNMENTS;
+    return [];
   }
 
   public static saveAssignments(assignments: ExtracurricularStaffAssignment[]): void {

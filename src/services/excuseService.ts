@@ -1,4 +1,5 @@
 import { ExcusalStatus, ExcusalType, StudentExcusal, AttendanceSession } from '../types';
+import { todayLocalDate } from '../utils/today';
 
 export class ExcuseService {
   /**
@@ -35,7 +36,7 @@ export class ExcuseService {
   /**
    * Filter excusals active for today
    */
-  static getTodayExcusals(excusals: StudentExcusal[], dateStr: string = new Date().toISOString().slice(0, 10)): StudentExcusal[] {
+  static getTodayExcusals(excusals: StudentExcusal[], dateStr: string = todayLocalDate()): StudentExcusal[] {
     const targetDayStart = new Date(`${dateStr}T00:00:00`).getTime();
     const targetDayEnd = new Date(`${dateStr}T23:59:59`).getTime();
 

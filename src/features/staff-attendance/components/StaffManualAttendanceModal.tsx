@@ -7,6 +7,7 @@ import { Input } from '../../../components/ui/Input';
 import { LogIn, LogOut, AlertCircle, Clock, ShieldCheck } from 'lucide-react';
 import { StaffAttendanceApi } from '../api/staffAttendanceApi';
 import { formatStaffType } from '../utils/staffAttendanceUtils';
+import { todayLocalDate } from '../../../utils/today';
 
 interface StaffManualAttendanceModalProps {
   isOpen: boolean;
@@ -33,7 +34,7 @@ export const StaffManualAttendanceModal: React.FC<StaffManualAttendanceModalProp
 
   const activeStaff = staffList.filter((s) => s.is_active);
   const selectedStaff = activeStaff.find((s) => s.id === Number(selectedStaffId));
-  const today = new Date().toISOString().substring(0, 10);
+  const today = todayLocalDate();
   const currentRecord = selectedStaff
     ? existingRecords.find((r) => r.staff_id === selectedStaff.id && r.attendance_date === today)
     : undefined;

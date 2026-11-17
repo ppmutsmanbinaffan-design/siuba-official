@@ -3,6 +3,7 @@ import { ensureLegacyDataPreserved } from '../../../services/localDataGuard';
 import { Staff, StaffType, StaffEmploymentStatus, User } from '../../../types';
 import { StaffIdentityResolver } from '../../../services/staffIdentityResolver';
 import { isDevelopmentToolsEnabled } from '../../../utils/devTools';
+import { todayLocalDate } from '../../../utils/today';
 
 export interface StaffListParams {
   page?: number;
@@ -254,7 +255,7 @@ export const staffApi = {
       email: payload.email?.trim() || '',
       department: payload.department?.trim() || '',
       position: payload.position?.trim() || '',
-      join_date: payload.join_date || new Date().toISOString().substring(0, 10),
+      join_date: payload.join_date || todayLocalDate(),
       requires_daily_attendance: payload.requires_daily_attendance !== undefined ? payload.requires_daily_attendance : true,
       is_active: payload.is_active !== undefined ? payload.is_active : true,
       user_id: payload.user_id || null,

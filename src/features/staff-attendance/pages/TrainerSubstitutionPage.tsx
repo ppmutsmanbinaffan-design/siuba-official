@@ -18,6 +18,7 @@ import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { LoadingState, EmptyState } from '../../../components/ui/LoadingState';
 import { formatDateIndonesian } from '../utils/staffAttendanceUtils';
+import { todayLocalDate } from '../../../utils/today';
 
 interface TrainerSubstitutionPageProps {
   currentUser: User;
@@ -41,7 +42,7 @@ export const TrainerSubstitutionPage: React.FC<TrainerSubstitutionPageProps> = (
   const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const today = new Date().toISOString().substring(0, 10);
+      const today = todayLocalDate();
       const [subsRes, sessionsRes] = await Promise.all([
         StaffAttendanceApi.getTrainerSubstitutions(),
         StaffAttendanceApi.getTrainingSessions(today),

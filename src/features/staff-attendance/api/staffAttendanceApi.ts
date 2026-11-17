@@ -28,6 +28,7 @@ import { StaffIdentityResolver } from '../../../services/staffIdentityResolver';
 import { AuditService } from '../../../services/auditService';
 
 import { apiClient, isOfflineError } from '../../../services/apiClient';
+import { todayLocalDate } from '../../../utils/today';
 
 /** Gabungkan presensi harian dari server ke cache lokal; presensi mengajar/melatih lokal tetap dipertahankan. */
 export function mergeServerDailyRecords(serverRecords: StaffAttendanceRecord[], datesToReplace: string[] = []): void {
@@ -74,15 +75,15 @@ export class StaffAttendanceApi {
   // ==========================================
   public static async getDailyRecords(dateStr?: string): Promise<{ data: StaffAttendanceRecord[]; error?: string }> {
     try {
-      const res: any = await apiClient.get('/staff-attendance/daily', { date: dateStr || new Date().toISOString().substring(0, 10) });
+      const res: any = await apiClient.get('/staff-attendance/daily', { date: dateStr || todayLocalDate() });
       if (Array.isArray(res?.data)) {
-        mergeServerDailyRecords(res.data, [dateStr || new Date().toISOString().substring(0, 10)]);
+        mergeServerDailyRecords(res.data, [dateStr || todayLocalDate()]);
         return { data: res.data };
       }
     } catch (err: any) {
       if (!isOfflineError(err)) return { data: [], error: err?.message || 'Gagal memuat presensi SDM.' };
     }
-    const today = dateStr || new Date().toISOString().substring(0, 10);
+    const today = dateStr || todayLocalDate();
     const records = StaffAttendanceService.getRecords().filter(
       r => r.attendance_type === 'daily' && r.attendance_date === today
     );
@@ -91,13 +92,13 @@ export class StaffAttendanceApi {
 
   public static async getDailySummary(dateStr?: string): Promise<{ data: StaffDailySummary; error?: string }> {
     try {
-      const res: any = await apiClient.get('/staff-attendance/daily/summary', { date: dateStr || new Date().toISOString().substring(0, 10) });
+      const res: any = await apiClient.get('/staff-attendance/daily/summary', { date: dateStr || todayLocalDate() });
       if (res?.data) return { data: res.data };
     } catch (err: any) {
       // gagal dari server: hitung dari cache lokal (sudah berisi data server terakhir)
       console.warn('Ringkasan presensi SDM dari server gagal:', err?.message);
     }
-    const today = dateStr || new Date().toISOString().substring(0, 10);
+    const today = dateStr || todayLocalDate();
     const staffList = StaffIdentityResolver.getStaffList().filter(s => s.is_active);
     const records = StaffAttendanceService.getRecords().filter(
       r => r.attendance_type === 'daily' && r.attendance_date === today
@@ -418,18 +419,59 @@ export class StaffAttendanceApi {
   }
 
   // ==========================================
-  // 3. KEHADIRAN MENGAJAR GURU (KBM)
+  // 3. KEHADIRAN MENGAJAR GURU (KBM) — tersimpan di server (tahap 19)
   // ==========================================
+  private static TEACHING_CACHE_KEY = 'siuba_teaching_sessions_server';
+
+  private static readTeachingCache(): Record<string, TeachingSession[]> {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(this.TEACHING_CACHE_KEY) || '{}');
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+    } catch {
+      return {};
+    }
+  }
+
+  private static writeTeachingCache(date: string, rows: TeachingSession[]): void {
+    try {
+      const all = this.readTeachingCache();
+      all[date] = rows;
+      // simpan 7 tanggal terakhir saja
+      const keys = Object.keys(all).sort().slice(-7);
+      localStorage.setItem(this.TEACHING_CACHE_KEY, JSON.stringify(Object.fromEntries(keys.map((k) => [k, all[k]]))));
+    } catch {
+      /* kuota penuh: abaikan */
+    }
+  }
+
+  private static errorMessage(err: any, fallback: string): string {
+    if (isOfflineError(err)) return 'Server tidak terjangkau. Presensi mengajar memerlukan koneksi ke server SIUBA.';
+    return err?.message || fallback;
+  }
+
   public static async getTeachingSessions(dateStr?: string): Promise<{ data: TeachingSession[]; error?: string }> {
-    const today = dateStr || new Date().toISOString().substring(0, 10);
-    const sessions = TeachingSessionService.getTeachingSessions(today);
-    return { data: sessions };
+    const date = dateStr || todayLocalDate();
+    try {
+      const res: any = await apiClient.get<TeachingSession[]>('/teaching/sessions', { date });
+      const rows: TeachingSession[] = Array.isArray(res?.data) ? res.data : [];
+      this.writeTeachingCache(date, rows);
+      return { data: rows };
+    } catch (err: any) {
+      const cached = this.readTeachingCache()[date];
+      if (cached && isOfflineError(err)) return { data: cached, error: 'Offline: menampilkan data terakhir dari server.' };
+      return { data: [], error: this.errorMessage(err, 'Gagal memuat sesi mengajar.') };
+    }
   }
 
   public static async getTeachingSessionById(id: number): Promise<{ data?: TeachingSession; error?: string }> {
-    const session = TeachingSessionService.getTeachingSessionById(id);
-    if (!session) return { error: 'Sesi mengajar tidak ditemukan.' };
-    return { data: session };
+    try {
+      const res: any = await apiClient.get<TeachingSession>(`/teaching/sessions/${id}`);
+      return { data: res?.data };
+    } catch (err: any) {
+      const cached = Object.values(this.readTeachingCache()).flat().find((s) => s.id === id);
+      if (cached && isOfflineError(err)) return { data: cached };
+      return { error: this.errorMessage(err, 'Sesi mengajar tidak ditemukan.') };
+    }
   }
 
   public static async getTeachingSessionDetail(id: number): Promise<{ data?: TeachingSession; error?: string }> {
@@ -437,31 +479,23 @@ export class StaffAttendanceApi {
   }
 
   public static async getTeachingSummary(dateStr?: string): Promise<{ data: TeachingAttendanceSummary; error?: string }> {
-    const today = dateStr || new Date().toISOString().substring(0, 10);
-    const sessions = TeachingSessionService.getTeachingSessions(today);
-    const records = StaffAttendanceService.getRecords().filter(
-      r => r.attendance_type === 'teaching' && r.attendance_date === today
-    );
-
-    let present = 0;
-    let late = 0;
-    let substituted = 0;
-    let cancelled = 0;
-    let unrecorded = 0;
-    let needsReview = 0;
-
-    sessions.forEach(s => {
-      const rec = records.find(r => r.context_id === s.id);
+    const date = dateStr || todayLocalDate();
+    const { data: sessions, error } = await this.getTeachingSessions(date);
+    let present = 0, late = 0, substituted = 0, cancelled = 0, unrecorded = 0, needsReview = 0;
+    sessions.forEach((s) => {
+      const st = s.teacher_attendance_status || 'unrecorded';
       if (s.status === 'cancelled') cancelled++;
-      else if (s.status === 'substituted' || s.substitution_id) substituted++;
-      else if (rec?.status === 'present') present++;
-      else if (rec?.status === 'late') late++;
-      else unrecorded++;
+      else {
+        if (s.is_substituted || s.substitution_id) substituted++;
+        if (st === 'present') present++;
+        else if (st === 'late') late++;
+        else if (st === 'unrecorded') unrecorded++;
+        else needsReview++; // izin / sakit / alpa
+      }
     });
-
     return {
       data: {
-        date: today,
+        date,
         total_sessions: sessions.length,
         total_present: present,
         total_late: late,
@@ -469,7 +503,8 @@ export class StaffAttendanceApi {
         total_cancelled: cancelled,
         total_unrecorded: unrecorded,
         total_needs_review: needsReview,
-      }
+      },
+      error,
     };
   }
 
@@ -477,205 +512,99 @@ export class StaffAttendanceApi {
     sessionId: number;
     staffId: number;
     substituteStaffId?: number | null;
+    status?: 'present' | 'permission' | 'sick' | 'absent';
     notes?: string;
     operatorName: string;
-  }): Promise<{ success: boolean; message: string; session?: TeachingSession; record?: StaffAttendanceRecord }> {
-    const session = TeachingSessionService.getTeachingSessionById(params.sessionId);
-    if (!session) {
-      return { success: false, message: 'Sesi mengajar tidak ditemukan.' };
+  }): Promise<{ success: boolean; message: string; session?: TeachingSession }> {
+    try {
+      const res: any = await apiClient.post(`/teaching/sessions/${params.sessionId}/manual`, {
+        staff_id: params.staffId,
+        status: params.status || 'present',
+        notes: params.notes || null,
+      });
+      return { success: true, message: res?.message || 'Presensi mengajar tercatat.', session: res?.data?.session };
+    } catch (err: any) {
+      return { success: false, message: this.errorMessage(err, 'Gagal mencatat presensi mengajar.') };
     }
-
-    if (session.status === 'cancelled') {
-      return { success: false, message: 'Sesi mengajar ini telah dibatalkan.' };
-    }
-
-    const staff = StaffIdentityResolver.resolveById(params.staffId);
-    if (!staff) {
-      return { success: false, message: 'Data guru tidak ditemukan.' };
-    }
-
-    const isAssigned = session.scheduled_teacher_staff_id === params.staffId || 
-      session.actual_teacher_staff_id === params.staffId || 
-      (params.substituteStaffId && params.substituteStaffId === params.staffId);
-    if (!isAssigned) {
-      return {
-        success: false,
-        message: 'Guru tidak ditugaskan pada sesi mengajar ini (Gunakan fitur Guru Pengganti resmi jika menggantikan).'
-      };
-    }
-
-    const now = new Date().toISOString();
-    const startTime = session.scheduled_start_at.includes('T') ? session.scheduled_start_at.substring(11, 16) : session.scheduled_start_at;
-    const endTime = session.scheduled_end_at.includes('T') ? session.scheduled_end_at.substring(11, 16) : session.scheduled_end_at;
-    const scheduledStart = session.scheduled_start_at.includes('T') ? session.scheduled_start_at : `${session.session_date}T${startTime}:00+07:00`;
-    const scheduledEnd = session.scheduled_end_at.includes('T') ? session.scheduled_end_at : `${session.session_date}T${endTime}:00+07:00`;
-    
-    // Server calculates late minutes
-    let lateMinutes = 0;
-    const nowTimeStr = now.substring(11, 16);
-    if (nowTimeStr > startTime) {
-      const [sh, sm] = startTime.split(':').map(Number);
-      const [nh, nm] = nowTimeStr.split(':').map(Number);
-      lateMinutes = Math.max(0, (nh * 60 + nm) - (sh * 60 + sm));
-    }
-
-    const status: StaffAttendanceStatus = lateMinutes > 5 ? 'late' : 'present';
-
-    // Update Teaching Session
-    session.actual_teacher_staff_id = params.staffId;
-    session.actual_teacher_name = staff.name;
-    session.status = 'open';
-    session.updated_at = now;
-
-    // Save
-    const sessions = TeachingSessionService.getTeachingSessions();
-    const sIndex = sessions.findIndex(s => s.id === session.id);
-    if (sIndex >= 0) {
-      sessions[sIndex] = session;
-      TeachingSessionService.saveTeachingSessions(sessions);
-    }
-
-    // Save Staff Attendance Record (Type: Teaching)
-    const records = StaffAttendanceService.getRecords();
-    const existingRecIdx = records.findIndex(
-      r => r.staff_id === staff.id && r.attendance_type === 'teaching' && r.context_id === session.id
-    );
-
-    const teachingRecord: StaffAttendanceRecord = {
-      id: Date.now() + Math.floor(Math.random() * 1000),
-      staff_id: staff.id,
-      staff_name: staff.name,
-      staff_number: staff.staff_number,
-      staff_type: staff.staff_type,
-      attendance_date: session.session_date,
-      attendance_type: 'teaching',
-      context_type: 'academic_session',
-      context_id: session.id,
-      context_name: `${session.subject_name} — ${session.classroom_name}`,
-      scheduled_start_at: scheduledStart,
-      scheduled_end_at: scheduledEnd,
-      check_in_at: now,
-      check_out_at: null,
-      status: status,
-      check_in_method: 'manual',
-      late_minutes: lateMinutes,
-      early_leave_minutes: 0,
-      recorded_by: params.operatorName,
-      notes: params.notes || (lateMinutes > 0 ? `Terlambat ${lateMinutes} menit` : 'Tepat waktu'),
-      created_at: now,
-      updated_at: now,
-    };
-
-    if (existingRecIdx >= 0) {
-      records[existingRecIdx] = teachingRecord;
-    } else {
-      records.unshift(teachingRecord);
-    }
-    StaffAttendanceService.saveRecords(records);
-
-    AuditService.log({
-      event: 'staff_teaching_manual',
-      auditable_type: 'TeachingSession',
-      auditable_id: session.id,
-      auditable_name: `${session.subject_name} (${session.classroom_name}) - ${staff.name}`,
-      new_values: session,
-      reason: `Presensi mengajar manual: ${staff.name} (${status.toUpperCase()})`,
-      user: { id: 1, name: params.operatorName, role: 'Teacher' }
-    });
-
-    return {
-      success: true,
-      message: `Presensi mengajar ${session.subject_name} untuk ${staff.name} berhasil dicatat (${status === 'late' ? `Terlambat ${lateMinutes}m` : 'Hadir'}).`,
-      session,
-      record: teachingRecord
-    };
   }
 
   public static async recordTeachingAttendanceScan(params: {
-    sessionId: number;
+    sessionId?: number | null;
     qrToken: string;
+    method?: 'qr' | 'rfid' | 'manual';
     operatorName: string;
   }): Promise<StaffScanFeedbackItem> {
-    const session = TeachingSessionService.getTeachingSessionById(params.sessionId);
-    if (!session) {
+    const base = { id: String(Date.now()), timestamp: new Date().toISOString(), attendanceType: 'teaching' as const };
+    try {
+      const res: any = await apiClient.post('/teaching/scan', {
+        identifier: params.qrToken,
+        session_id: params.sessionId || undefined,
+        method: params.method || 'qr',
+      });
+      const d = res?.data || {};
+      const sess: TeachingSession | undefined = d.session;
       return {
-        id: String(Date.now()),
-        timestamp: new Date().toISOString(),
-        resultCode: 'SESSION_NOT_FOUND',
+        ...base,
+        resultCode: 'SUCCESS',
+        success: true,
+        message: res?.message || 'Presensi mengajar tercatat.',
+        staffName: sess?.actual_teacher_name || sess?.teacher_name || undefined,
+        status: d.status,
+        method: params.method || 'qr',
+        mode: d.mode === 'check_out' ? 'CHECK_OUT' : d.mode === 'check_in' ? 'CHECK_IN' : 'RECORDED',
+        checkInAt: sess?.teacher_check_in_at || undefined,
+        lateMinutes: d.late_minutes || 0,
+        contextName: sess ? `${sess.subject_name} — ${sess.classroom_name}` : undefined,
+      };
+    } catch (err: any) {
+      return {
+        ...base,
+        resultCode: err?.code || (isOfflineError(err) ? 'OFFLINE' : 'ERROR'),
         success: false,
-        message: 'Sesi mengajar tidak ditemukan.',
-        attendanceType: 'teaching',
+        message: this.errorMessage(err, 'Presensi mengajar gagal.'),
       };
     }
+  }
 
-    if (session.status === 'cancelled') {
-      return {
-        id: String(Date.now()),
-        timestamp: new Date().toISOString(),
-        resultCode: 'SESSION_CANCELLED',
-        success: false,
-        message: 'Sesi mengajar ini telah dibatalkan oleh pihak akademik.',
-        attendanceType: 'teaching',
-      };
+  /** Jurnal mengajar: materi, catatan, jumlah santri hadir. */
+  public static async submitTeachingJournal(params: {
+    sessionId: number;
+    topic: string;
+    notes?: string;
+    studentPresentCount?: number | null;
+  }): Promise<{ success: boolean; message: string }> {
+    try {
+      const res: any = await apiClient.post(`/teaching/sessions/${params.sessionId}/journal`, {
+        topic: params.topic,
+        journal_notes: params.notes || null,
+        student_present_count: params.studentPresentCount ?? null,
+      });
+      return { success: true, message: res?.message || 'Jurnal mengajar tersimpan.' };
+    } catch (err: any) {
+      return { success: false, message: this.errorMessage(err, 'Gagal menyimpan jurnal mengajar.') };
     }
+  }
 
-    const staff = StaffIdentityResolver.resolveByQrToken(params.qrToken) || StaffIdentityResolver.resolveById(Number(params.qrToken));
-    if (!staff) {
-      return {
-        id: String(Date.now()),
-        timestamp: new Date().toISOString(),
-        resultCode: 'STAFF_NOT_FOUND',
-        success: false,
-        message: 'QR Token staf tidak valid atau data staf tidak ditemukan.',
-        attendanceType: 'teaching',
-      };
+  /** Akhir hari: sesi KBM tanpa presensi guru ditandai alpa. */
+  public static async finalizeTeachingDay(dateStr?: string): Promise<{ success: boolean; message: string }> {
+    try {
+      const res: any = await apiClient.post('/teaching/finalize', { date: dateStr || todayLocalDate() });
+      return { success: true, message: res?.message || 'Finalisasi selesai.' };
+    } catch (err: any) {
+      return { success: false, message: this.errorMessage(err, 'Finalisasi gagal.') };
     }
-
-    const isAssigned = session.scheduled_teacher_staff_id === staff.id || session.actual_teacher_staff_id === staff.id;
-    if (!isAssigned) {
-      return {
-        id: String(Date.now()),
-        timestamp: new Date().toISOString(),
-        resultCode: 'NOT_ASSIGNED_TO_TEACHING_SESSION',
-        success: false,
-        message: `Guru ${staff.name} tidak ditugaskan pada sesi mengajar ${session.subject_name} (${session.classroom_name}).`,
-        staff,
-        staffName: staff.name,
-        staffType: staff.staff_type,
-        attendanceType: 'teaching',
-      };
-    }
-
-    const res = await this.recordTeachingAttendanceManual({
-      sessionId: params.sessionId,
-      staffId: staff.id,
-      operatorName: params.operatorName,
-    });
-
-    return {
-      id: String(Date.now()),
-      timestamp: new Date().toISOString(),
-      resultCode: res.success ? 'SUCCESS' : 'ERROR',
-      success: res.success,
-      message: res.message,
-      staff,
-      staffName: staff.name,
-      staffNumber: staff.staff_number,
-      staffType: staff.staff_type,
-      attendanceType: 'teaching',
-      status: res.record?.status,
-      method: 'qr',
-      lateMinutes: res.record?.late_minutes || 0,
-      contextName: `${session.subject_name} — ${session.classroom_name}`,
-    };
   }
 
   // ==========================================
-  // 4. GURU PENGGANTI (SUBSTITUTION)
+  // 4. GURU PENGGANTI (SUBSTITUTION) — server
   // ==========================================
   public static async getTeacherSubstitutions(): Promise<{ data: AcademicSubstitution[]; error?: string }> {
-    const subs = TeacherSubstitutionService.getSubstitutions();
-    return { data: subs };
+    try {
+      const res: any = await apiClient.get<AcademicSubstitution[]>('/teaching/substitutions');
+      return { data: Array.isArray(res?.data) ? res.data : [] };
+    } catch (err: any) {
+      return { data: [], error: this.errorMessage(err, 'Gagal memuat data guru pengganti.') };
+    }
   }
 
   public static async createTeacherSubstitution(params: {
@@ -687,14 +616,24 @@ export class StaffAttendanceApi {
     reason: string;
     assignedBy: string;
   }): Promise<{ success: boolean; message: string; substitution?: AcademicSubstitution }> {
-    return TeacherSubstitutionService.assignSubstitution(params);
+    try {
+      const res: any = await apiClient.post('/teaching/substitutions', {
+        academic_schedule_id: params.academicScheduleId,
+        substitute_staff_id: params.substituteTeacherStaffId,
+        date: params.date,
+        reason: params.reason,
+      });
+      return { success: true, message: res?.message || 'Guru pengganti ditetapkan.', substitution: res?.data };
+    } catch (err: any) {
+      return { success: false, message: this.errorMessage(err, 'Gagal menetapkan guru pengganti.') };
+    }
   }
 
   // ==========================================
   // 5. KEHADIRAN MELATIH PEMBINA EKSTRAKURIKULER
   // ==========================================
   public static async getTrainingSessions(dateStr?: string): Promise<{ data: TrainingSession[]; error?: string }> {
-    const today = dateStr || new Date().toISOString().substring(0, 10);
+    const today = dateStr || todayLocalDate();
     const sessions = TrainingSessionService.getTrainingSessions(today);
     return { data: sessions };
   }
@@ -710,7 +649,7 @@ export class StaffAttendanceApi {
   }
 
   public static async getTrainingSummary(dateStr?: string): Promise<{ data: TrainingAttendanceSummary; error?: string }> {
-    const today = dateStr || new Date().toISOString().substring(0, 10);
+    const today = dateStr || todayLocalDate();
     const sessions = TrainingSessionService.getTrainingSessions(today);
     const records = StaffAttendanceService.getRecords().filter(
       r => r.attendance_type === 'training' && r.attendance_date === today

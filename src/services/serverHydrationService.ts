@@ -22,6 +22,7 @@ import type {
   User,
 } from '../types';
 import { mergeServerDailyRecords } from '../features/staff-attendance/api/staffAttendanceApi';
+import { todayLocalDate } from '../utils/today';
 
 export interface AcademicMaster {
   academic_years: any[];
@@ -223,7 +224,7 @@ export function persistSnapshotToCache(snap: ServerSnapshot): void {
   write('siuba_master_staff', snap.staff);
   write('siuba_student_excusals_v1', snap.excusals);
   write('siuba_staff_absence_requests', snap.staffAbsences);
-  if (snap.staffDaily) mergeServerDailyRecords(snap.staffDaily, [new Date().toISOString().substring(0, 10)]);
+  if (snap.staffDaily) mergeServerDailyRecords(snap.staffDaily, [todayLocalDate()]);
   write('siuba_staff_master', snap.staff); // daftar SDM yang dibaca halaman Presensi SDM
   try {
     if (snap.students) localStorage.setItem('siuba_students_cache_source', 'server');

@@ -1,5 +1,4 @@
 import { AcademicSubstitution, AcademicSchedule, Staff } from '../types';
-import { INITIAL_ACADEMIC_SUBSTITUTIONS, INITIAL_ACADEMIC_SCHEDULES } from '../data/initialData';
 import { AuditService } from './auditService';
 import { StaffIdentityResolver } from './staffIdentityResolver';
 
@@ -7,7 +6,7 @@ export class TeacherSubstitutionService {
   private static STORAGE_KEY = 'siuba_teacher_substitutions';
 
   public static getInitialSubstitutions(): AcademicSubstitution[] {
-    return [...INITIAL_ACADEMIC_SUBSTITUTIONS];
+    return [];
   }
 
   public static getSubstitutions(): AcademicSubstitution[] {
@@ -179,7 +178,7 @@ export class TeacherSubstitutionService {
     reason: string;
     assignedBy: string;
   }): { success: boolean; substitution?: AcademicSubstitution; message: string } {
-    let schedules: AcademicSchedule[] = INITIAL_ACADEMIC_SCHEDULES;
+    let schedules: AcademicSchedule[] = [];
     try {
       const stored = localStorage.getItem('siuba_academic_schedules');
       if (stored) schedules = JSON.parse(stored);

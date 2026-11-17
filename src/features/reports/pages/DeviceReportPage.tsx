@@ -34,6 +34,7 @@ import { ReportPagination } from '../components/ReportPagination';
 import { ReportDetailModal } from '../components/ReportDetailModal';
 import { ReportPrintView } from '../components/ReportPrintView';
 import { ActiveFilterChip, PaginationState } from '../types';
+import { todayLocalDate } from '../../../utils/today';
 
 interface Props {
   currentUser: User;
@@ -172,7 +173,7 @@ export const DeviceReportPage: React.FC<Props> = ({
       const encodedUri = encodeURI(csvContent);
       const link = document.createElement('a');
       link.setAttribute('href', encodedUri);
-      link.setAttribute('download', `SIUBA_Laporan_Perangkat_${subView}_${new Date().toISOString().slice(0, 10)}.csv`);
+      link.setAttribute('download', `SIUBA_Laporan_Perangkat_${subView}_${todayLocalDate()}.csv`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);

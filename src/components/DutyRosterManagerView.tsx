@@ -21,6 +21,7 @@ import {
   MapPin
 } from 'lucide-react';
 import { Activity, DutyRoster, Student, User } from '../types';
+import { todayLocalDate } from '../utils/today';
 
 interface DutyRosterManagerViewProps {
   activities?: Activity[];
@@ -43,7 +44,7 @@ export const DutyRosterManagerView: React.FC<DutyRosterManagerViewProps> = ({
   const safeDutyRosters = dutyRosters || [];
   const safeStudents = students || [];
 
-  const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().slice(0, 10));
+  const [selectedDate, setSelectedDate] = useState<string>(todayLocalDate());
   const [selectedActivityId, setSelectedActivityId] = useState<number | 'all'>('all');
   const [selectedRoleFilter, setSelectedRoleFilter] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState<string>('');

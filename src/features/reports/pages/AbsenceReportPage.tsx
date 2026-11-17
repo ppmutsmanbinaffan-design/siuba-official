@@ -30,6 +30,7 @@ import { ReportPagination } from '../components/ReportPagination';
 import { ReportDetailModal } from '../components/ReportDetailModal';
 import { ReportPrintView } from '../components/ReportPrintView';
 import { ActiveFilterChip, PaginationState } from '../types';
+import { todayLocalDate } from '../../../utils/today';
 
 interface Props {
   currentUser: User;
@@ -44,7 +45,7 @@ export const AbsenceReportPage: React.FC<Props> = ({
   onBackToHub,
   onShowToast,
 }) => {
-  const todayStr = new Date().toISOString().substring(0, 10);
+  const todayStr = todayLocalDate();
   const firstDayOfMonth = todayStr.substring(0, 7) + '-01';
 
   const [dateFrom, setDateFrom] = useState<string>(initialFilters.date_from || firstDayOfMonth);

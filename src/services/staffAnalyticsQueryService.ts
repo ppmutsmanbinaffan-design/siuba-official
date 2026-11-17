@@ -15,6 +15,7 @@ import { StaffAttendanceService } from './staffAttendanceService';
 import { TeachingSessionService } from './teachingSessionService';
 import { TrainingSessionService } from './trainingSessionService';
 import { StaffAttendanceMetricService } from './staffAttendanceMetricService';
+import { todayLocalDate } from '../utils/today';
 
 export class StaffAnalyticsQueryService {
   /**
@@ -22,7 +23,7 @@ export class StaffAnalyticsQueryService {
    * Isolates the 3 domains (Daily, Teaching, Training) into separate non-conflated KPI models.
    */
   public static getIntegratedDashboardData(
-    dateStr: string = new Date().toISOString().substring(0, 10),
+    dateStr: string = todayLocalDate(),
     user?: User
   ): StaffIntegratedDashboardData {
     const allStaff = StaffIdentityResolver.getStaffList();

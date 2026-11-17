@@ -1,5 +1,6 @@
 import { Staff, Gender, StaffType, StaffEmploymentStatus } from '../types';
 import { AuditService } from './auditService';
+import { todayLocalDate } from '../utils/today';
 
 export class StaffIdentityResolver {
   private static STORAGE_KEY = 'siuba_staff_master';
@@ -474,7 +475,7 @@ export class StaffIdentityResolver {
     }
 
     const oldStaff = { ...list[index] };
-    const today = new Date().toISOString().substring(0, 10);
+    const today = todayLocalDate();
     
     list[index].is_active = false;
     list[index].leave_date = list[index].leave_date || today;

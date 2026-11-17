@@ -346,10 +346,10 @@ export const EventsManagerView: React.FC<EventsManagerViewProps> = ({
       student_number: st.student_number,
       classroom_name: st.classroom_name || '-',
       status: 'approved',
-      registered_at: new Date().toISOString().slice(0, 10),
+      registered_at: todayLocalDate(),
       registration_source: 'admin_assignment',
       approved_by: currentUser.name,
-      approved_at: new Date().toISOString().slice(0, 10),
+      approved_at: todayLocalDate(),
     });
 
     setShowAddRegistrationModal(false);

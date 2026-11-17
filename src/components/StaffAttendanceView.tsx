@@ -57,13 +57,15 @@ import { StaffAttendanceService } from '../services/staffAttendanceService';
 import { StaffAttendanceMetricService } from '../services/staffAttendanceMetricService';
 import { StaffWorkScheduleResolver } from '../services/staffWorkScheduleResolver';
 import { AudioFeedbackService } from '../services/audioFeedbackService';
+import { todayLocalDate } from '../utils/today';
+import { TeachingAttendanceModule } from '../features/staff-attendance/pages/TeachingAttendanceModule';
 
 interface StaffAttendanceViewProps {
   currentUser?: User;
   sessions?: AttendanceSession[];
 }
 
-type TabType = 'DASHBOARD' | 'DAILY' | 'LEAVE' | 'SCHEDULES' | 'MASTER' | 'REPORTS' | 'ROADMAP';
+type TabType = 'DASHBOARD' | 'DAILY' | 'TEACHING' | 'LEAVE' | 'SCHEDULES' | 'MASTER' | 'REPORTS' | 'ROADMAP';
 
 export const StaffAttendanceView: React.FC<StaffAttendanceViewProps> = ({
   currentUser = { id: 1, name: 'Admin', role: 'admin', email: 'admin@pesantren.id', username: 'admin', is_active: true },
@@ -71,7 +73,7 @@ export const StaffAttendanceView: React.FC<StaffAttendanceViewProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<TabType>('DASHBOARD');
   const [isTabDropdownOpen, setIsTabDropdownOpen] = useState<boolean>(false);
-  const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().substring(0, 10));
+  const [selectedDate, setSelectedDate] = useState<string>(todayLocalDate());
   const [staffList, setStaffList] = useState<Staff[]>([]);
   const [records, setRecords] = useState<StaffAttendanceRecord[]>([]);
   const [absenceRequests, setAbsenceRequests] = useState<StaffAbsenceRequest[]>([]);
@@ -131,8 +133,8 @@ export const StaffAttendanceView: React.FC<StaffAttendanceViewProps> = ({
   const [absenceStaffId, setAbsenceStaffId] = useState<number>(1);
   const [absenceType, setAbsenceType] = useState<'permission' | 'sick' | 'leave' | 'official_duty'>('permission');
   const [absenceReason, setAbsenceReason] = useState<string>('');
-  const [absenceStartDate, setAbsenceStartDate] = useState<string>(new Date().toISOString().substring(0, 10));
-  const [absenceEndDate, setAbsenceEndDate] = useState<string>(new Date().toISOString().substring(0, 10));
+  const [absenceStartDate, setAbsenceStartDate] = useState<string>(todayLocalDate());
+  const [absenceEndDate, setAbsenceEndDate] = useState<string>(todayLocalDate());
   const [absenceAutoApprove, setAbsenceAutoApprove] = useState<boolean>(true);
 
   // Schedule Modal
@@ -648,6 +650,7 @@ export const StaffAttendanceView: React.FC<StaffAttendanceViewProps> = ({
           const STAFF_TABS = [
             { id: 'DASHBOARD' as TabType, label: 'Dashboard & Scanner', desc: 'Ringkasan presensi harian & fast scanning RFID/QR', icon: Layers, badge: 'Live Fast-Tap' },
             { id: 'DAILY' as TabType, label: 'Kehadiran Hari Ini', desc: 'Daftar absensi pegawai, log tap, jam masuk & pulang', icon: UserCheck, badge: `${dailySummary.present + dailySummary.late}/${dailySummary.total_staff} Hadir` },
+            { id: 'TEACHING' as TabType, label: 'Presensi Mengajar (KBM)', desc: 'Kehadiran guru per jam pelajaran, jurnal mengajar & guru pengganti', icon: BookOpen, badge: 'KBM' },
             { id: 'LEAVE' as TabType, label: 'Izin, Sakit & Cuti', desc: 'Pengajuan & verifikasi dispensasi kerja SDM', icon: FileText, badge: `${absenceRequests.length} Pengajuan` },
             { id: 'SCHEDULES' as TabType, label: 'Jadwal Kerja', desc: 'Pengaturan shift reguler, piket & asrama', icon: Clock, badge: '5 Shift Kerja' },
             { id: 'MASTER' as TabType, label: 'Master SDM & Kartu', desc: 'Database profil ustadz, guru & cetak kartu RFID/QR', icon: Users, badge: `${staffList.length} Pegawai` },
@@ -1166,6 +1169,10 @@ export const StaffAttendanceView: React.FC<StaffAttendanceViewProps> = ({
       {/* ========================================================================= */}
       {/* TAB 3: IZIN, SAKIT, CUTI & DINAS SDM */}
       {/* ========================================================================= */}
+      {activeTab === 'TEACHING' && (
+        <TeachingAttendanceModule currentUser={currentUser as User} staffList={staffList} />
+      )}
+
       {activeTab === 'LEAVE' && (
         <div className="space-y-6">
           <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">

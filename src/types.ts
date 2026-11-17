@@ -1810,6 +1810,16 @@ export interface TeachingSession {
   cancelled_at?: string | null;
   notes?: string | null;
   teaching_journal_id?: number | null;
+  /** Jurnal mengajar & presensi guru dari server (tahap 19) */
+  teacher_check_out_at?: string | null;
+  teacher_attendance_notes?: string | null;
+  teacher_has_account?: boolean;
+  topic?: string | null;
+  journal_notes?: string | null;
+  student_present_count?: number | null;
+  realization_status?: 'pending' | 'submitted' | string;
+  journal_submitted_by?: string | null;
+  journal_submitted_at?: string | null;
   created_at?: string;
   updated_at?: string;
 }

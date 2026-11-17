@@ -22,6 +22,7 @@ import { TrainingSessionService } from './trainingSessionService';
 import { TrainingAttendanceContextResolver } from './trainingAttendanceContextResolver';
 import { ExtracurricularStaffAssignmentService } from './extracurricularStaffAssignmentService';
 import { TrainerSubstitutionService } from './trainerSubstitutionService';
+import { todayLocalDate } from '../utils/today';
 
 export class StaffAttendanceService {
   private static RECORDS_KEY = 'siuba_staff_attendance_records';
@@ -29,7 +30,7 @@ export class StaffAttendanceService {
   private static ASSIGNMENTS_KEY = 'siuba_extracurricular_staff_assignments';
 
   public static getInitialRecords(): StaffAttendanceRecord[] {
-    const today = new Date().toISOString().substring(0, 10);
+    const today = todayLocalDate();
     return [
       {
         id: 1,
@@ -152,7 +153,7 @@ export class StaffAttendanceService {
     } catch (e) {
       console.warn('Failed to parse absence requests', e);
     }
-    const today = new Date().toISOString().substring(0, 10);
+    const today = todayLocalDate();
     const initial: StaffAbsenceRequest[] = [
       {
         id: 1,

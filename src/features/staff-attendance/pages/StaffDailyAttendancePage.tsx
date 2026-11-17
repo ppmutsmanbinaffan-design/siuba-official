@@ -31,6 +31,7 @@ import { Select } from '../../../components/ui/Select';
 import { LoadingState, EmptyState } from '../../../components/ui/LoadingState';
 import { PersonAvatar } from '../../../components/common/PersonAvatar';
 import { formatStaffType, formatTimeWib, formatDateIndonesian } from '../utils/staffAttendanceUtils';
+import { todayLocalDate } from '../../../utils/today';
 
 interface StaffDailyAttendancePageProps {
   currentUser: User;
@@ -47,7 +48,7 @@ export const StaffDailyAttendancePage: React.FC<StaffDailyAttendancePageProps> =
   showToast,
   initialFilterStatus,
 }) => {
-  const today = new Date().toISOString().substring(0, 10);
+  const today = todayLocalDate();
   const [selectedDate, setSelectedDate] = useState<string>(today);
   const [records, setRecords] = useState<StaffAttendanceRecord[]>([]);
   const [summary, setSummary] = useState<StaffDailySummary | null>(null);
