@@ -8,24 +8,18 @@ import {
   AttendanceSession, 
   AttendanceSessionParticipant, 
   LessonPeriod, 
-  Student, 
   Teacher, 
   User 
 } from '../types';
 import { TeacherAuthorizationService } from '../services/teacherAuthorizationService';
 import { AcademicAttendanceService } from '../services/academicAttendanceService';
 import { 
-  AlertCircle, 
   BookOpen, 
-  CheckCircle2, 
-  Clock, 
   Copy, 
-  DoorOpen, 
   Lock, 
   Play, 
   QrCode, 
   Radio, 
-  ShieldAlert, 
   Sparkles, 
   UserCheck, 
   Users 

@@ -3,15 +3,11 @@ import {
   BookOpen, 
   ArrowLeft, 
   Clock, 
-  Calendar, 
   Users, 
   QrCode, 
   CheckCircle2, 
   AlertTriangle, 
-  ShieldCheck, 
-  FileText,
-  UserCheck
-} from 'lucide-react';
+  ShieldCheck} from 'lucide-react';
 import { User, Staff, TeachingSession } from '../../../types';
 import { StaffAttendanceApi } from '../api/staffAttendanceApi';
 import { StaffAttendanceStatusBadge } from '../components/StaffAttendanceStatusBadge';

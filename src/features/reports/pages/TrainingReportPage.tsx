@@ -1,22 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { getInstitution, useInstitution, institutionContactLine } from '../../../services/institutionService';
 import { useServerStaffReportData } from '../useServerStaffReportData';
 import { 
-  Award, 
   Search, 
-  Calendar, 
-  Filter, 
-  Download, 
-  Printer, 
-  Eye, 
-  CheckCircle2, 
-  Clock, 
-  AlertCircle, 
-  UserCheck,
-  FileSpreadsheet,
-  Layers,
-  ChevronRight
-} from 'lucide-react';
+  Eye} from 'lucide-react';
 import { 
   User, 
   DailyTrainingReportItem, 

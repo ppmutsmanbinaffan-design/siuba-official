@@ -1,23 +1,9 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { getInstitution, useInstitution, institutionContactLine } from '../../../services/institutionService';
 import { apiClient, isOfflineError } from '../../../services/apiClient';
 import { todayLocalDate } from '../../../utils/today';
 import { 
-  Users, 
   Search, 
-  Calendar, 
-  Filter, 
-  Download, 
-  Printer, 
-  Eye, 
-  CheckCircle2, 
-  Clock, 
-  AlertCircle, 
-  X,
-  FileSpreadsheet,
-  ChevronRight,
-  ShieldAlert
-} from 'lucide-react';
+  Eye} from 'lucide-react';
 import { 
   AttendanceRecord, 
   AttendanceSession, 
@@ -31,14 +17,13 @@ import {
   AttendanceMethod
 } from '../../../types';
 import { StudentReportQueryService, StudentDailyReportItem, StudentRecapItem, ClassRecapItem } from '../../../services/studentReportQueryService';
-import { ReportExportService } from '../../../services/reportExportService';
 import { ReportHeader } from '../components/ReportHeader';
 import { ReportFilterBar } from '../components/ReportFilterBar';
 import { ReportFilterDrawer } from '../components/ReportFilterDrawer';
 import { ReportPagination } from '../components/ReportPagination';
 import { ReportDetailModal } from '../components/ReportDetailModal';
 import { ReportPrintView } from '../components/ReportPrintView';
-import { ActiveFilterChip, PaginationState, StudentReportSubView } from '../types';
+import { ActiveFilterChip, StudentReportSubView } from '../types';
 
 interface Props {
   currentUser: User;

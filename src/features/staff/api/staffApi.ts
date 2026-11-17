@@ -2,7 +2,6 @@ import { apiClient, isOfflineError } from '../../../services/apiClient';
 import { ensureLegacyDataPreserved } from '../../../services/localDataGuard';
 import { Staff, StaffType, StaffEmploymentStatus, User } from '../../../types';
 import { StaffIdentityResolver } from '../../../services/staffIdentityResolver';
-import { isDevelopmentToolsEnabled } from '../../../utils/devTools';
 import { todayLocalDate } from '../../../utils/today';
 
 export interface StaffListParams {

@@ -2,15 +2,10 @@ import React, { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
 import { 
   Printer, 
-  Filter, 
-  Grid, 
   CreditCard, 
   Tag, 
-  Layers, 
   School, 
-  Building, 
   User, 
-  Sparkles,
   CheckCircle2
 } from 'lucide-react';
 import { Classroom, Dormitory, DormitoryRoom, Student } from '../types';
@@ -94,7 +89,7 @@ export const QrBulkPrintView: React.FC<QrBulkPrintViewProps> = ({
           <div>
             <div className="flex items-center gap-2 mb-1">
               <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-white/15 text-emerald-100 border border-white/20 backdrop-blur-xs">
-                Sprint 4 • QR Generator & Printing
+                QR Generator & Cetak Kartu
               </span>
               <span className="text-xs text-emerald-100/80">Local Vector Rendering</span>
             </div>

@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { CheckCircle2, Clock, AlertTriangle, XCircle, LogOut, UserCheck, ShieldAlert, Sparkles, BookOpen, Award } from 'lucide-react';
+import { CheckCircle2, Clock, AlertTriangle, XCircle, LogOut, Sparkles, BookOpen, Award } from 'lucide-react';
 import { StaffScanFeedbackItem } from '../types';
 import { StaffAttendanceStatusBadge } from './StaffAttendanceStatusBadge';
 import { AudioFeedbackService } from '../../../services/audioFeedbackService';

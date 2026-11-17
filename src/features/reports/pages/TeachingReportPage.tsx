@@ -1,22 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { getInstitution, useInstitution, institutionContactLine } from '../../../services/institutionService';
 import { useServerStaffReportData } from '../useServerStaffReportData';
 import { 
-  BookOpen, 
   Search, 
-  Calendar, 
-  Filter, 
-  Download, 
-  Printer, 
-  Eye, 
-  CheckCircle2, 
-  Clock, 
-  AlertCircle, 
-  UserCheck,
-  FileSpreadsheet,
-  Layers,
-  ChevronRight
-} from 'lucide-react';
+  Eye} from 'lucide-react';
 import { 
   User, 
   DailyTeachingReportItem, 
@@ -25,7 +11,6 @@ import {
 } from '../../../types';
 import { StaffReportQueryService } from '../../../services/staffReportQueryService';
 import { StaffIdentityResolver } from '../../../services/staffIdentityResolver';
-import { TeachingSessionService } from '../../../services/teachingSessionService';
 import { ReportHeader } from '../components/ReportHeader';
 import { ReportFilterBar } from '../components/ReportFilterBar';
 import { ReportPagination } from '../components/ReportPagination';

@@ -8,16 +8,7 @@ import {
   User 
 } from '../types';
 import { 
-  Calendar, 
-  Clock, 
   Plus, 
-  Edit2, 
-  Trash2, 
-  CheckCircle2, 
-  AlertCircle, 
-  Sparkles, 
-  Layers, 
-  UserCheck, 
   SlidersHorizontal 
 } from 'lucide-react';
 import { todayLocalDate } from '../utils/today';

@@ -5,10 +5,7 @@ import {
   Database, 
   ShieldCheck, 
   FileText, 
-  Sliders, 
-  ShieldAlert,
-  Lock
-} from 'lucide-react';
+  Sliders} from 'lucide-react';
 import { MaintenanceSubTab, MaintenanceSystemConfig, BackupRecord } from '../types';
 import { MaintenanceService } from '../services/maintenanceService';
 import { User } from '../../../types';

@@ -1,5 +1,5 @@
 import { apiClient, isOfflineError } from './apiClient';
-import { SecuritySettingConfig, User } from '../types';
+import { SecuritySettingConfig } from '../types';
 import { AuditService } from './auditService';
 
 const STORAGE_KEY_SECURITY_CONFIG = 'siuba_security_config';
@@ -36,30 +36,6 @@ export class SecurityConfigService {
     return { ...DEFAULT_CONFIG };
   }
 
-  /**
-   * Update security settings with audit log
-   */
-  public static updateConfig(newConfig: Partial<SecuritySettingConfig>, user: User, reason: string): { success: boolean; config: SecuritySettingConfig } {
-    const current = this.getConfig();
-    const updated: SecuritySettingConfig = { ...current, ...newConfig };
-
-    try {
-      localStorage.setItem(STORAGE_KEY_SECURITY_CONFIG, JSON.stringify(updated));
-    } catch {}
-
-    AuditService.log({
-      event: 'security_setting_changed',
-      auditable_type: 'SecurityConfiguration',
-      auditable_id: 'SYSTEM_CONFIG',
-      auditable_name: 'Konfigurasi Keamanan & Kebijakan Akses',
-      old_values: current,
-      new_values: updated,
-      reason: reason || 'Pembaruan parameter kebijakan keamanan sistem oleh admin',
-      user
-    });
-
-    return { success: true, config: updated };
-  }
 
   /** Ambil kebijakan keamanan dari server (GET /settings → security) dan simpan ke cache perangkat. */
   public static async syncFromServer(): Promise<SecuritySettingConfig | null> {
@@ -103,10 +79,4 @@ export class SecurityConfigService {
     }
   }
 
-  /**
-   * Reset config to secure default values
-   */
-  public static resetToDefault(user: User): SecuritySettingConfig {
-    return this.updateConfig(DEFAULT_CONFIG, user, 'Reset konfigurasi keamanan ke nilai default aman').config;
-  }
 }

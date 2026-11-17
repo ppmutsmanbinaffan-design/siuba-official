@@ -4,11 +4,7 @@ import {
   Plus, 
   RefreshCw, 
   Search, 
-  BookOpen, 
-  ArrowRight, 
-  Calendar,
-  AlertCircle
-} from 'lucide-react';
+  ArrowRight} from 'lucide-react';
 import { User, Staff, AcademicSubstitution, TeachingSession } from '../../../types';
 import { StaffAttendanceApi } from '../api/staffAttendanceApi';
 import { TeacherSubstitutionCard } from '../components/TeacherSubstitutionCard';

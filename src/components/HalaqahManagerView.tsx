@@ -11,15 +11,11 @@ import {
   Users, 
   UserPlus, 
   Trash2, 
-  CheckCircle2, 
   Search, 
-  Edit, 
   MapPin, 
-  UserCheck,
   ChevronDown,
   Check,
   BookOpen,
-  Award,
   Sparkles
 } from 'lucide-react';
 import { todayLocalDate } from '../utils/today';
@@ -176,7 +172,7 @@ export const HalaqahManagerView: React.FC<HalaqahManagerViewProps> = ({
           <div>
             <div className="flex items-center gap-2 text-emerald-200 text-xs font-semibold uppercase tracking-wider mb-1">
               <BookmarkCheck className="w-4 h-4 text-[#C9A227]" /> 
-              <span>Tahfidz Al-Qur'an Engine • SIUBA v1.1.3</span>
+              <span>Tahfidz Al-Qur'an</span>
             </div>
             <h1 className="text-2xl font-bold tracking-tight">Kelola Kelompok Halaqah Tahfidz</h1>
             <p className="text-emerald-100/90 text-xs sm:text-sm mt-1 max-w-2xl leading-relaxed">

@@ -1,4 +1,4 @@
-import { Staff, Gender, StaffType, StaffEmploymentStatus } from '../types';
+import { Staff } from '../types';
 import { AuditService } from './auditService';
 import { todayLocalDate } from '../utils/today';
 
@@ -202,20 +202,6 @@ export class StaffIdentityResolver {
     return list.find(s => s.is_active && s.staff_number.toUpperCase() === num) || null;
   }
 
-  public static resolveByIdentifier(identifier: string, staffList?: Staff[]): Staff | null {
-    if (!identifier) return null;
-    const trimmed = identifier.trim();
-    // Try staff number
-    let staff = this.resolveByStaffNumber(trimmed, staffList);
-    if (staff) return staff;
-    // Try QR Token
-    staff = this.resolveByQrToken(trimmed, staffList);
-    if (staff) return staff;
-    // Try RFID UID
-    staff = this.resolveByRfidUid(trimmed, staffList);
-    if (staff) return staff;
-    return null;
-  }
 
   public static resolveById(id: number, staffList?: Staff[]): Staff | null {
     const list = staffList || this.getStaffList();
@@ -229,11 +215,6 @@ export class StaffIdentityResolver {
     return list.find(s => s.is_active && s.email && s.email.trim().toLowerCase() === cleanEmail) || null;
   }
 
-  public static resolveByUserId(userId: number, staffList?: Staff[]): Staff | null {
-    if (!userId) return null;
-    const list = staffList || this.getStaffList();
-    return list.find(s => s.is_active && s.user_id === userId) || null;
-  }
 
   public static generateOpaqueQrToken(): string {
     const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
@@ -244,95 +225,8 @@ export class StaffIdentityResolver {
     return `STF-${rand}`;
   }
 
-  public static regenerateQrToken(staffId: number, operatorName: string = 'System Admin'): { success: boolean; new_token?: string; message: string } {
-    const list = this.getStaffList();
-    const index = list.findIndex(s => s.id === staffId);
-    if (index === -1) {
-      return { success: false, message: 'Staff tidak ditemukan' };
-    }
 
-    const oldToken = list[index].qr_token;
-    const newToken = this.generateOpaqueQrToken();
-    list[index].qr_token = newToken;
-    list[index].updated_at = new Date().toISOString();
 
-    this.saveStaffList(list);
-
-    AuditService.log({
-      event: 'qr_regenerated',
-      auditable_type: 'Staff',
-      auditable_id: staffId,
-      auditable_name: list[index].name,
-      old_values: { qr_token: oldToken },
-      new_values: { qr_token: newToken },
-      reason: `QR Token di-generate ulang oleh ${operatorName}`,
-      user: { id: 1, name: operatorName, role: 'Admin' }
-    });
-
-    return { success: true, new_token: newToken, message: 'QR Token berhasil diperbarui' };
-  }
-
-  public static assignRfidUid(staffId: number, rfidUid: string, operatorName: string = 'System Admin'): { success: boolean; message: string } {
-    const list = this.getStaffList();
-    const normalized = this.normalizeRfidUid(rfidUid);
-
-    // Check duplicate RFID
-    const duplicate = list.find(s => s.id !== staffId && s.rfid_uid && this.normalizeRfidUid(s.rfid_uid) === normalized);
-    if (duplicate) {
-      return { success: false, message: `Kartu RFID sudah terdaftar atas nama ${duplicate.name} (${duplicate.staff_number})` };
-    }
-
-    const index = list.findIndex(s => s.id === staffId);
-    if (index === -1) {
-      return { success: false, message: 'Staff tidak ditemukan' };
-    }
-
-    const oldUid = list[index].rfid_uid;
-    list[index].rfid_uid = normalized;
-    list[index].updated_at = new Date().toISOString();
-
-    this.saveStaffList(list);
-
-    AuditService.log({
-      event: 'rfid_assigned',
-      auditable_type: 'Staff',
-      auditable_id: staffId,
-      auditable_name: list[index].name,
-      old_values: { rfid_uid: oldUid },
-      new_values: { rfid_uid: normalized },
-      reason: `UID RFID ${normalized} di-assign untuk ${list[index].name}`,
-      user: { id: 1, name: operatorName, role: 'Admin' }
-    });
-
-    return { success: true, message: 'Kartu RFID berhasil ditugaskan' };
-  }
-
-  public static removeRfidUid(staffId: number, operatorName: string = 'System Admin'): { success: boolean; message: string } {
-    const list = this.getStaffList();
-    const index = list.findIndex(s => s.id === staffId);
-    if (index === -1) {
-      return { success: false, message: 'Staff tidak ditemukan' };
-    }
-
-    const oldUid = list[index].rfid_uid;
-    list[index].rfid_uid = null;
-    list[index].updated_at = new Date().toISOString();
-
-    this.saveStaffList(list);
-
-    AuditService.log({
-      event: 'rfid_removed',
-      auditable_type: 'Staff',
-      auditable_id: staffId,
-      auditable_name: list[index].name,
-      old_values: { rfid_uid: oldUid },
-      new_values: { rfid_uid: null },
-      reason: `UID RFID dihapus untuk ${list[index].name}`,
-      user: { id: 1, name: operatorName, role: 'Admin' }
-    });
-
-    return { success: true, message: 'Kartu RFID berhasil dilepas' };
-  }
 
   public static isStaffEligibleOnDate(staff: Staff, targetDate: string): boolean {
     if (!staff.is_active) return false;
@@ -463,37 +357,4 @@ export class StaffIdentityResolver {
     return { success: true, staff: updated, message: 'Data staf berhasil diperbarui' };
   }
 
-  public static deactivateStaff(
-    staffId: number, 
-    operatorName: string = 'System Admin', 
-    reason: string = 'Non-aktif pegawai'
-  ): { success: boolean; message: string } {
-    const list = this.getStaffList();
-    const index = list.findIndex(s => s.id === staffId);
-    if (index === -1) {
-      return { success: false, message: 'Staff tidak ditemukan' };
-    }
-
-    const oldStaff = { ...list[index] };
-    const today = todayLocalDate();
-    
-    list[index].is_active = false;
-    list[index].leave_date = list[index].leave_date || today;
-    list[index].updated_at = new Date().toISOString();
-
-    this.saveStaffList(list);
-
-    AuditService.log({
-      event: 'staff_deactivated',
-      auditable_type: 'Staff',
-      auditable_id: staffId,
-      auditable_name: oldStaff.name,
-      old_values: oldStaff,
-      new_values: list[index],
-      reason: `Deaktivasi SDM: ${reason} oleh ${operatorName}`,
-      user: { id: 1, name: operatorName, role: 'Admin' }
-    });
-
-    return { success: true, message: `Pegawai ${oldStaff.name} berhasil dinonaktifkan` };
-  }
 }

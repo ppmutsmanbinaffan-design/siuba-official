@@ -5,7 +5,7 @@
  * Saat data server pertama kali menimpa cache lokal, data lama yang BELUM dimigrasikan
  * (lewat halaman /migrasi-data) disalin dulu ke `siuba_unmigrated_backup_v1` agar tidak hilang.
  */
-import { INITIAL_STUDENTS, INITIAL_SESSIONS } from '../data/initialData';
+import { DEMO_STUDENT_NUMBERS, DEMO_SESSION_CODES } from '../data/initialData';
 
 export const PRESERVED_BACKUP_KEY = 'siuba_unmigrated_backup_v1';
 const MIGRATED_FLAG = 'siuba_local_migrated_at';
@@ -25,8 +25,8 @@ export const LEGACY_KEYS = [
   'siuba_staff_absence_requests',
 ];
 
-const demoNis = new Set(INITIAL_STUDENTS.map((s) => String(s.student_number)));
-const demoSessions = new Set(INITIAL_SESSIONS.map((s) => String(s.session_code)));
+const demoNis = new Set(DEMO_STUDENT_NUMBERS);
+const demoSessions = new Set(DEMO_SESSION_CODES);
 
 function readArray(key: string): any[] {
   try {

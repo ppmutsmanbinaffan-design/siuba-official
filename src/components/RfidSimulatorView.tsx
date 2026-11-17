@@ -3,27 +3,16 @@ import {
   Radio, 
   Cpu, 
   Terminal, 
-  Play, 
   RotateCcw, 
-  CheckCircle2, 
-  AlertTriangle, 
-  XCircle, 
   Wifi, 
-  ShieldAlert, 
   Clock, 
-  Layers, 
   Sparkles, 
-  User, 
   Check, 
   Zap, 
   Volume2,
   VolumeX,
-  Server,
   Award,
-  Activity,
-  Copy,
-  ShieldCheck
-} from 'lucide-react';
+  Copy} from 'lucide-react';
 import { 
   Activity as ActivityType, 
   AttendanceDevice, 
@@ -298,7 +287,7 @@ export const RfidSimulatorView: React.FC<Props> = ({
           <div className="flex items-center gap-2 mb-2 flex-wrap">
             <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-white/15 text-emerald-100 border border-white/20 uppercase tracking-wider flex items-center gap-1 backdrop-blur-xs">
               <Award className="w-3 h-3 text-[#C9A227]" />
-              SIUBA v1.1.3 PRODUCTION
+              SIUBA
             </span>
             <span className="text-[11px] text-emerald-100 font-bold bg-black/25 px-2.5 py-0.5 rounded-full border border-white/15 backdrop-blur-xs flex items-center gap-1">
               <Radio className="w-3.5 h-3.5 text-[#C9A227]" />

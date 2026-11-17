@@ -1,5 +1,5 @@
 import React from 'react';
-import { getInstitution, useInstitution, institutionContactLine } from '../../services/institutionService';
+import { useInstitution } from '../../services/institutionService';
 import { CheckCircle2, ShieldCheck, QrCode, CreditCard, Sparkles } from 'lucide-react';
 
 export interface AuthLayoutProps {

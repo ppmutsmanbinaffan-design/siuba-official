@@ -1,30 +1,19 @@
 import React, { useMemo, useState } from 'react';
-import { getInstitution, useInstitution, institutionContactLine } from '../services/institutionService';
+import { getInstitution } from '../services/institutionService';
 import { 
   Users, 
   Calendar, 
   Clock, 
   CheckCircle2, 
-  AlertTriangle, 
   XCircle, 
   ArrowRight, 
-  Radio, 
   ClipboardCheck, 
-  Building, 
   Sparkles,
-  Play,
-  Check,
-  TrendingUp,
-  Activity as ActivityIcon,
   ShieldAlert,
   FileText,
-  Zap,
-  Lock,
-  Unlock,
   ChevronRight,
   QrCode,
   Search,
-  Filter,
   AlertCircle,
 } from 'lucide-react';
 import { 

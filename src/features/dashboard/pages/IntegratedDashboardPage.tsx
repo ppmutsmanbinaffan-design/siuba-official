@@ -1,29 +1,18 @@
 import React, { useState, useMemo } from 'react';
 import { useServerStaffReportData } from '../../reports/useServerStaffReportData';
 import { todayLocalDate, shiftLocalDate } from '../../../utils/today';
-import { getInstitution, useInstitution, institutionContactLine } from '../../../services/institutionService';
+import { getInstitution } from '../../../services/institutionService';
 import { 
   Calendar, 
   RefreshCw, 
-  Filter, 
   Layers, 
   Users, 
   Briefcase, 
   BookOpen, 
-  Award, 
-  AlertTriangle, 
-  CheckCircle2, 
-  ChevronRight,
-  TrendingUp,
-  Clock,
-  Sparkles,
-  ArrowRight,
-  SlidersHorizontal
-} from 'lucide-react';
+  Award} from 'lucide-react';
 import { 
   User, 
   Student, 
-  Staff, 
   AttendanceSession, 
   AttendanceSessionParticipant, 
   AttendanceRecord, 

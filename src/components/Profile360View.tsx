@@ -2,11 +2,9 @@ import React, { useState, useEffect, useMemo } from 'react';
 import QRCode from 'qrcode';
 import { 
   User, 
-  Users, 
   CheckCircle2, 
   Clock, 
   AlertCircle, 
-  Calendar, 
   IdCard, 
   QrCode, 
   Printer, 
@@ -14,24 +12,18 @@ import {
   Sparkles, 
   Home, 
   GraduationCap, 
-  Award, 
   Phone, 
   Mail, 
-  MapPin, 
-  ShieldCheck, 
   Search, 
   Check, 
   X, 
   MoonStar, 
   Layers, 
-  CalendarDays, 
   Briefcase,
-  AlertTriangle,
   FileText
 } from 'lucide-react';
 import { 
   Student, 
-  Staff, 
   Classroom, 
   Dormitory, 
   DormitoryRoom, 

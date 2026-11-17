@@ -7,8 +7,6 @@ import { PersonAvatar } from '../../../components/common/PersonAvatar';
 import { 
   User as UserIcon, 
   Briefcase, 
-  Phone, 
-  Mail, 
   Upload, 
   Check, 
   X, 

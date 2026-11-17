@@ -3,10 +3,6 @@ import {
   AttendanceSession, 
   AttendanceSessionParticipant, 
   Student, 
-  Classroom,
-  ActivityCategory,
-  Activity,
-  User,
   AttendanceStatus,
   AttendanceMethod
 } from '../types';

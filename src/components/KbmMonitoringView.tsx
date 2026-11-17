@@ -11,26 +11,16 @@ import {
   Teacher 
 } from '../types';
 import { 
-  Activity, 
-  AlertCircle, 
   BookOpen, 
   CheckCircle2, 
   Clock, 
-  Filter, 
-  GraduationCap, 
   Search, 
-  Sparkles, 
-  Users,
   Award,
   Calendar,
   Eye,
   X,
   UserCheck,
-  Check,
-  Flame,
-  Layers,
-  ChevronRight
-} from 'lucide-react';
+  Check} from 'lucide-react';
 
 interface Props {
   sessions?: AttendanceSession[];
@@ -116,7 +106,7 @@ export const KbmMonitoringView: React.FC<Props> = ({
             <div className="flex items-center gap-2 mb-2 flex-wrap">
               <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-white/15 text-emerald-100 border border-white/20 uppercase tracking-wider flex items-center gap-1 backdrop-blur-xs">
                 <Award className="w-3 h-3 text-[#C9A227]" />
-                SIUBA v1.1.3 PRODUCTION
+                SIUBA
               </span>
               <span className="text-[11px] text-emerald-100 font-bold bg-black/25 px-2.5 py-0.5 rounded-full border border-white/15 backdrop-blur-xs">
                 Pengawasan KBM Akademik & Presensi

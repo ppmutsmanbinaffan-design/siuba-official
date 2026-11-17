@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, Wifi, WifiOff, Shield, Server, Bell, RefreshCw, Smartphone, Menu, LogOut } from 'lucide-react';
+import { Clock, Wifi, WifiOff, Menu, LogOut } from 'lucide-react';
 import { User, ServerConnectivityState } from '../types';
 import { ServerConnectivityService } from '../services/serverConnectivityService';
 import { OfflineStorageService } from '../services/offlineStorageService';

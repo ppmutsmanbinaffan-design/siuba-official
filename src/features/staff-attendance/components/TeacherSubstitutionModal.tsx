@@ -3,8 +3,7 @@ import { TeachingSession, Staff, User } from '../../../types';
 import { ResponsiveModal } from '../../../components/ui/ResponsiveModal';
 import { Button } from '../../../components/ui/Button';
 import { Select } from '../../../components/ui/Select';
-import { Input } from '../../../components/ui/Input';
-import { Users, AlertCircle, BookOpen, ArrowRight } from 'lucide-react';
+import { AlertCircle, ArrowRight } from 'lucide-react';
 import { StaffAttendanceApi } from '../api/staffAttendanceApi';
 
 interface TeacherSubstitutionModalProps {

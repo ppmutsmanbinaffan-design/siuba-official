@@ -5,15 +5,9 @@ import {
   Clock, 
   CheckCircle2, 
   AlertTriangle, 
-  XCircle, 
   Sparkles, 
   Send, 
-  Scan, 
-  RefreshCw,
-  Cpu,
-  User,
-  ShieldAlert
-} from 'lucide-react';
+  Scan} from 'lucide-react';
 import { 
   Activity, 
   AttendanceDevice, 
@@ -27,7 +21,6 @@ import {
 } from '../types';
 import { AttendanceEngine } from '../services/attendanceEngine';
 import { RfidAttendanceService } from '../services/rfidAttendanceService';
-import { StudentIdentityService } from '../services/studentIdentityService';
 import { todayLocalDate } from '../utils/today';
 
 interface ScannerSimulatorProps {
@@ -175,7 +168,7 @@ export const InteractiveScannerSimulator: React.FC<ScannerSimulatorProps> = ({
             <div className="flex items-center gap-2 mb-2 flex-wrap">
               <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-white/15 text-emerald-100 border border-white/20 uppercase tracking-wider flex items-center gap-1 backdrop-blur-xs">
                 <Sparkles className="w-3 h-3 text-[#C9A227]" />
-                SIUBA v1.1.3 PRODUCTION
+                SIUBA
               </span>
               <span className="text-[11px] text-emerald-100 font-bold bg-black/25 px-2.5 py-0.5 rounded-full border border-white/15 backdrop-blur-xs">
                 Hardware Emulation & Testing Node

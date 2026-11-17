@@ -216,28 +216,4 @@ export class AuditService {
     };
   }
 
-  /**
-   * Clear all audit logs (Super Admin Only with reason)
-   */
-  public static clearLogs(user: User, reason: string): boolean {
-    if (user.role !== 'Super Admin') return false;
-    this.logs = [];
-    try {
-      localStorage.removeItem(STORAGE_KEY_AUDIT_LOGS);
-    } catch {}
-    
-    // Log the purge itself
-    this.log({
-      event: 'security_setting_changed',
-      auditable_type: 'AuditRetentionEngine',
-      auditable_id: 'ALL_LOGS',
-      auditable_name: 'Pembersihan Arsip Audit Log',
-      old_values: { action: 'purge_logs' },
-      new_values: { status: 'cleared', retention_cycle: 'reset' },
-      reason: reason || 'Pembersihan audit log manual oleh Super Admin',
-      user
-    });
-
-    return true;
-  }
 }

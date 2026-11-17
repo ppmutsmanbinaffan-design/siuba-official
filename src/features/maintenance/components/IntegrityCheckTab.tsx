@@ -2,18 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { apiClient } from '../../../services/apiClient';
 import { 
   ShieldCheck, 
-  AlertTriangle, 
   CheckCircle2, 
   RefreshCw, 
   Search, 
-  Filter, 
-  Wrench, 
-  XCircle, 
-  Info,
-  Clock,
-  Layers,
-  Database
-} from 'lucide-react';
+  Wrench} from 'lucide-react';
 import { IntegrityAuditResult, IntegrityIssueItem, IntegritySeverityLevel } from '../types';
 import { MaintenanceService } from '../services/maintenanceService';
 import { User } from '../../../types';

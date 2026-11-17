@@ -3,16 +3,11 @@ import {
   BookOpen, 
   Search, 
   Filter, 
-  Plus, 
   RefreshCw, 
   QrCode, 
   CheckCircle2, 
-  Clock, 
   Users, 
-  AlertCircle,
-  Eye,
-  Calendar
-} from 'lucide-react';
+  Eye} from 'lucide-react';
 import { User, Staff, TeachingSession } from '../../../types';
 import { TeachingAttendanceSummary, TeachingFilterState } from '../types';
 import { StaffAttendanceApi } from '../api/staffAttendanceApi';
@@ -26,8 +21,7 @@ import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { Select } from '../../../components/ui/Select';
 import { LoadingState, EmptyState } from '../../../components/ui/LoadingState';
-import { PersonAvatar } from '../../../components/common/PersonAvatar';
-import { formatTeachingSessionStatus, formatDateIndonesian, formatTimeWib } from '../utils/staffAttendanceUtils';
+import { formatTeachingSessionStatus, formatTimeWib } from '../utils/staffAttendanceUtils';
 import { todayLocalDate } from '../../../utils/today';
 
 interface TeachingAttendancePageProps {

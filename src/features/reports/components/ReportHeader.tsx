@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronLeft, Download, Printer, FileSpreadsheet, RefreshCw } from 'lucide-react';
+import { ChevronLeft, Printer, RefreshCw } from 'lucide-react';
 import { ReportExportDropdown } from './ReportExportDropdown';
 
 interface SubTabOption {

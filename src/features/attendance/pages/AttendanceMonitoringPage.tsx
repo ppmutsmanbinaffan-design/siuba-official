@@ -1,20 +1,9 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { 
-  TrendingUp, 
   RefreshCw, 
-  Clock, 
-  Users, 
   ArrowLeft, 
-  CheckCircle2, 
   AlertCircle, 
-  Activity, 
-  Sparkles,
-  QrCode,
-  ClipboardCheck,
-  ArrowRight
-} from 'lucide-react';
-import { PageHeader } from '../../../components/layout/PageHeader';
-import { Card } from '../../../components/ui/Card';
+  Sparkles} from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
 import { attendanceApi } from '../api/attendanceApi';
 import { AttendanceTodayKpi, OpenSessionMonitoringData } from '../types';
@@ -76,7 +65,7 @@ export const AttendanceMonitoringPage: React.FC<AttendanceMonitoringPageProps> =
             <div className="flex items-center gap-2 mb-2 flex-wrap">
               <span className="bg-white/15 border border-white/20 text-emerald-100 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1 backdrop-blur-xs">
                 <Sparkles className="w-3 h-3 text-[#C9A227]" />
-                SIUBA v1.1.3 PRODUCTION
+                SIUBA
               </span>
               <span className="text-[11px] text-emerald-100 font-bold bg-black/25 px-2.5 py-0.5 rounded-full border border-white/15 backdrop-blur-xs">
                 Live Stream Presensi Santri

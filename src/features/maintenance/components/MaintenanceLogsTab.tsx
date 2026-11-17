@@ -2,21 +2,10 @@ import React, { useState } from 'react';
 import { 
   FileText, 
   Search, 
-  Filter, 
   Download, 
-  CheckCircle2, 
-  XCircle, 
-  AlertTriangle, 
-  Info, 
   Eye, 
-  X,
-  HardDrive,
-  Database,
-  ShieldCheck,
-  Cpu
-} from 'lucide-react';
+  X} from 'lucide-react';
 import { MaintenanceLogEntry } from '../types';
-import { MaintenanceService } from '../services/maintenanceService';
 import { User } from '../../../types';
 import { todayLocalDate } from '../../../utils/today';
 

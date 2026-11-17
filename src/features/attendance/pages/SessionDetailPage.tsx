@@ -3,22 +3,12 @@ import {
   ArrowLeft, 
   Clock, 
   MapPin, 
-  Users, 
   Calendar, 
   Play, 
-  X, 
-  CheckCircle2, 
-  AlertCircle, 
   QrCode, 
   ClipboardCheck, 
   Search, 
-  Filter, 
-  Download, 
-  RefreshCw,
-  MoreVertical,
-  ShieldCheck
-} from 'lucide-react';
-import { PageHeader } from '../../../components/layout/PageHeader';
+  RefreshCw} from 'lucide-react';
 import { Card } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
 import { ResponsiveTable } from '../../../components/ui/ResponsiveTable';

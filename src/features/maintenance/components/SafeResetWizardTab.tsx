@@ -9,24 +9,18 @@ import {
   CheckCircle2, 
   XCircle, 
   RefreshCw, 
-  History, 
   Key, 
   FileText, 
-  Check, 
   ArrowRight,
   ShieldCheck,
-  Cpu,
   Layers,
   Eye,
   EyeOff,
   ChevronDown,
   ChevronUp,
-  AlertCircle,
-  HelpCircle
-} from 'lucide-react';
+  AlertCircle} from 'lucide-react';
 import { 
   ResetModeType, 
-  ResetModeInfo, 
   BackupRecord, 
   ResetExecutionResult,
   MaintenanceSystemConfig 

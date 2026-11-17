@@ -2,19 +2,12 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { 
   ClipboardCheck, 
   Search, 
-  Filter, 
-  CheckCircle2, 
-  Clock, 
   AlertCircle, 
   Users, 
-  Sparkles, 
   RefreshCw, 
   CheckCheck, 
   XCircle, 
-  ArrowLeft,
-  ChevronDown
-} from 'lucide-react';
-import { PageHeader } from '../../../components/layout/PageHeader';
+  ArrowLeft} from 'lucide-react';
 import { Card } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
 import { ResponsiveTable } from '../../../components/ui/ResponsiveTable';

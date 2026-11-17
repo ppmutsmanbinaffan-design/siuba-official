@@ -5,7 +5,6 @@ import {
   AttendanceCorrectionResult,
   AttendanceDevice, 
   AttendanceDeviceLog, 
-  AttendanceMethod, 
   AttendanceRecord, 
   AttendanceRecordHistory, 
   AttendanceResult, 
@@ -18,13 +17,11 @@ import {
   ParticipantFilterOptions, 
   QrAttendanceResponse, 
   SessionFilterOptions, 
-  SessionStatus, 
   Student, 
   User 
 } from '../types';
 import { AttendanceEngine } from '../../../services/attendanceEngine';
 import { QrAttendanceService } from '../../../services/qrAttendanceService';
-import { RfidAttendanceService } from '../../../services/rfidAttendanceService';
 import { isDevelopmentToolsEnabled } from '../../../utils/devTools';
 
 const SESSIONS_STORAGE_KEY = 'siuba_attendance_sessions_cache';

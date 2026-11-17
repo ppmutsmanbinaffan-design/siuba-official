@@ -2,8 +2,6 @@ import {
   CachedPreparedSession, 
   CachedParticipant, 
   PendingAttendanceItem, 
-  ClientInstallation,
-  AttendanceStatus,
   AttendanceMethod
 } from '../types';
 
@@ -133,34 +131,7 @@ export class IndexedDbStorageService {
     });
   }
 
-  /**
-   * Get cached participants for a session
-   */
-  public static async getParticipantsForSession(sessionId: number): Promise<CachedParticipant[]> {
-    const db = await this.getDb();
-    const tx = db.transaction('cached_participants', 'readonly');
-    const store = tx.objectStore('cached_participants');
-    const index = store.index('session_id');
-    const request = index.getAll(IDBKeyRange.only(sessionId));
 
-    return new Promise((resolve, reject) => {
-      request.onsuccess = () => resolve(request.result || []);
-      request.onerror = () => reject(request.error);
-    });
-  }
-
-  /**
-   * Find participant in prepared session by QR Token
-   */
-  public static async findParticipantByQr(sessionId: number, qrToken: string): Promise<CachedParticipant | undefined> {
-    const cleanToken = qrToken.trim();
-    const participants = await this.getParticipantsForSession(sessionId);
-    return participants.find(p => 
-      p.qr_token === cleanToken || 
-      p.student_number === cleanToken || 
-      cleanToken.includes(p.student_number)
-    );
-  }
 
   /**
    * Add a pending offline capture item to IndexedDB queue
@@ -205,27 +176,6 @@ export class IndexedDbStorageService {
     });
   }
 
-  /**
-   * Update pending attendance item
-   */
-  public static async updatePendingAttendance(localId: string, updates: Partial<PendingAttendanceItem>): Promise<void> {
-    const db = await this.getDb();
-    const tx = db.transaction('pending_attendance', 'readwrite');
-    const store = tx.objectStore('pending_attendance');
-    const getReq = store.get(localId);
-
-    return new Promise((resolve, reject) => {
-      getReq.onsuccess = () => {
-        const existing = getReq.result;
-        if (existing) {
-          const updated = { ...existing, ...updates, updated_at_local: new Date().toISOString() };
-          store.put(updated);
-        }
-      };
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error);
-    });
-  }
 
   /**
    * Delete synced items from IndexedDB queue
@@ -250,30 +200,5 @@ export class IndexedDbStorageService {
     });
   }
 
-  /**
-   * App Metadata Key-Value store
-   */
-  public static async setMetadata(key: string, value: any): Promise<void> {
-    const db = await this.getDb();
-    const tx = db.transaction('app_metadata', 'readwrite');
-    const store = tx.objectStore('app_metadata');
-    store.put({ key, value, updated_at: new Date().toISOString() });
 
-    return new Promise((resolve, reject) => {
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error);
-    });
-  }
-
-  public static async getMetadata<T = any>(key: string): Promise<T | null> {
-    const db = await this.getDb();
-    const tx = db.transaction('app_metadata', 'readonly');
-    const store = tx.objectStore('app_metadata');
-    const request = store.get(key);
-
-    return new Promise((resolve, reject) => {
-      request.onsuccess = () => resolve(request.result ? request.result.value : null);
-      request.onerror = () => reject(request.error);
-    });
-  }
 }

@@ -1,31 +1,20 @@
 import React, { useState } from 'react';
-import { getInstitution, useInstitution, institutionContactLine } from '../services/institutionService';
+import { getInstitution } from '../services/institutionService';
 import { todayLocalDate } from '../utils/today';
 import { 
   Calendar, 
   Clock, 
   MapPin, 
-  Users, 
   Plus, 
   Search, 
-  Filter, 
-  CheckCircle2, 
-  XCircle, 
-  AlertCircle, 
   Layers, 
-  FileText, 
   ShieldCheck, 
   UserPlus, 
-  ArrowRight, 
   Check, 
   X, 
-  RefreshCw, 
   UserCheck, 
   Award, 
-  ExternalLink,
-  ShieldAlert,
-  Tag
-} from 'lucide-react';
+  ShieldAlert} from 'lucide-react';
 import { 
   Activity, 
   ActivityParticipantRule, 
@@ -389,7 +378,7 @@ export const EventsManagerView: React.FC<EventsManagerViewProps> = ({
             <div className="flex items-center gap-2 mb-2 flex-wrap">
               <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-white/15 text-emerald-100 border border-white/20 uppercase tracking-wider flex items-center gap-1 backdrop-blur-xs">
                 <Award className="w-3 h-3 text-[#C9A227]" />
-                SIUBA v1.1.3 PRODUCTION
+                SIUBA
               </span>
               <span className="text-[11px] text-emerald-100 font-bold bg-black/25 px-2.5 py-0.5 rounded-full border border-white/15 backdrop-blur-xs">
                 Manajemen Event & Kegiatan Khusus

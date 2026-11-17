@@ -4,7 +4,7 @@ import { ResponsiveTable, Column } from '../../../components/ui/ResponsiveTable'
 import { PersonIdentity } from '../../../components/common/PersonIdentity';
 import { StatusBadge } from '../../../components/common/StatusBadge';
 import { ActionMenu, ActionMenuItem } from '../../../components/ui/ActionMenu';
-import { Eye, Edit3, Power, UserCheck, CheckCircle2 } from 'lucide-react';
+import { Eye, Edit3, Power } from 'lucide-react';
 import { hasPermission } from '../../../components/auth/PermissionGuard';
 import { authService } from '../../../services/authService';
 

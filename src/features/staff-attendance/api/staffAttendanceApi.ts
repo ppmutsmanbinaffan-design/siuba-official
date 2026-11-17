@@ -1,30 +1,16 @@
 import { 
-  Staff, 
   StaffAttendanceRecord, 
-  StaffAttendanceStatus, 
   StaffAbsenceRequest, 
   StaffAbsenceType, 
   TeachingSession, 
-  TrainingSession, 
   AcademicSubstitution, 
-  TrainerSubstitution, 
-  AttendanceDevice, 
-  AttendanceDeviceLog,
   AttendanceMethod
 } from '../../../types';
 import { 
-  StaffDailySummary, 
   TeachingAttendanceSummary, 
-  TrainingAttendanceSummary, 
   StaffScanFeedbackItem 
 } from '../types';
 import { StaffAttendanceService } from '../../../services/staffAttendanceService';
-import { TeachingSessionService } from '../../../services/teachingSessionService';
-import { TrainingSessionService } from '../../../services/trainingSessionService';
-import { TeacherSubstitutionService } from '../../../services/teacherSubstitutionService';
-import { TrainerSubstitutionService } from '../../../services/trainerSubstitutionService';
-import { TrainingRealizationService } from '../../../services/trainingRealizationService';
-import { StaffIdentityResolver } from '../../../services/staffIdentityResolver';
 import { AuditService } from '../../../services/auditService';
 
 import { apiClient, isOfflineError } from '../../../services/apiClient';
@@ -73,83 +59,6 @@ export class StaffAttendanceApi {
   // ==========================================
   // 1. KEHADIRAN HARIAN SDM
   // ==========================================
-  public static async getDailyRecords(dateStr?: string): Promise<{ data: StaffAttendanceRecord[]; error?: string }> {
-    try {
-      const res: any = await apiClient.get('/staff-attendance/daily', { date: dateStr || todayLocalDate() });
-      if (Array.isArray(res?.data)) {
-        mergeServerDailyRecords(res.data, [dateStr || todayLocalDate()]);
-        return { data: res.data };
-      }
-    } catch (err: any) {
-      if (!isOfflineError(err)) return { data: [], error: err?.message || 'Gagal memuat presensi SDM.' };
-    }
-    const today = dateStr || todayLocalDate();
-    const records = StaffAttendanceService.getRecords().filter(
-      r => r.attendance_type === 'daily' && r.attendance_date === today
-    );
-    return { data: records };
-  }
-
-  public static async getDailySummary(dateStr?: string): Promise<{ data: StaffDailySummary; error?: string }> {
-    try {
-      const res: any = await apiClient.get('/staff-attendance/daily/summary', { date: dateStr || todayLocalDate() });
-      if (res?.data) return { data: res.data };
-    } catch (err: any) {
-      // gagal dari server: hitung dari cache lokal (sudah berisi data server terakhir)
-      console.warn('Ringkasan presensi SDM dari server gagal:', err?.message);
-    }
-    const today = dateStr || todayLocalDate();
-    const staffList = StaffIdentityResolver.getStaffList().filter(s => s.is_active);
-    const records = StaffAttendanceService.getRecords().filter(
-      r => r.attendance_type === 'daily' && r.attendance_date === today
-    );
-    const absences = StaffAttendanceService.getAbsenceRequests().filter(
-      a => a.status === 'approved' && a.start_at.substring(0, 10) <= today && a.end_at.substring(0, 10) >= today
-    );
-
-    const totalExpected = staffList.length;
-    let presentCount = 0;
-    let lateCount = 0;
-    let checkedOutCount = 0;
-    let earlyLeaveCount = 0;
-
-    records.forEach(r => {
-      if (r.status === 'present') presentCount++;
-      if (r.status === 'late') lateCount++;
-      if (r.check_out_at) checkedOutCount++;
-      if (r.early_leave_minutes && r.early_leave_minutes > 0) earlyLeaveCount++;
-    });
-
-    const permissionCount = absences.filter(a => a.type === 'permission').length;
-    const sickCount = absences.filter(a => a.type === 'sick').length;
-    const leaveCount = absences.filter(a => a.type === 'leave').length;
-    const officialDutyCount = absences.filter(a => a.type === 'official_duty').length;
-
-    const checkedInCount = records.length;
-    const notCheckedInCount = Math.max(0, totalExpected - checkedInCount - (permissionCount + sickCount + leaveCount + officialDutyCount));
-    const notCheckedOutCount = Math.max(0, checkedInCount - checkedOutCount);
-    const alphaCount = 0; // Determined at day close
-
-    return {
-      data: {
-        date: today,
-        total_expected: totalExpected,
-        total_present: presentCount,
-        total_late: lateCount,
-        total_permission: permissionCount,
-        total_sick: sickCount,
-        total_leave: leaveCount,
-        total_official_duty: officialDutyCount,
-        total_alpha: alphaCount,
-        total_checked_in: checkedInCount,
-        total_not_checked_in: notCheckedInCount,
-        total_checked_out: checkedOutCount,
-        total_not_checked_out: notCheckedOutCount,
-        total_early_leave: earlyLeaveCount,
-      }
-    };
-  }
-
   public static async recordDailyScan(params: {
     identifier: string; // QR token or RFID UID
     method: AttendanceMethod;
@@ -167,108 +76,12 @@ export class StaffAttendanceApi {
         } as StaffScanFeedbackItem;
       }
     }
-    const res = StaffAttendanceService.recordDailyScan({
-      identifier: params.identifier,
-      method: params.method,
-      operatorName: params.operatorName,
-    });
-
+    // Tidak ada antrean offline untuk data SDM: dulu disimpan diam-diam di browser dan tidak pernah sampai ke server
     return {
-      id: String(Date.now()),
-      timestamp: new Date().toISOString(),
-      resultCode: res.code,
-      success: res.success,
-      message: res.message,
-      staff: res.staff,
-      staffName: res.staff?.name,
-      staffNumber: res.staff?.staff_number,
-      staffType: res.staff?.staff_type,
-      attendanceType: 'daily',
-      status: res.record?.status,
-      method: params.method,
-      mode: res.mode,
-      checkInAt: res.record?.check_in_at || undefined,
-      checkOutAt: res.record?.check_out_at || undefined,
-      lateMinutes: res.record?.late_minutes || 0,
-      earlyLeaveMinutes: res.record?.early_leave_minutes || 0,
-      contextName: 'Presensi Harian Kantor / Gerbang',
-    };
-  }
-
-  public static async recordDailyManual(params: {
-    staffId: number;
-    action: 'check_in' | 'check_out';
-    notes?: string;
-    operatorName: string;
-  }): Promise<{ success: boolean; message: string; record?: StaffAttendanceRecord }> {
-    try {
-      const res: any = await apiClient.post('/staff-attendance/daily/manual', { staff_id: params.staffId, action: params.action, notes: params.notes });
-      const d = res.data || {};
-      return { success: !!d.success, message: d.message, record: d.record || undefined };
-    } catch (err: any) {
-      if (!isOfflineError(err)) return { success: false, message: err?.message || 'Gagal mencatat presensi.' };
-    }
-    const staff = StaffIdentityResolver.resolveById(params.staffId);
-    if (!staff) {
-      return { success: false, message: 'Data staf tidak ditemukan.' };
-    }
-
-    const res = StaffAttendanceService.recordDailyScan({
-      identifier: String(staff.id),
-      method: 'manual',
-      operatorName: params.operatorName,
-    });
-
-    return {
-      success: res.success,
-      message: res.message,
-      record: res.record,
-    };
-  }
-
-  public static async correctDailyAttendance(params: {
-    recordId: number;
-    status: StaffAttendanceStatus;
-    lateMinutes?: number;
-    earlyLeaveMinutes?: number;
-    notes: string;
-    operatorName: string;
-  }): Promise<{ success: boolean; message: string }> {
-    try {
-      const res: any = await apiClient.post(`/staff-attendance/records/${params.recordId}/correct`, {
-        status: params.status, late_minutes: params.lateMinutes, early_leave_minutes: params.earlyLeaveMinutes, notes: params.notes,
-      });
-      return { success: true, message: res?.message || 'Koreksi presensi harian berhasil disimpan.' };
-    } catch (err: any) {
-      if (!isOfflineError(err)) return { success: false, message: err?.message || 'Koreksi gagal disimpan.' };
-    }
-    const records = StaffAttendanceService.getRecords();
-    const index = records.findIndex(r => r.id === params.recordId);
-    if (index === -1) {
-      return { success: false, message: 'Catatan presensi harian tidak ditemukan.' };
-    }
-
-    const oldRecord = { ...records[index] };
-    records[index].status = params.status;
-    if (params.lateMinutes !== undefined) records[index].late_minutes = params.lateMinutes;
-    if (params.earlyLeaveMinutes !== undefined) records[index].early_leave_minutes = params.earlyLeaveMinutes;
-    records[index].notes = params.notes;
-    records[index].updated_at = new Date().toISOString();
-
-    StaffAttendanceService.saveRecords(records);
-
-    AuditService.log({
-      event: 'staff_attendance_corrected',
-      auditable_type: 'StaffAttendanceRecord',
-      auditable_id: params.recordId,
-      auditable_name: `${records[index].staff_name} (Koreksi Presensi)`,
-      old_values: oldRecord,
-      new_values: records[index],
-      reason: `Koreksi presensi manual oleh ${params.operatorName}: ${params.notes}`,
-      user: { id: 1, name: params.operatorName, role: 'Admin' }
-    });
-
-    return { success: true, message: 'Koreksi presensi harian berhasil disimpan.' };
+      id: String(Date.now()), timestamp: new Date().toISOString(), resultCode: 'NETWORK_OFFLINE' as any,
+      success: false, message: 'Server tidak terjangkau. Data SDM tidak bisa disimpan saat offline — coba lagi setelah tersambung.', attendanceType: 'daily', method: params.method,
+      lateMinutes: 0, earlyLeaveMinutes: 0, contextName: 'Presensi Harian Kantor / Gerbang',
+    } as StaffScanFeedbackItem;
   }
 
   // ==========================================
@@ -304,42 +117,8 @@ export class StaffAttendanceApi {
     } catch (err: any) {
       if (!isOfflineError(err)) return { success: false, message: err?.message || 'Pengajuan gagal disimpan.' };
     }
-    const staff = StaffIdentityResolver.resolveById(params.staffId);
-    if (!staff) {
-      return { success: false, message: 'Data staf tidak ditemukan.' };
-    }
-
-    const requests = StaffAttendanceService.getAbsenceRequests();
-    const now = new Date().toISOString();
-    const newReq: StaffAbsenceRequest = {
-      id: Date.now() + Math.floor(Math.random() * 1000),
-      staff_id: staff.id,
-      staff_name: staff.name,
-      staff_number: staff.staff_number,
-      type: params.type,
-      start_at: params.startAt,
-      end_at: params.endAt,
-      reason: params.reason,
-      status: 'pending',
-      requested_at: now,
-      created_at: now,
-      updated_at: now,
-    };
-
-    requests.unshift(newReq);
-    StaffAttendanceService.saveAbsenceRequests(requests);
-
-    AuditService.log({
-      event: 'staff_absence_created',
-      auditable_type: 'StaffAbsenceRequest',
-      auditable_id: newReq.id,
-      auditable_name: `${staff.name} (${params.type.toUpperCase()})`,
-      new_values: newReq,
-      reason: `Pengajuan ${params.type}: ${params.reason}`,
-      user: { id: 1, name: params.operatorName, role: 'Staff' }
-    });
-
-    return { success: true, message: `Pengajuan ${params.type} untuk ${staff.name} berhasil diajukan.`, request: newReq };
+    // Tidak ada antrean offline untuk data SDM: dulu disimpan diam-diam di browser dan tidak pernah sampai ke server
+    return { success: false, message: 'Server tidak terjangkau. Data SDM tidak bisa disimpan saat offline — coba lagi setelah tersambung.' };
   }
 
   public static async approveAbsenceRequest(params: {
@@ -353,31 +132,8 @@ export class StaffAttendanceApi {
     } catch (err: any) {
       if (!isOfflineError(err)) return { success: false, message: err?.message || 'Gagal menyetujui pengajuan.' };
     }
-    const requests = StaffAttendanceService.getAbsenceRequests();
-    const index = requests.findIndex(r => r.id === params.id);
-    if (index === -1) {
-      return { success: false, message: 'Data pengajuan tidak ditemukan.' };
-    }
-
-    const req = requests[index];
-    req.status = 'approved';
-    req.approved_by = params.approverName;
-    req.approved_at = new Date().toISOString();
-    req.updated_at = new Date().toISOString();
-
-    StaffAttendanceService.saveAbsenceRequests(requests);
-
-    AuditService.log({
-      event: 'staff_absence_approved',
-      auditable_type: 'StaffAbsenceRequest',
-      auditable_id: req.id,
-      auditable_name: `${req.staff_name} (${req.type.toUpperCase()})`,
-      new_values: req,
-      reason: `Persetujuan ${req.type} oleh ${params.approverName}`,
-      user: { id: 1, name: params.approverName, role: 'Kepala Bagian' }
-    });
-
-    return { success: true, message: `Pengajuan ${req.type} untuk ${req.staff_name} berhasil disetujui.` };
+    // Tidak ada antrean offline untuk data SDM: dulu disimpan diam-diam di browser dan tidak pernah sampai ke server
+    return { success: false, message: 'Server tidak terjangkau. Data SDM tidak bisa disimpan saat offline — coba lagi setelah tersambung.' };
   }
 
   public static async rejectAbsenceRequest(params: {
@@ -391,31 +147,8 @@ export class StaffAttendanceApi {
     } catch (err: any) {
       if (!isOfflineError(err)) return { success: false, message: err?.message || 'Gagal menolak pengajuan.' };
     }
-    const requests = StaffAttendanceService.getAbsenceRequests();
-    const index = requests.findIndex(r => r.id === params.id);
-    if (index === -1) {
-      return { success: false, message: 'Data pengajuan tidak ditemukan.' };
-    }
-
-    const req = requests[index];
-    req.status = 'rejected';
-    req.approved_by = params.approverName;
-    req.reason = `${req.reason} [Ditolak: ${params.rejectionReason}]`;
-    req.updated_at = new Date().toISOString();
-
-    StaffAttendanceService.saveAbsenceRequests(requests);
-
-    AuditService.log({
-      event: 'staff_absence_rejected',
-      auditable_type: 'StaffAbsenceRequest',
-      auditable_id: req.id,
-      auditable_name: `${req.staff_name} (${req.type.toUpperCase()})`,
-      new_values: req,
-      reason: `Penolakan ${req.type}: ${params.rejectionReason}`,
-      user: { id: 1, name: params.approverName, role: 'Kepala Bagian' }
-    });
-
-    return { success: true, message: `Pengajuan ${req.type} untuk ${req.staff_name} telah ditolak.` };
+    // Tidak ada antrean offline untuk data SDM: dulu disimpan diam-diam di browser dan tidak pernah sampai ke server
+    return { success: false, message: 'Server tidak terjangkau. Data SDM tidak bisa disimpan saat offline — coba lagi setelah tersambung.' };
   }
 
   // ==========================================
@@ -634,20 +367,4 @@ export class StaffAttendanceApi {
   // ==========================================
   // 8. MONITORING RFID TERMINAL SDM
   // ==========================================
-  public static async getStaffRfidDevices(): Promise<{ data: AttendanceDevice[]; error?: string }> {
-    try {
-      // Cache perangkat dari server (diisi saat sinkronisasi)
-      const stored = localStorage.getItem('siuba_attendance_devices_cache');
-      if (stored) return { data: JSON.parse(stored) };
-    } catch (_) {}
-    return { data: [] };
-  }
-
-  public static async getStaffRfidLogs(): Promise<{ data: AttendanceDeviceLog[]; error?: string }> {
-    try {
-      const stored = localStorage.getItem('siuba_attendance_device_logs_cache');
-      if (stored) return { data: JSON.parse(stored) };
-    } catch (_) {}
-    return { data: [] };
-  }
 }

@@ -10,7 +10,6 @@ import {
   AlertTriangle, 
   Smartphone, 
   Database, 
-  HardDrive, 
   Layers, 
   Clock, 
   ShieldCheck, 
@@ -21,22 +20,14 @@ import {
   X,
   Radio,
   ArrowRight,
-  Info,
   Search,
-  Filter,
-  PlusCircle,
   Eye,
   Zap,
-  Cpu,
-  Upload,
-  Activity,
   CheckCheck,
   ChevronRight,
-  Shield,
   Sparkles,
   BookOpen,
   HelpCircle,
-  Lightbulb,
   PlayCircle
 } from 'lucide-react';
 import { 
@@ -51,12 +42,9 @@ import {
   PendingAttendanceItem,
   CachedPreparedSession,
   ClientInstallation,
-  ServerConnectivityState,
-  AttendanceStatus
-} from '../types';
+  ServerConnectivityState} from '../types';
 import { OfflineStorageService } from '../services/offlineStorageService';
 import { ServerConnectivityService } from '../services/serverConnectivityService';
-import { OfflineSyncService } from '../services/offlineSyncService';
 import { BackupCenterTab } from '../features/maintenance/components/BackupCenterTab';
 import { DeviceReadinessPanel } from './DeviceReadinessPanel';
 
@@ -101,11 +89,7 @@ export const SyncCenterView: React.FC<SyncCenterViewProps> = ({
 }) => {
   const safeSessions = sessions || [];
   const safeParticipants = participants?.length ? participants : (sessionParticipants || []);
-  const safeRecords = records || [];
-  const safeHistories = recordHistories || [];
   const safeStudents = students || [];
-  const safeExcusals = excusals || [];
-  const safeDevices = devices || [];
 
   const [activeTab, setActiveTab] = useState<'queue' | 'prepare' | 'conflicts' | 'backup' | 'deployment' | 'tutorial'>('queue');
   const [connectivityState, setConnectivityState] = useState<ServerConnectivityState>('SERVER_ONLINE');
@@ -124,7 +108,7 @@ export const SyncCenterView: React.FC<SyncCenterViewProps> = ({
   const [selectedQueueItem, setSelectedQueueItem] = useState<PendingAttendanceItem | null>(null);
 
   // Category filter for Prepare Sessions
-  const [prepareCategoryFilter, setPrepareCategoryFilter] = useState<string>('ALL');
+  const [] = useState<string>('ALL');
 
   // Tutorial Interactive State
   const [selectedTutorialStep, setSelectedTutorialStep] = useState<number>(1);

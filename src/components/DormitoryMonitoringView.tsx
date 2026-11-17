@@ -12,11 +12,8 @@ import { RoutineAttendanceAttentionService } from '../services/routineAttendance
 import { 
   Home, 
   Building2, 
-  AlertTriangle, 
   Calendar, 
-  Users, 
   CheckCircle2, 
-  Search, 
   ShieldAlert, 
   Sparkles,
   BedDouble

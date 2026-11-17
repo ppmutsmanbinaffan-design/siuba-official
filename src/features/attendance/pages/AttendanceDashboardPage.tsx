@@ -1,25 +1,17 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { 
-  Activity, 
   Calendar, 
-  Clock, 
   QrCode, 
   ClipboardCheck, 
   Radio, 
   RefreshCw, 
   Search, 
-  Filter, 
-  Play, 
-  CheckCircle2, 
   AlertCircle, 
   ArrowRight, 
-  Eye,
-  SlidersHorizontal,
   ChevronRight,
   TrendingUp,
   Sparkles
 } from 'lucide-react';
-import { PageHeader } from '../../../components/layout/PageHeader';
 import { Card } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
 import { Badge } from '../../../components/ui/Badge';
@@ -96,7 +88,7 @@ export const AttendanceDashboardPage: React.FC<AttendanceDashboardPageProps> = (
             <div className="flex items-center gap-2 mb-2 flex-wrap">
               <span className="bg-white/15 border border-white/20 text-emerald-100 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1 backdrop-blur-xs">
                 <Sparkles className="w-3 h-3 text-[#C9A227]" />
-                SIUBA v1.1.3 PRODUCTION
+                SIUBA
               </span>
               <span className="text-[11px] text-emerald-100 font-bold bg-black/25 px-2.5 py-0.5 rounded-full border border-white/15 backdrop-blur-xs">
                 Pusat Kendali Presensi Santri

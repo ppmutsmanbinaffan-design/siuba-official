@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { BookOpen, ArrowLeft, QrCode, Sparkles, Volume2, ShieldCheck, History, Users } from 'lucide-react';
+import { ArrowLeft, QrCode, Volume2, ShieldCheck, History } from 'lucide-react';
 import { User, TeachingSession } from '../../../types';
 import { StaffScanFeedbackItem } from '../types';
 import { StaffAttendanceApi } from '../api/staffAttendanceApi';

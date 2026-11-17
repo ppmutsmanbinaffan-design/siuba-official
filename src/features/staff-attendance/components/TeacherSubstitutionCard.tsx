@@ -1,5 +1,5 @@
 import React from 'react';
-import { Users, Calendar, ArrowRight, BookOpen, Award, CheckCircle2 } from 'lucide-react';
+import { ArrowRight, BookOpen, Award, CheckCircle2 } from 'lucide-react';
 import { AcademicSubstitution, TrainerSubstitution } from '../../../types';
 import { formatDateIndonesian } from '../utils/staffAttendanceUtils';
 

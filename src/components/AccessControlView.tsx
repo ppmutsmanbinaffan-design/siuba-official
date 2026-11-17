@@ -6,29 +6,20 @@ import {
   Check, 
   Plus, 
   Search, 
-  Filter, 
   Edit3, 
   Trash2, 
-  Power, 
   LogIn, 
-  Lock, 
-  Unlock, 
   Settings2, 
   SlidersHorizontal, 
-  CheckSquare, 
-  Square, 
   X, 
   Award, 
-  Layers, 
   ChevronRight, 
   Eye, 
   EyeOff,
   AlertTriangle,
   UserCheck,
-  UserX,
   Sparkles,
   Shield,
-  RefreshCw,
   Copy,
   Shuffle
 } from 'lucide-react';
@@ -758,7 +749,7 @@ export const AccessControlView: React.FC<Props> = ({
           <div className="flex items-center gap-2 mb-2 flex-wrap">
             <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-white/15 text-emerald-100 border border-white/20 uppercase tracking-wider flex items-center gap-1 backdrop-blur-xs">
               <Award className="w-3 h-3 text-[#C9A227]" />
-              SIUBA v1.1.3 PRODUCTION
+              SIUBA
             </span>
             <span className="text-[11px] text-emerald-100 font-bold bg-black/25 px-2.5 py-0.5 rounded-full border border-white/15 backdrop-blur-xs flex items-center gap-1">
               <ShieldCheck className="w-3.5 h-3.5 text-[#C9A227]" />

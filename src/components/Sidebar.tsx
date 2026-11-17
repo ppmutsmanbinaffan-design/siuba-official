@@ -1,12 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { getInstitution, useInstitution, institutionContactLine } from '../services/institutionService';
+import { getInstitution } from '../services/institutionService';
 import { 
   Building2,
   Wifi,
   MoreVertical,
   LogOut,
   Settings,
-  User as UserIcon,
   Shield,
   X,
   ChevronRight

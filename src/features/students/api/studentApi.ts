@@ -1,4 +1,4 @@
-import { apiClient, ApiResponse, isOfflineError } from '../../../services/apiClient';
+import { apiClient, isOfflineError } from '../../../services/apiClient';
 import { ensureLegacyDataPreserved } from '../../../services/localDataGuard';
 import { Student, StudentStatus, Classroom, DormitoryRoom } from '../../../types';
 import { StudentIdentityService } from '../../../services/studentIdentityService';

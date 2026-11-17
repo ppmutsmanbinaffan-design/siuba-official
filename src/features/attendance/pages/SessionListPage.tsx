@@ -1,24 +1,13 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { 
-  Plus, 
   Search, 
-  Filter, 
   Calendar, 
   Play, 
-  Check, 
-  X, 
-  Clock, 
   MapPin, 
-  Users, 
   QrCode, 
   ClipboardCheck, 
-  ArrowRight, 
   AlertTriangle,
-  RotateCcw,
-  SlidersHorizontal,
-  ChevronRight
-} from 'lucide-react';
-import { PageHeader } from '../../../components/layout/PageHeader';
+  RotateCcw} from 'lucide-react';
 import { Card } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
 import { ResponsiveTable } from '../../../components/ui/ResponsiveTable';
@@ -26,12 +15,11 @@ import { ConfirmDialog } from '../../../components/ui/ConfirmDialog';
 import { ResponsiveModal } from '../../../components/ui/ResponsiveModal';
 import { Textarea } from '../../../components/ui/Input';
 import { attendanceApi } from '../api/attendanceApi';
-import { AttendanceSession, SessionFilterOptions, SessionStatus } from '../types';
+import { AttendanceSession, SessionStatus } from '../types';
 import { SessionStatusBadge } from '../components/SessionStatusBadge';
-import { AttendanceMethodBadge } from '../components/AttendanceMethodBadge';
 import { SessionCard } from '../components/SessionCard';
 import { getCachedActivities, getCachedCategories } from '../../../services/masterCache';
-import { formatAttendanceTime, formatIndonesianDate } from '../utils/attendanceUtils';
+import { formatAttendanceTime } from '../utils/attendanceUtils';
 import { todayLocalDate } from '../../../utils/today';
 
 interface SessionListPageProps {

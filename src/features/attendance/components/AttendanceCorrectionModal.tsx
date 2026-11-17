@@ -4,7 +4,6 @@ import { Button } from '../../../components/ui/Button';
 import { Select } from '../../../components/ui/Select';
 import { Textarea } from '../../../components/ui/Input';
 import { AttendanceRecord, AttendanceStatus } from '../types';
-import { ATTENDANCE_STATUS_MAP } from '../utils/attendanceUtils';
 import { AttendanceStatusBadge } from './AttendanceStatusBadge';
 import { AlertCircle, History } from 'lucide-react';
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { BookOpen, Clock, Users, QrCode, CheckCircle2, AlertTriangle, ArrowRight, ShieldCheck } from 'lucide-react';
+import { Users, QrCode, CheckCircle2, ShieldCheck } from 'lucide-react';
 import { TeachingSession } from '../../../types';
 import { StaffAttendanceStatusBadge } from './StaffAttendanceStatusBadge';
 import { formatTeachingSessionStatus } from '../utils/staffAttendanceUtils';

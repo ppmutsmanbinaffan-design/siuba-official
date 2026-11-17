@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { startAutoQueueSync } from './services/offlineQueueSync';
 import { loadInstitution } from './services/institutionService';
 import { Sidebar } from './components/Sidebar';
@@ -6,19 +6,14 @@ import { TopHeader } from './components/TopHeader';
 import { LoginPage, AuthLoadingScreen, GuestRoute, ProtectedRoute, Forbidden403, NotFound404 } from './components/auth';
 import { authService, AuthStatus } from './services/authService';
 import { getTabFromPath, getPathFromTab } from './utils/router';
-import { hasPermission, getTabRequiredPermission, getFirstAccessibleRoute, can } from './config/navigationRegistry';
-import { AccessScopeService } from './services/accessScopeService';
+import { hasPermission, getTabRequiredPermission, getFirstAccessibleRoute } from './config/navigationRegistry';
 import { DashboardView } from './components/DashboardView';
-import { ManualAttendanceView } from './components/ManualAttendanceView';
 import { ExcuseManagerView } from './components/ExcuseManagerView';
-import { SessionsView } from './components/SessionsView';
-import { StudentsView } from './components/StudentsView';
 import { ActivitiesView } from './components/ActivitiesView';
 import { ExtracurricularsGroupsView } from './components/ExtracurricularsGroupsView';
 import { ClassroomsDormitoriesView } from './components/ClassroomsDormitoriesView';
 import { DevicesView } from './components/DevicesView';
 import { RfidSimulatorView } from './components/RfidSimulatorView';
-import { QrScannerView } from './components/QrScannerView';
 import { QrBulkPrintView } from './components/QrBulkPrintView';
 import { InteractiveScannerSimulator } from './components/InteractiveScannerSimulator';
 import { HistoryView } from './components/HistoryView';
@@ -39,21 +34,15 @@ import { RoutineScheduleManagerView } from './components/RoutineScheduleManagerV
 import { DutyRosterManagerView } from './components/DutyRosterManagerView';
 import { EventsManagerView } from './components/EventsManagerView';
 import { ExecutiveDashboardView } from './components/ExecutiveDashboardView';
-import { ReportCenterView } from './components/ReportCenterView';
 import { SyncCenterView } from './components/SyncCenterView';
 import { SecurityAuditView } from './components/SecurityAuditView';
 import { GoLiveQAPage } from './features/golive/GoLiveQAPage';
 import { StaffAttendanceView } from './components/StaffAttendanceView';
 import { TrainerAttendanceView } from './components/TrainerAttendanceView';
-import { StaffIntegratedDashboardView } from './components/StaffIntegratedDashboardView';
-import { StaffReportCenterView } from './components/StaffReportCenterView';
 import { IntegratedDashboardPage } from './features/dashboard';
 import { IntegratedReportCenterPage } from './features/reports';
 import { MaintenanceHubPage } from './features/maintenance';
 import { StudentCardDesignerView } from './components/StudentCardDesignerView';
-import { ServerConnectivityService } from './services/serverConnectivityService';
-import { OfflineStorageService } from './services/offlineStorageService';
-import { AcademicSessionGenerator } from './services/academicSessionGenerator';
 import { apiClient, isOfflineError } from './services/apiClient';
 import { loadServerSnapshot, persistSnapshotToCache } from './services/serverHydrationService';
 import { hasPendingLegacyMigration } from './services/localDataGuard';
@@ -121,7 +110,6 @@ import {
   Teacher,
   TeachingAssignment,
   User,
-  UserRole,
   SpecialEvent,
   EventSession,
   EventRegistration,
@@ -130,8 +118,6 @@ import {
   WalkInAuditLog
 } from './types';
 import { AttendanceEngine } from './services/attendanceEngine';
-import { RfidAttendanceService } from './services/rfidAttendanceService';
-import { ActivityParticipantService } from './services/activityParticipantService';
 import { CheckCircle2, AlertTriangle, X } from 'lucide-react';
 import { todayLocalDate } from './utils/today';
 
@@ -908,120 +894,19 @@ export function App() {
   };
 
   // Manual Sheet Status Click (Interactive Pill)
-  const handleRecordManualStatus = (params: {
-    sessionId: number;
-    student: Student;
-    status: AttendanceStatus;
-    notes?: string;
-  }) => {
-    const session = sessions.find((s) => s.id === params.sessionId);
-    if (!session) return;
-
-    // Check if record exists already for this student & session
-    const existingRecord = records.find(
-      (r) => r.attendance_session_id === session.id && r.student_id === params.student.id
-    );
-
-    if (existingRecord) {
-      // Prompt correction if already exists
-      handleCorrectStatus(existingRecord, params.status, 'Penyesuaian langsung operator pada lembar manual');
-    } else {
-      // Create fresh record
-      handleRecordAttendance({
-        sessionId: params.sessionId,
-        student: params.student,
-        method: 'manual',
-        overrideStatus: params.status,
-        notes: params.notes,
-        allowParticipantOverride: true, // Manual admin override
-      });
-    }
-  };
 
   // Bulk Mark All Present (Sprint 3 Engine)
-  const handleBulkMarkPresent = (sessionId: number) => {
-    const session = sessions.find((s) => s.id === sessionId);
-    if (!session) {
-      showToast('Sesi tidak ditemukan.', 'error');
-      return;
-    }
-
-    const activity = activities.find((a) => a.id === session.activity_id) || activities[0];
-
-    const bulkResult = AttendanceEngine.markAllPresent({
-      session,
-      activity,
-      allStudents: students,
-      existingRecords: records,
-      sessionParticipants,
-      operator: currentUser,
-    });
-
-    if (bulkResult.success > 0) {
-      setRecords((prev) => [...bulkResult.newRecords, ...prev]);
-      showToast(`Berhasil menandai ${bulkResult.success} santri sebagai Hadir (Dilewati: ${bulkResult.skipped}).`, 'success');
-    } else {
-      showToast(`Semua peserta sudah tercatat (${bulkResult.skipped} santri dilewati).`, 'success');
-    }
-  };
 
   // Bulk Apply Status (e.g. mass Izin, Sakit, Dispensasi, Alpha)
-  const handleBulkApplyStatus = (sessionId: number, targetStudentIds: number[], status: AttendanceStatus, notes?: string) => {
-    const session = sessions.find((s) => s.id === sessionId);
-    if (!session) return;
-
-    const activity = activities.find((a) => a.id === session.activity_id) || activities[0];
-    const targetStudents = students.filter((s) => targetStudentIds.includes(s.id));
-
-    const bulkResult = AttendanceEngine.bulkRecord({
-      session,
-      activity,
-      students: targetStudents,
-      status,
-      notes,
-      operator: currentUser,
-      existingRecords: records,
-      sessionParticipants,
-    });
-
-    if (bulkResult.success > 0) {
-      setRecords((prev) => [...bulkResult.newRecords, ...prev]);
-      showToast(`Berhasil memperbarui ${bulkResult.success} santri menjadi status ${status.toUpperCase()}.`, 'success');
-    } else {
-      showToast('Tidak ada data yang diproses.', 'error');
-    }
-  };
 
   // Attendance Correction with Mandatory Reason (Sprint 3 Engine)
-  const handleCorrectStatus = (record: AttendanceRecord, newStatus: AttendanceStatus, reason: string) => {
-    const corrResult = AttendanceEngine.correctAttendance({
-      record,
-      newStatus,
-      reason,
-      operator: currentUser,
-    });
-
-    if (corrResult.success && corrResult.updatedRecord && corrResult.historyEntry) {
-      setRecords((prev) => prev.map((r) => (r.id === corrResult.updatedRecord!.id ? corrResult.updatedRecord! : r)));
-      setRecordHistories((prev) => [corrResult.historyEntry!, ...prev]);
-      showToast(corrResult.message, 'success');
-    } else {
-      showToast(corrResult.message, 'error');
-    }
-  };
 
   // Buat sesi manual di server (peserta di-snapshot server sesuai aturan peserta kegiatan)
-  const handleCreateSession = (sessionData: Partial<AttendanceSession>) =>
-    kbmCall(() => apiClient.post('/attendance/sessions', sessionData), 'Sesi berhasil dibuat.');
 
   // Open Session
-  const handleOpenSession = (sessionId: number) => {
-    handleUpdateSessionStatus(sessionId, 'open');
-  };
 
   // Close Session with Auto Alpha & Active Excuse Processing (Sprint 3 Engine)
   // Buka/tutup/batal sesi lewat server (peserta yang belum tercatat otomatis difinalisasi saat ditutup)
-  const handleCloseSession = (sessionId: number) => handleUpdateSessionStatus(sessionId, 'closed');
 
   const handleUpdateSessionStatus = async (sessionId: number, newStatus: SessionStatus, cancelReason?: string) => {
     const targetSession = sessions.find((s) => s.id === sessionId);
@@ -1111,57 +996,10 @@ export function App() {
   const handleCancelExcusal = (id: number) => changeExcusalStatus(id, 'cancel');
 
   // Add Student
-  const handleAddStudent = (studentData: Partial<Student>) => {
-    const newStudent: Student = {
-      id: Date.now(),
-      student_number: studentData.student_number || `UBA2600${Math.floor(10 + Math.random() * 89)}`,
-      nisn: studentData.nisn || `0089${Math.floor(100000 + Math.random() * 900000)}`,
-      name: studentData.name || 'Santri Baru',
-      nickname: studentData.nickname,
-      gender: studentData.gender || 'male',
-      birth_place: studentData.birth_place,
-      birth_date: studentData.birth_date,
-      classroom_id: studentData.classroom_id || null,
-      classroom_name: studentData.classroom_name,
-      dormitory_room_id: studentData.dormitory_room_id || null,
-      dormitory_room_name: studentData.dormitory_room_name,
-      generation_year: studentData.generation_year || 2026,
-      entry_year: studentData.entry_year || 2026,
-      qr_token: studentData.qr_token || `STU-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
-      rfid_uid: studentData.rfid_uid || undefined,
-      guardian_name: studentData.guardian_name,
-      guardian_phone: studentData.guardian_phone,
-      address: studentData.address,
-      status: studentData.status || 'active',
-      is_active: studentData.is_active !== undefined ? studentData.is_active : true,
-    };
-
-    setStudents((prev) => [...prev, newStudent]);
-    showToast(`Santri '${newStudent.name}' (NIS: ${newStudent.student_number}) berhasil didaftarkan.`, 'success');
-  };
 
   // Update Student
-  const handleUpdateStudent = (studentId: number, updateData: Partial<Student>) => {
-    setStudents((prev) =>
-      prev.map((s) => (s.id === studentId ? { ...s, ...updateData } : s))
-    );
-    showToast(`Data santri berhasil diperbarui.`, 'success');
-  };
 
   // Toggle Student Active
-  const handleToggleStudentActive = (studentId: number) => {
-    setStudents((prev) =>
-      prev.map((s) => {
-        if (s.id === studentId) {
-          const nextState = !s.is_active;
-          const nextStatus = nextState ? 'active' : 'inactive';
-          showToast(`Status santri '${s.name}' diubah menjadi ${nextState ? 'AKTIF' : 'NON-AKTIF'}.`, 'success');
-          return { ...s, is_active: nextState, status: nextStatus };
-        }
-        return s;
-      })
-    );
-  };
 
   // Extracurriculars Handlers
   // ===== Ekstrakurikuler: disimpan di server =====

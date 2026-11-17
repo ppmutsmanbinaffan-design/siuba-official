@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckCircle2, Clock, FileText, AlertCircle, Users, Activity, Sparkles, XCircle } from 'lucide-react';
+import { CheckCircle2, Clock, FileText, Users, Activity, Sparkles, XCircle } from 'lucide-react';
 import { Card } from '../../../components/ui/Card';
 
 interface SessionSummaryKpiProps {

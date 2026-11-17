@@ -7,7 +7,6 @@ import {
   Users, 
   UserCheck, 
   Clock, 
-  AlertTriangle, 
   CheckCircle, 
   Calendar, 
   BookOpen, 
@@ -22,21 +21,13 @@ import {
   Filter, 
   CheckSquare, 
   XSquare, 
-  ShieldCheck, 
-  ArrowRight,
   RefreshCw,
   LogOut,
   LogIn,
   Layers,
-  ChevronRight,
-  Briefcase,
   History,
   Trash2,
-  Lock,
   Check,
-  X,
-  AlertCircle,
-  Sparkles,
   ChevronDown
 } from 'lucide-react';
 import { 
@@ -66,7 +57,7 @@ interface StaffAttendanceViewProps {
   sessions?: AttendanceSession[];
 }
 
-type TabType = 'DASHBOARD' | 'DAILY' | 'TEACHING' | 'TRAINING' | 'LEAVE' | 'SCHEDULES' | 'MASTER' | 'REPORTS' | 'ROADMAP';
+type TabType = 'DASHBOARD' | 'DAILY' | 'TEACHING' | 'TRAINING' | 'LEAVE' | 'SCHEDULES' | 'MASTER' | 'REPORTS';
 
 export const StaffAttendanceView: React.FC<StaffAttendanceViewProps> = ({
   currentUser = { id: 1, name: 'Admin', role: 'admin', email: 'admin@pesantren.id', username: 'admin', is_active: true },
@@ -637,7 +628,7 @@ export const StaffAttendanceView: React.FC<StaffAttendanceViewProps> = ({
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className="bg-white/15 border border-white/20 text-emerald-100 text-xs font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider backdrop-blur-xs">
-              SIUBA v1.1.1 Production
+              SIUBA
             </span>
             <span className="text-xs text-emerald-100/90 font-medium">Master SDM & Presensi Harian Pegawai/Guru</span>
           </div>
@@ -658,7 +649,6 @@ export const StaffAttendanceView: React.FC<StaffAttendanceViewProps> = ({
             { id: 'SCHEDULES' as TabType, label: 'Jadwal Kerja', desc: 'Pengaturan shift reguler, piket & asrama', icon: Clock, badge: '5 Shift Kerja' },
             { id: 'MASTER' as TabType, label: 'Master SDM & Kartu', desc: 'Database profil ustadz, guru & cetak kartu RFID/QR', icon: Users, badge: `${staffList.length} Pegawai` },
             { id: 'REPORTS' as TabType, label: 'Rekap & Laporan', desc: 'Rekapitulasi bulanan, ekspor Excel & cetak PDF', icon: Download, badge: 'Laporan Resmi' },
-            { id: 'ROADMAP' as TabType, label: 'Roadmap v1.1.2 & v1.1.3', desc: 'Fitur baru & peningkatan modul presensi SDM', icon: Sparkles, badge: 'Pembaruan' },
           ];
           const currentTabInfo = STAFF_TABS.find(t => t.id === activeTab) || STAFF_TABS[0];
           const CurrentTabIcon = currentTabInfo.icon;
@@ -1510,73 +1500,13 @@ export const StaffAttendanceView: React.FC<StaffAttendanceViewProps> = ({
             </div>
 
             <div className="mt-4 p-4 rounded-xl bg-slate-50 text-xs text-slate-700 leading-relaxed border border-slate-200">
-              <p className="font-bold text-slate-800 mb-1.5">Standar Metrik Kehadiran SDM (SIUBA v1.1.1):</p>
+              <p className="font-bold text-slate-800 mb-1.5">Standar Metrik Kehadiran SDM:</p>
               <ul className="list-disc pl-5 space-y-1 text-slate-700">
                 <li><strong>Daily Attendance Rate</strong> = (Hadir Tepat Waktu + Terlambat) / Total SDM Wajib Hadir × 100%</li>
                 <li><strong>Punctuality Rate</strong> = Hadir Tepat Waktu / (Hadir Tepat Waktu + Terlambat) × 100%</li>
                 <li><strong>Absence Reconciliation</strong> = Pengajuan Izin/Sakit/Cuti/Dinas yang disetujui otomatis disinkronkan ke status harian.</li>
                 <li><strong>Security & Privacy</strong> = Kredensial sensitif seperti QR Token Opaque dan RFID UID dilindungi dan tidak dicetak pada rekap publik.</li>
               </ul>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* TAB 7: ROADMAP ARCHITECTURE NOTICE */}
-      {/* ========================================================================= */}
-      {activeTab === 'ROADMAP' && (
-        <div className="space-y-6">
-          <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-6">
-            <div>
-              <span className="text-xs font-semibold uppercase tracking-wider text-teal-700 bg-teal-50 px-2.5 py-1 rounded-full border border-teal-200">
-                Arsitektur & Phasing Rilis SIUBA SDM
-              </span>
-              <h3 className="text-xl font-bold text-slate-800 mt-2">Pemisahan Domain: Kehadiran Harian ≠ Mengajar (KBM) ≠ Pelatih Ekskul</h3>
-              <p className="text-xs text-slate-700 mt-1 leading-relaxed">
-                Untuk menjamin stabilitas, integritas data, dan ketaatan arsitektural rilis, SIUBA memisahkan domain kehadiran SDM menjadi fase berjenjang:
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="p-4 rounded-xl border-2 border-teal-600 bg-teal-50/40">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="px-2 py-0.5 rounded bg-teal-700 text-white font-bold text-[10px]">
-                    v1.1.1 — PRODUCTION
-                  </span>
-                  <CheckCircle className="w-4 h-4 text-teal-700" />
-                </div>
-                <h4 className="font-bold text-slate-800 text-sm">Master SDM & Presensi Harian</h4>
-                <p className="text-xs text-slate-700 mt-1 leading-relaxed">
-                  Fokus pada kehadiran gerbang harian, check-in, check-out, jadwal kerja per hari, grace period toleransi keterlambatan, cuti/izin, serta audit trail riwayat koreksi.
-                </p>
-              </div>
-
-              <div className="p-4 rounded-xl border border-slate-200 bg-slate-50">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="px-2 py-0.5 rounded bg-slate-700 text-white font-bold text-[10px]">
-                    v1.1.2 — PLANNED
-                  </span>
-                  <BookOpen className="w-4 h-4 text-slate-700" />
-                </div>
-                <h4 className="font-bold text-slate-800 text-sm">Presensi Mengajar Guru (KBM)</h4>
-                <p className="text-xs text-slate-700 mt-1 leading-relaxed">
-                  Pencatatan jam mengajar riil guru di kelas per jadwal sesi mata pelajaran, validasi guru pengganti (inval), dan integrasi ke buku nilai/jurnal kelas.
-                </p>
-              </div>
-
-              <div className="p-4 rounded-xl border border-slate-200 bg-slate-50">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="px-2 py-0.5 rounded bg-slate-700 text-white font-bold text-[10px]">
-                    v1.1.3 — PLANNED
-                  </span>
-                  <Award className="w-4 h-4 text-slate-700" />
-                </div>
-                <h4 className="font-bold text-slate-800 text-sm">Presensi Pelatih Ekstrakurikuler</h4>
-                <p className="text-xs text-slate-700 mt-1 leading-relaxed">
-                  Pencatatan kehadiran pelatih/pembina ekstrakurikuler berbasis sesi latihan, penugasan khusus, dan rekonsiliasi honorarium pelatih eksternal.
-                </p>
-              </div>
             </div>
           </div>
         </div>

@@ -4,7 +4,6 @@ import { studentApi } from '../api/studentApi';
 import { PersonAvatar } from '../../../components/common/PersonAvatar';
 import { StatusBadge } from '../../../components/common/StatusBadge';
 import { DetailSection, DetailField } from '../../../components/common/DetailField';
-import { PageHeader } from '../../../components/layout/PageHeader';
 import { Button } from '../../../components/ui/Button';
 import { LoadingState } from '../../../components/ui/LoadingState';
 import { 
@@ -12,14 +11,10 @@ import {
   Edit3, 
   User, 
   BookOpen, 
-  Home, 
   Phone, 
-  Calendar, 
   CreditCard, 
   QrCode, 
   Radio, 
-  Clock, 
-  ShieldCheck, 
   Printer, 
   AlertCircle 
 } from 'lucide-react';

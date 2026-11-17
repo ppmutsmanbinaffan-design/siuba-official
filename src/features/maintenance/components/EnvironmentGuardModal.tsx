@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ShieldCheck, ShieldAlert, Cpu, Lock, CheckCircle2, X, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Cpu, X, AlertTriangle } from 'lucide-react';
 import { MaintenanceSystemConfig, AppEnvironment } from '../types';
 import { User } from '../../../types';
 

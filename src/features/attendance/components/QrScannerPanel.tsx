@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import jsQR from 'jsqr';
-import { Camera, RefreshCw, SwitchCamera, Flashlight, AlertTriangle, Maximize, Minimize, QrCode, Sparkles, CheckCircle2, ShieldAlert, Upload, HelpCircle, Image as ImageIcon } from 'lucide-react';
-import { AudioFeedbackService } from '../../../services/audioFeedbackService';
+import { Camera, RefreshCw, SwitchCamera, Flashlight, Sparkles, ShieldAlert, Upload, HelpCircle } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
 
 interface QrScannerPanelProps {

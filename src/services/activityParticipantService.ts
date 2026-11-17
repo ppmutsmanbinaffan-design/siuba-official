@@ -11,9 +11,7 @@ import {
   HalaqahMember,
   ParticipantType, 
   Student, 
-  StudentGroupMember, 
-  WalkInAuditLog
-} from '../types';
+  StudentGroupMember} from '../types';
 
 export class ActivityParticipantService {
   /**
@@ -494,71 +492,6 @@ export class ActivityParticipantService {
     });
   }
 
-  /**
-   * Add Walk-In Participant to Session Participant Snapshot with Audit Logging
-   */
-  static addWalkInParticipantSnapshot(params: {
-    session: AttendanceSession;
-    student: Student;
-    operatorName: string;
-    reason: string;
-    existingParticipants: AttendanceSessionParticipant[];
-    existingAuditLogs: WalkInAuditLog[];
-  }): {
-    updatedParticipants: AttendanceSessionParticipant[];
-    updatedAuditLogs: WalkInAuditLog[];
-    newParticipant: AttendanceSessionParticipant;
-  } {
-    const { session, student, operatorName, reason, existingParticipants, existingAuditLogs } = params;
 
-    const nowStr = new Date().toISOString();
-
-    const newParticipant: AttendanceSessionParticipant = {
-      id: Date.now() + Math.floor(Math.random() * 1000),
-      attendance_session_id: session.id,
-      student_id: student.id,
-      student_name: student.name,
-      student_number: student.student_number,
-      classroom_name: student.classroom_name || '-',
-      dormitory_room_name: student.dormitory_room_name || '-',
-      participant_source: `walk_in (${operatorName})`,
-      eligibility_status: 'eligible',
-      created_at: nowStr,
-    };
-
-    const newAuditLog: WalkInAuditLog = {
-      id: Date.now() + Math.floor(Math.random() * 1000),
-      session_id: session.id,
-      activity_name: session.activity_name,
-      student_id: student.id,
-      student_name: student.name,
-      student_number: student.student_number,
-      operator_name: operatorName,
-      reason,
-      timestamp: nowStr,
-    };
-
-    return {
-      updatedParticipants: [...existingParticipants, newParticipant],
-      updatedAuditLogs: [...existingAuditLogs, newAuditLog],
-      newParticipant,
-    };
-  }
-
-  /**
-   * Check if student is an authorized participant in the session snapshot
-   */
-  static isStudentSessionParticipant(
-    studentId: number,
-    sessionId: number,
-    sessionParticipants: AttendanceSessionParticipant[]
-  ): boolean {
-    const records = sessionParticipants.filter((p) => p.attendance_session_id === sessionId);
-    if (records.length === 0) {
-      // If no snapshot exists yet (legacy/draft), fallback to true
-      return true;
-    }
-    return records.some((p) => p.student_id === studentId && p.eligibility_status !== 'ineligible');
-  }
 }
 

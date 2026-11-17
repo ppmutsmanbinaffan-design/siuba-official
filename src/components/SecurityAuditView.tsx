@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { 
   ShieldCheck, 
   ShieldAlert, 
-  Shield, 
   Server, 
   Database, 
   Clock, 
@@ -12,36 +11,21 @@ import {
   XCircle, 
   RefreshCw, 
   Search, 
-  Filter, 
   Download, 
   Eye, 
   Lock, 
   Key, 
-  UserCheck, 
-  FileText, 
-  Smartphone, 
   Radio, 
   Activity, 
-  Cpu, 
   Zap, 
   AlertOctagon, 
-  Trash2, 
   Check, 
   ChevronRight, 
   BookOpen, 
   Sliders, 
-  History, 
-  ExternalLink,
-  Info,
-  Layers,
-  Sparkles
-} from 'lucide-react';
+  History} from 'lucide-react';
 import { 
   AuditLog, 
-  AuditLogEvent, 
-  DataIntegritySummary, 
-  DataIntegrityIssue, 
-  SystemHealthReport, 
   DisasterRecoveryPlan, 
   SecuritySettingConfig, 
   AttendanceSession, 
@@ -49,9 +33,7 @@ import {
   AttendanceRecord, 
   Student, 
   AttendanceDevice, 
-  User,
-  DatabaseBackupMeta
-} from '../types';
+  User} from '../types';
 import { AuditService } from '../services/auditService';
 import { apiClient } from '../services/apiClient';
 import { SystemStatusService, EMPTY_INTEGRITY, ServerHealthReport, ServerIntegritySummary, ServerIntegrityIssue, DrDrillRecord } from '../services/systemStatusService';
@@ -124,12 +106,7 @@ export const SecurityAuditView: React.FC<SecurityAuditViewProps> = ({
   onRestoreDatabase,
   onShowToast
 }) => {
-  const safeSessions = sessions || [];
-  const safeSessionParticipants = sessionParticipants || [];
-  const safeRecords = records || [];
-  const safeStudents = students || [];
   const safeDevices = devices || [];
-  const safeUsers = users || [];
 
   const [activeSubTab, setActiveSubTab] = useState<'health' | 'audit' | 'integrity' | 'dr' | 'policies'>('health');
   

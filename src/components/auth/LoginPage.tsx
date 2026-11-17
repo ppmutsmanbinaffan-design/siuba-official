@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { getInstitution, useInstitution, institutionContactLine } from '../../services/institutionService';
+import { useInstitution, institutionContactLine } from '../../services/institutionService';
 import { Eye, EyeOff, Lock, User, ArrowRight, AlertCircle } from 'lucide-react';
 import { User as UserType } from '../../types';
 import { Button } from '../ui/Button';

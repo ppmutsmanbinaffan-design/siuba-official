@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ChevronDown, CheckCircle2, Clock, FileText, XCircle, MoreHorizontal } from 'lucide-react';
+import { ChevronDown, CheckCircle2, MoreHorizontal } from 'lucide-react';
 import { AttendanceStatus } from '../types';
 import { ATTENDANCE_STATUS_MAP } from '../utils/attendanceUtils';
 

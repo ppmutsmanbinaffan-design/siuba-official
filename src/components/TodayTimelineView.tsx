@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { 
   Activity, 
   ActivityCategory, 
-  AttendanceMethod, 
   AttendanceRecord, 
   AttendanceSession, 
   AttendanceSessionParticipant, 
@@ -17,20 +16,14 @@ import {
 } from '../types';
 import { DailyAttendanceTimelineService } from '../services/dailyAttendanceTimelineService';
 import { RoutineSessionGenerator } from '../services/routineSessionGenerator';
-import { AttendanceEngine } from '../services/attendanceEngine';
 import { 
   Calendar, 
   Clock, 
-  CheckCircle2, 
-  AlertTriangle, 
   Play, 
   Lock, 
   UserCheck, 
   Filter, 
-  RefreshCw, 
   MapPin, 
-  QrCode, 
-  CreditCard, 
   Edit3, 
   Sparkles,
   Users,

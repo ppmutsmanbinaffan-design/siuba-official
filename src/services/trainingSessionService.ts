@@ -1,14 +1,6 @@
 import { 
   TrainingSession, 
-  TrainingSessionStatus, 
-  TrainingRealizationStatus, 
-  TrainingSessionGenerationResult, 
-  Extracurricular, 
-  AcademicCalendarEvent 
-} from '../types';
-import { ExtracurricularStaffAssignmentService } from './extracurricularStaffAssignmentService';
-import { TrainerSubstitutionService } from './trainerSubstitutionService';
-import { AuditService } from './auditService';
+  Extracurricular} from '../types';
 import { StaffIdentityResolver } from './staffIdentityResolver';
 
 export class TrainingSessionService {
@@ -29,15 +21,7 @@ export class TrainingSessionService {
     return sessions;
   }
 
-  public static saveTrainingSessions(sessions: TrainingSession[]): void {
-    try {
-      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(sessions));
-    } catch (_) {}
-  }
 
-  public static getTrainingSessionById(id: number): TrainingSession | undefined {
-    return this.getTrainingSessions().find(s => s.id === id);
-  }
 
   public static getExtracurriculars(): Extracurricular[] {
     try {
@@ -47,13 +31,6 @@ export class TrainingSessionService {
     return [];
   }
 
-  public static getCalendarEvents(): AcademicCalendarEvent[] {
-    try {
-      const stored = localStorage.getItem('siuba_academic_calendar_events');
-      if (stored) return JSON.parse(stored);
-    } catch (_) {}
-    return [];
-  }
 
   // Pembuatan sesi latihan dari jadwal kini dilakukan server (TrainerApiController::generateFor,
   // otomatis tiap 00:20 lewat penjadwal). Generator lama di browser memakai jadwal contoh yang tertanam di kode.

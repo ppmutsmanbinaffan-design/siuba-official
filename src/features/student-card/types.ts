@@ -1,13 +1,6 @@
 import { 
-  Student, 
-  Classroom, 
-  Dormitory, 
-  DormitoryRoom, 
-  StudentCardTemplate, 
   StudentCardTemplateElement, 
   CardOrientation, 
-  CardSide, 
-  StudentCardElementType, 
   CardPhotoShape 
 } from '../../types';
 

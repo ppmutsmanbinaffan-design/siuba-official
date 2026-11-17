@@ -7,15 +7,9 @@ import {
   Users, 
   UserPlus, 
   Trash2, 
-  CheckCircle2, 
-  Calendar, 
   MapPin, 
   User, 
-  Layers,
-  ChevronRight,
-  ShieldCheck,
-  GraduationCap
-} from 'lucide-react';
+  Layers} from 'lucide-react';
 import { 
   Extracurricular, 
   ExtracurricularMember, 
@@ -157,7 +151,7 @@ export const ExtracurricularsGroupsView: React.FC<ExtracurricularsGroupsViewProp
             <div className="flex items-center gap-2 mb-2 flex-wrap">
               <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-white/15 text-emerald-100 border border-white/20 uppercase tracking-wider flex items-center gap-1 backdrop-blur-xs">
                 <Award className="w-3 h-3 text-[#C9A227]" />
-                SIUBA v1.1.3 PRODUCTION
+                SIUBA
               </span>
               <span className="text-[11px] text-emerald-100 font-bold bg-black/25 px-2.5 py-0.5 rounded-full border border-white/15 backdrop-blur-xs">
                 Master Peserta & Kelompok Khusus

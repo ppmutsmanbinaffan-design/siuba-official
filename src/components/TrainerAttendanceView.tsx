@@ -2,48 +2,31 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Award, 
   Users, 
-  UserCheck, 
   Clock, 
   Calendar, 
   CheckCircle2, 
-  AlertCircle, 
   AlertTriangle, 
   RefreshCw, 
   Plus, 
   Search, 
-  Filter, 
   QrCode, 
   Radio, 
-  Layers, 
-  FileText, 
   ShieldCheck, 
   Check, 
-  X, 
-  Play, 
-  CheckSquare, 
   Sparkles, 
   UserPlus, 
   ArrowRightLeft, 
   BookOpen, 
-  Info,
-  ChevronRight,
   ChevronDown,
-  Printer,
-  Trash2,
-  Edit3
-} from 'lucide-react';
+  Printer} from 'lucide-react';
 import { 
   User, 
   Staff, 
-  Extracurricular, 
   TrainingSession, 
   ExtracurricularStaffAssignment, 
   ExtracurricularStaffRole,
   TrainerSubstitution, 
-  StaffAttendanceRecord,
-  TrainingContextResolution,
-  TrainingReconciliationItem
-} from '../types';
+  StaffAttendanceRecord} from '../types';
 import { apiClient } from '../services/apiClient';
 import { todayLocalDate } from '../utils/today';
 import { AudioFeedbackService } from '../services/audioFeedbackService';

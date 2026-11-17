@@ -4,16 +4,10 @@ import {
   CreditCard, 
   Printer, 
   Search, 
-  Filter, 
   CheckSquare, 
   Square, 
-  Layers, 
-  Sparkles, 
   Download, 
-  Eye, 
-  CheckCircle2, 
   FileText,
-  Sliders,
   ChevronDown
 } from 'lucide-react';
 import { 
@@ -24,7 +18,6 @@ import {
   StudentCardTemplate, 
   CardSide 
 } from '../../../types';
-import { CR80_SPECS } from '../../../services/studentCardTemplateService';
 import { StudentCardRenderer } from './StudentCardRenderer';
 import { exportStudentCardToCanvas, downloadCanvasAsPng } from '../utils/cardCanvasExporter';
 

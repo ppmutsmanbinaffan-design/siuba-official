@@ -790,13 +790,6 @@ export class StudentCardTemplateService {
     return templates.find((t) => t.id === id) || null;
   }
 
-  /**
-   * Get the active default template
-   */
-  public static getDefaultTemplate(): StudentCardTemplate {
-    const templates = this.getTemplates();
-    return templates.find((t) => t.is_default && t.is_active) || templates[0] || DEFAULT_CARD_TEMPLATES[0];
-  }
 
   /**
    * Save / Update template
@@ -1082,22 +1075,7 @@ export class StudentCardTemplateService {
     });
   }
 
-  /**
-   * Unit Conversion Helpers
-   */
-  public static mmToPx(mm: number, dpi: number = 300): number {
-    return Math.round((mm / CR80_SPECS.MM_TO_INCH) * dpi);
-  }
 
-  public static pxToMm(px: number, dpi: number = 300): number {
-    return Number(((px / dpi) * CR80_SPECS.MM_TO_INCH).toFixed(2));
-  }
 
-  public static ptToMm(pt: number): number {
-    return Number(((pt / CR80_SPECS.PT_PER_INCH) * CR80_SPECS.MM_TO_INCH).toFixed(2));
-  }
 
-  public static mmToPt(mm: number): number {
-    return Number(((mm / CR80_SPECS.MM_TO_INCH) * CR80_SPECS.PT_PER_INCH).toFixed(2));
-  }
 }

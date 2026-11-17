@@ -1,12 +1,8 @@
 import { User } from '../../../types';
 import {
-  MaintenanceSubTab,
   MaintenanceSystemConfig,
   BackupRecord,
-  ResetModeType,
   ResetModeInfo,
-  ResetExecutionRequest,
-  ResetExecutionResult,
   MaintenanceLogEntry,
   IntegrityAuditResult,
   IntegrityIssueItem
@@ -41,42 +37,6 @@ export class MaintenanceService {
     return this.defaultConfig;
   }
 
-  /**
-   * Update Environment Configuration with audit logging
-   */
-  public static updateConfig(
-    partial: Partial<MaintenanceSystemConfig>,
-    actor: User
-  ): MaintenanceSystemConfig {
-    const current = this.getConfig();
-    const updated: MaintenanceSystemConfig = {
-      ...current,
-      ...partial,
-      last_config_updated_at: new Date().toISOString(),
-      last_config_updated_by: actor.name || actor.username
-    };
-
-    localStorage.setItem(CONFIG_STORAGE_KEY, JSON.stringify(updated));
-
-    // Audit log
-    this.appendLog({
-      id: `LOG-CFG-${Date.now().toString(36).toUpperCase()}`,
-      event_type: 'environment_config_changed',
-      event_title: 'Konfigurasi Environment Diperbarui',
-      actor_name: actor.name || actor.username,
-      actor_role: actor.role,
-      timestamp: new Date().toISOString(),
-      status: 'SUCCESS',
-      operation_id: `OP-CFG-${Date.now()}`,
-      summary: `Pengaturan diubah: APP_ENV=${updated.app_env}, ALLOW_RESET=${updated.allow_database_reset}, MAINTENANCE_MODE=${updated.maintenance_mode}`,
-      details: {
-        previous: current,
-        updated: updated
-      }
-    });
-
-    return updated;
-  }
 
   /**
    * Check RBAC permissions for maintenance actions
@@ -104,21 +64,6 @@ export class MaintenanceService {
     }
   }
 
-  /**
-   * Calculate SHA-256 Simulation Checksum
-   */
-  public static calculateSha256(dataStr: string): string {
-    let hash1 = 5381;
-    let hash2 = 52711;
-    for (let i = 0; i < dataStr.length; i++) {
-      const char = dataStr.charCodeAt(i);
-      hash1 = ((hash1 << 5) + hash1) ^ char;
-      hash2 = ((hash2 << 5) + hash2) ^ char;
-    }
-    const hex1 = Math.abs(hash1).toString(16).padStart(8, '0');
-    const hex2 = Math.abs(hash2).toString(16).padStart(8, '0');
-    return `SHA256:${hex1}e9f4${hex2}8c21b07d5a${hex1}`;
-  }
 
   /**
    * Compute comprehensive database summary from the full dataset
@@ -280,114 +225,7 @@ export class MaintenanceService {
     return [];
   }
 
-  public static createBackup(
-    dataset: Record<string, any>,
-    actor: User,
-    type: 'MANUAL' | 'AUTO_BEFORE_RESET' | 'SCHEDULED' = 'MANUAL',
-    notes?: string
-  ): { success: boolean; backup?: BackupRecord; error?: string } {
-    try {
-      const timestamp = new Date().toISOString();
-      const backupId = `SIUBA-BKP-${Date.now().toString(36).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
-      const payloadStr = JSON.stringify(dataset || {});
-      const sizeBytes = new Blob([payloadStr]).size;
-      const sizeHuman = sizeBytes > 1024 * 1024
-        ? `${(sizeBytes / (1024 * 1024)).toFixed(2)} MB`
-        : `${(sizeBytes / 1024).toFixed(2)} KB`;
 
-      const checksum = this.calculateSha256(payloadStr);
-
-      let totalRecords = 0;
-      const tableNames: string[] = [];
-      Object.entries(dataset || {}).forEach(([key, val]) => {
-        if (Array.isArray(val)) {
-          totalRecords += val.length;
-          tableNames.push(key);
-        }
-      });
-
-      const backup: BackupRecord = {
-        id: backupId,
-        created_at: timestamp,
-        size_bytes: sizeBytes,
-        size_human: sizeHuman,
-        checksum_sha256: checksum,
-        verification_status: 'VERIFIED',
-        tables_backed_up: tableNames,
-        total_records_count: totalRecords,
-        created_by_name: actor.name || actor.username,
-        created_by_role: actor.role,
-        backup_type: type,
-        notes: notes || (type === 'AUTO_BEFORE_RESET' ? 'Backup otomatis sebelum eksekusi reset database' : 'Backup database manual'),
-        raw_payload_json: payloadStr
-      };
-
-      const existingBackups = this.getBackups();
-      // Keep only latest 5 backups, and for older backups (index > 0), omit huge raw_payload_json to conserve quota
-      const slimExisting = existingBackups.slice(0, 4).map((b) => ({
-        ...b,
-        raw_payload_json: undefined
-      }));
-      const updatedBackups = [backup, ...slimExisting];
-
-      try {
-        localStorage.setItem(BACKUPS_STORAGE_KEY, JSON.stringify(updatedBackups));
-      } catch (quotaErr) {
-        console.warn('Quota exceeded when saving backup payload. Saving metadata only.', quotaErr);
-        const metaOnlyBackups = updatedBackups.slice(0, 3).map(b => ({ ...b, raw_payload_json: undefined }));
-        try {
-          localStorage.setItem(BACKUPS_STORAGE_KEY, JSON.stringify(metaOnlyBackups));
-        } catch {
-          // If still fails, clear old backups
-          localStorage.setItem(BACKUPS_STORAGE_KEY, JSON.stringify([{ ...backup, raw_payload_json: undefined }]));
-        }
-      }
-
-      // Append Audit Log
-      this.appendLog({
-        id: `LOG-BKP-${Date.now().toString(36).toUpperCase()}`,
-        event_type: 'backup_completed',
-        event_title: 'Backup Database Berhasil Dibuat',
-        actor_name: actor.name || actor.username,
-        actor_role: actor.role,
-        timestamp: timestamp,
-        status: 'SUCCESS',
-        operation_id: backupId,
-        summary: `Backup ${backupId} (${sizeHuman}, ${totalRecords} baris data) diverifikasi dengan checksum ${checksum.slice(0, 20)}...`,
-        details: {
-          backup_id: backupId,
-          size_bytes: sizeBytes,
-          tables: tableNames,
-          checksum: checksum
-        }
-      });
-
-      return { success: true, backup };
-    } catch (err: any) {
-      console.error('Create backup error', err);
-      return { success: false, error: err.message || 'Gagal membuat file backup.' };
-    }
-  }
-
-  public static deleteBackup(backupId: string, actor: User): boolean {
-    const existing = this.getBackups();
-    const filtered = existing.filter(b => b.id !== backupId);
-    localStorage.setItem(BACKUPS_STORAGE_KEY, JSON.stringify(filtered));
-
-    this.appendLog({
-      id: `LOG-DEL-BKP-${Date.now().toString(36).toUpperCase()}`,
-      event_type: 'backup_completed',
-      event_title: 'Backup Database Dihapus',
-      actor_name: actor.name || actor.username,
-      actor_role: actor.role,
-      timestamp: new Date().toISOString(),
-      status: 'INFO',
-      operation_id: backupId,
-      summary: `Backup ${backupId} dihapus dari penyimpanan lokal oleh ${actor.name}.`
-    });
-
-    return true;
-  }
 
   // Reset database kini dijalankan di server (POST /maintenance/reset, tahap 13).
 

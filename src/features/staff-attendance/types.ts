@@ -1,22 +1,10 @@
 import type { 
   Staff, 
   StaffType, 
-  StaffAttendanceRecord, 
-  StaffAttendanceType, 
   StaffAttendanceStatus, 
   StaffAbsenceType,
   StaffAbsenceStatus,
   AttendanceMethod, 
-  TeachingSession, 
-  TeachingSessionStatus, 
-  TrainingSession, 
-  TrainingSessionStatus, 
-  TrainingRealizationStatus, 
-  AcademicSubstitution, 
-  TrainerSubstitution, 
-  StaffAbsenceRequest, 
-  AttendanceDevice, 
-  AttendanceDeviceLog,
   User
 } from '../../types';
 

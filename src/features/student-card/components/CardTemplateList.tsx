@@ -1,22 +1,16 @@
 import React, { useState } from 'react';
 import { 
-  CreditCard, 
-  Plus, 
   Search, 
   Eye, 
   Edit3, 
   Copy, 
   Trash2, 
-  CheckCircle2, 
   Sparkles, 
-  Filter, 
   Sliders, 
   Check, 
-  ArrowRight,
   Printer
 } from 'lucide-react';
 import { StudentCardTemplate, CardOrientation, Student } from '../../../types';
-import { CR80_SPECS } from '../../../services/studentCardTemplateService';
 import { StudentCardRenderer } from './StudentCardRenderer';
 
 export interface CardTemplateListProps {

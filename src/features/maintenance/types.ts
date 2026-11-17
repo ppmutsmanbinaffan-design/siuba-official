@@ -1,4 +1,4 @@
-import { User, AttendanceStatus, SessionStatus } from '../../types';
+import { User, SessionStatus } from '../../types';
 
 export type MaintenanceSubTab = 'status' | 'backup' | 'reset' | 'integrity' | 'logs';
 

@@ -32,9 +32,6 @@ export class AudioFeedbackService {
     this.soundEnabled = enabled;
   }
 
-  static isSoundEnabled(): boolean {
-    return this.soundEnabled;
-  }
 
   /**
    * Trigger haptic vibration feedback

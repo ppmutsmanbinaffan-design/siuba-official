@@ -1,28 +1,12 @@
 import React, { useState, useMemo } from 'react';
-import { getInstitution, useInstitution, institutionContactLine } from '../../../services/institutionService';
+import { getInstitution } from '../../../services/institutionService';
 import { 
-  Radio, 
-  Search, 
-  Filter, 
-  Download, 
-  Printer, 
   Eye, 
-  CheckCircle2, 
   Clock, 
-  AlertCircle, 
-  XCircle,
-  FileSpreadsheet,
-  ChevronRight,
-  ShieldCheck,
   Cpu,
-  Activity as ActivityIcon,
   Wifi,
   WifiOff,
-  AlertTriangle,
-  Server,
-  Layers,
-  Sparkles
-} from 'lucide-react';
+  AlertTriangle} from 'lucide-react';
 import { 
   User, 
   AttendanceDevice,

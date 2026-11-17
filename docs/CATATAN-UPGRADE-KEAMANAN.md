@@ -1054,3 +1054,38 @@ Tidak ada migrasi baru. Jalankan `jalankan-siuba.bat`, lalu Ctrl+F5.
 ## Langkah setelah update
 Tidak ada migrasi baru. Jalankan `jalankan-siuba.bat`, lalu Ctrl+F5. Buka **Uji Kesiapan Sistem** dan tekan
 **Jalankan Uji Kesiapan** — benahi butir yang GAGAL lebih dulu.
+
+---
+
+# Update 30 — Tahap 26: Pembersihan kode lama
+
+Tidak ada fitur baru; aplikasi diperkecil dan dirapikan agar lebih mudah dirawat dan tidak ada lagi jalur
+tersembunyi yang menyimpan data hanya di browser.
+
+## Yang dihapus
+- **±22.700 baris kode tidak terpakai** (184 berkas berubah), antara lain:
+  - 38 halaman/komponen/layanan yang tidak pernah tampil di menu (Daftar Santri lama, Scanner QR lama,
+    Absensi Manual lama, Pusat Laporan lama, Dashboard SDM lama, halaman presensi harian SDM lama, dll.).
+  - 115 fungsi layanan browser yang tidak dipanggil lagi (mesin presensi lama, generator sesi KBM contoh,
+    pengganti guru/pelatih lokal, dll.).
+  - ±870 impor yang tidak terpakai.
+  - Data contoh `initialData.ts` (2.090 baris santri, sesi, presensi, SDM, jadwal contoh) — tersisa hanya
+    kategori kegiatan bawaan dan sidik jari data contoh untuk pembersihan cache lama.
+- Server: 12 berkas PHP yang tidak pernah dipanggil (controller web lama, form request lama, komponen Livewire
+  tanpa paket Livewire, aksi & layanan lama).
+- Lencana versi yang tidak konsisten ("SIUBA v1.1.3 PRODUCTION", "Sprint 4", dll.) dan tab **Roadmap** di
+  Presensi SDM yang menampilkan rencana fitur lama.
+
+## Perbaikan yang ditemukan saat pembersihan
+- **Presensi & izin SDM saat server offline:** sebelumnya tap kartu SDM, pengajuan/persetujuan izin SDM
+  "berhasil" disimpan hanya di browser dan **tidak pernah terkirim ke server**. Kini aplikasi menyatakan dengan
+  jelas bahwa data SDM tidak bisa disimpan saat offline dan meminta mencoba lagi setelah tersambung.
+  (Presensi santri tetap punya antrean offline yang terkirim otomatis.)
+
+## Hasil
+- Berkas tampilan: JS 2,44 MB → 2,34 MB, CSS 235 KB → 211 KB.
+- Semua tes otomatis lulus (SQLite & MariaDB), 45 menu terbuka tanpa galat, kontras warna bersih.
+
+## Langkah setelah update
+Tidak ada migrasi baru. **Penting:** hapus semua berkas di `FILE-YANG-HARUS-DIHAPUS.txt` (cukup banyak kali ini).
+Jalankan `jalankan-siuba.bat`, lalu Ctrl+F5.

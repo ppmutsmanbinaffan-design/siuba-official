@@ -4,7 +4,7 @@ import { ResponsiveModal } from '../../../components/ui/ResponsiveModal';
 import { Button } from '../../../components/ui/Button';
 import { Select } from '../../../components/ui/Select';
 import { Input } from '../../../components/ui/Input';
-import { BookOpen, AlertCircle, Clock, CheckCircle2, Users } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Users } from 'lucide-react';
 import { StaffAttendanceApi } from '../api/staffAttendanceApi';
 
 interface TeachingManualAttendanceModalProps {

@@ -9,10 +9,6 @@ import {
   Classroom, 
   Dormitory, 
   DormitoryRoom, 
-  EventRegistration, 
-  Extracurricular, 
-  ExtracurricularMember, 
-  SpecialEvent, 
   Student, 
   StudentExcusal, 
   User 
@@ -20,30 +16,14 @@ import {
 import { AttendanceMetricService, FilterCriteria } from '../services/attendanceMetricService';
 import { AttendanceSummaryService } from '../services/attendanceSummaryService';
 import { 
-  Activity as ActivityIcon, 
-  AlertCircle, 
-  AlertTriangle, 
-  Award, 
   BarChart3, 
-  BookOpen, 
-  Calendar, 
   CheckCircle2, 
-  Clock, 
   Cpu, 
   Eye, 
-  Filter, 
-  GraduationCap, 
-  Home, 
   Layers, 
-  PieChart, 
-  QrCode, 
-  RefreshCw, 
   ShieldAlert, 
-  Smartphone, 
   TrendingUp, 
-  UserCheck, 
   UserX, 
-  Users, 
   Zap 
 } from 'lucide-react';
 import { todayLocalDate, shiftLocalDate } from '../utils/today';
