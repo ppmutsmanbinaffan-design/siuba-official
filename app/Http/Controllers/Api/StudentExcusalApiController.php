@@ -9,6 +9,7 @@ use App\Models\StudentExcusal;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 
@@ -87,6 +88,54 @@ class StudentExcusalApiController extends Controller
             'success' => true,
             'message' => $status === 'approved' ? 'Surat izin disimpan dan disetujui.' : 'Surat izin disimpan, menunggu persetujuan.',
             'data' => SpaTransformer::excusal($excusal->load(self::WITH)),
+        ], 201);
+    }
+
+    /**
+     * Dispensasi massal (mis. peserta event resmi). Hanya petugas perizinan; langsung disetujui.
+     * Santri yang sudah punya izin disetujui dengan alasan & rentang yang sama dilewati.
+     */
+    public function bulkStore(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'student_ids' => 'required|array|min:1|max:2000',
+            'student_ids.*' => 'integer|exists:students,id',
+            'type' => ['required', Rule::in(StudentExcusal::TYPES)],
+            'start_at' => 'required|date',
+            'end_at' => 'required|date|after_or_equal:start_at',
+            'reason' => 'required|string|max:500',
+            'notes' => 'nullable|string|max:1000',
+        ], [
+            'end_at.after_or_equal' => 'Waktu selesai izin harus sama atau setelah waktu mulai.',
+        ]);
+        $user = $request->user();
+        $start = Carbon::parse($data['start_at']);
+        $end = Carbon::parse($data['end_at']);
+        $ids = array_values(array_unique(array_map('intval', $data['student_ids'])));
+
+        $existing = StudentExcusal::whereIn('student_id', $ids)
+            ->where('type', $data['type'])->where('status', 'approved')
+            ->where('reason', $data['reason'])
+            ->where('start_at', $start)->where('end_at', $end)
+            ->pluck('student_id')->all();
+        $todo = array_values(array_diff($ids, $existing));
+
+        DB::transaction(function () use ($todo, $data, $start, $end, $user) {
+            foreach ($todo as $sid) {
+                StudentExcusal::create([
+                    'student_id' => $sid, 'type' => $data['type'], 'start_at' => $start, 'end_at' => $end,
+                    'reason' => $data['reason'], 'notes' => $data['notes'] ?? null,
+                    'status' => 'approved', 'approved_by' => $user?->id, 'approved_at' => now(),
+                    'created_by' => $user?->id, 'created_by_name' => $user?->name,
+                ]);
+            }
+        });
+        Log::info('Dispensasi massal dibuat', ['count' => count($todo), 'skipped' => count($existing), 'user_id' => $user?->id]);
+
+        return response()->json([
+            'success' => true,
+            'message' => count($todo) . ' dispensasi disimpan' . (count($existing) ? ', ' . count($existing) . ' santri sudah punya.' : '.'),
+            'data' => ['created' => count($todo), 'skipped' => count($existing)],
         ], 201);
     }
 

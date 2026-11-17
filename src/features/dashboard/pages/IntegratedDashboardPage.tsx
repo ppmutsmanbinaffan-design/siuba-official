@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useServerStaffReportData } from '../../reports/useServerStaffReportData';
-import { todayLocalDate } from '../../../utils/today';
+import { todayLocalDate, shiftLocalDate } from '../../../utils/today';
 import { getInstitution, useInstitution, institutionContactLine } from '../../../services/institutionService';
 import { 
   Calendar, 
@@ -86,7 +86,8 @@ export const IntegratedDashboardPage: React.FC<Props> = ({
 }) => {
   const [selectedDate, setSelectedDate] = useState<string>(() => todayLocalDate());
   // Ringkasan SDM/mengajar/melatih dihitung dari data server tanggal ini (dulu dari data browser / data contoh)
-  const { version: staffDataVersion } = useServerStaffReportData(selectedDate, selectedDate);
+  // 7 hari sampai tanggal terpilih: grafik tren SDM butuh data 6 hari sebelumnya juga
+  const { version: staffDataVersion } = useServerStaffReportData(shiftLocalDate(-6, selectedDate), selectedDate);
   const [activeDomain, setActiveDomain] = useState<DashboardActiveDomain>('all');
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -258,11 +259,7 @@ export const IntegratedDashboardPage: React.FC<Props> = ({
   };
 
   const handleDatePreset = (preset: 'today' | 'yesterday') => {
-    const d = new Date();
-    if (preset === 'yesterday') {
-      d.setDate(d.getDate() - 1);
-    }
-    setSelectedDate(d.toISOString().substring(0, 10));
+    setSelectedDate(preset === 'yesterday' ? shiftLocalDate(-1) : todayLocalDate());
   };
 
   return (

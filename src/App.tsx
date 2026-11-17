@@ -473,8 +473,31 @@ export function App() {
   const handleRemoveParticipantRule = (ruleId: number) =>
     kbmCall(() => apiClient.delete(`/community/event-rules/${ruleId}`), 'Rule peserta dihapus.');
 
-  const handleCreateEventDispensations = (updatedExcusals: StudentExcusal[]) => {
-    setExcusals(updatedExcusals);
+  // Dispensasi peserta event disimpan ke server (dulu hanya di layar dan hilang saat data dimuat ulang)
+  const handleCreateEventDispensations = async (updatedExcusals: StudentExcusal[]): Promise<boolean> => {
+    const known = new Set(excusals.map((e) => e.id));
+    const fresh = updatedExcusals.filter((e) => !known.has(e.id));
+    if (fresh.length === 0) return true;
+    const first = fresh[0];
+    try {
+      const res: any = await apiClient.post('/student-excusals/bulk', {
+        student_ids: fresh.map((e) => e.student_id),
+        type: first.type,
+        start_at: first.start_at,
+        end_at: first.end_at,
+        reason: first.reason,
+        notes: first.notes,
+      });
+      showToast(res?.message || `${fresh.length} dispensasi disimpan.`, 'success');
+      await refreshServerData(true);
+      return true;
+    } catch (err: any) {
+      showToast(
+        isOfflineError(err) ? 'Server offline: dispensasi belum bisa disimpan. Coba lagi saat tersambung.' : err?.message || 'Gagal menyimpan dispensasi.',
+        'error'
+      );
+      return false;
+    }
   };
 
   // ===== KBM: semua perubahan master data disimpan di server lalu dimuat ulang =====
@@ -826,6 +849,9 @@ export function App() {
   };
 
   // Record Attendance Handler (Engine Invocation with Session Participant Snapshot Verification)
+  // Hasil simulator disimpan terpisah (hilang saat halaman dimuat ulang), tidak dicampur dengan presensi asli
+  const [simulatedRecords, setSimulatedRecords] = useState<AttendanceRecord[]>([]);
+
   const handleRecordAttendance = (params: {
     sessionId: number;
     student: Student;
@@ -849,41 +875,8 @@ export function App() {
 
     const activity = activities.find((a) => a.id === session.activity_id) || activities[0];
 
-    // SPRINT 10: Check if Server LAN is Offline
-    if (ServerConnectivityService.getState() === 'SERVER_OFFLINE') {
-      const offlineRes = OfflineStorageService.addPendingAttendance({
-        sessionId: session.id,
-        sessionCode: session.session_code,
-        activityName: session.activity_name,
-        studentId: params.student.id,
-        studentNumber: params.student.student_number,
-        studentName: params.student.name,
-        classroomName: params.student.classroom_name,
-        dormitoryRoomName: params.student.dormitory_room_name,
-        method: params.method,
-        status: params.overrideStatus || 'present',
-        notes: params.notes,
-        operatorId: currentUser.id,
-        operatorName: currentUser.name,
-      });
-
-      if (offlineRes.success) {
-        showToast(`✓ [MODE OFFLINE] Absensi ${params.student.name} tersimpan di antrean perangkat (PENDING SYNC).`, 'info');
-        return {
-          success: true,
-          code: 'SUCCESS',
-          message: 'Absensi tersimpan sementara di antrean perangkat (Menunggu Sinkronisasi LAN).',
-        };
-      } else {
-        showToast(offlineRes.message || 'Gagal menyimpan antrean offline', 'error');
-        return {
-          success: false,
-          code: 'ALREADY_RECORDED',
-          message: offlineRes.message || 'Gagal menyimpan antrean offline',
-        };
-      }
-    }
-
+    // Hanya dipakai halaman SIMULATOR (scanner & RFID): hasilnya tidak pernah masuk antrean offline
+    // maupun daftar presensi sungguhan — dulu saat server offline simulasi ikut tersinkron sebagai presensi asli.
     const { result, newRecord } = AttendanceEngine.record({
       sessionId: session.id,
       sessionStatus: session.status,
@@ -899,14 +892,14 @@ export function App() {
       checkInTime: params.checkInTime || new Date().toISOString(),
       overrideStatus: params.overrideStatus,
       notes: params.notes,
-      existingRecords: records,
+      existingRecords: [...simulatedRecords, ...records],
       sessionParticipants,
       allowParticipantOverride: params.allowParticipantOverride,
     });
 
     if (result.success && newRecord) {
-      setRecords((prev) => [newRecord, ...prev]);
-      showToast(result.message, 'success');
+      setSimulatedRecords((prev) => [newRecord, ...prev]);
+      showToast(`[SIMULASI] ${result.message}`, 'success');
     } else {
       showToast(result.message, 'error');
     }
@@ -1943,7 +1936,7 @@ export function App() {
                 students={students}
                 activities={activities}
                 devices={devices}
-                records={records}
+                records={[...simulatedRecords, ...records]}
                 currentUser={currentUser}
                 sessionParticipants={sessionParticipants}
                 onRecordAttendance={handleRecordAttendance}
@@ -1961,7 +1954,7 @@ export function App() {
                 students={students}
                 activities={activities}
                 devices={devices}
-                records={records}
+                records={[...simulatedRecords, ...records]}
                 sessionParticipants={sessionParticipants}
                 currentUser={currentUser}
                 onRecordAttendance={handleRecordAttendance}

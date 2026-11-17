@@ -42,3 +42,6 @@ Thumbs.db
 
 # File password awal hasil seeder
 /storage/app/initial-admin-password.txt
+# Berkas backup database tidak boleh ikut ke repositori / paket update
+/storage/app/backups/
+/storage/app/*.sql

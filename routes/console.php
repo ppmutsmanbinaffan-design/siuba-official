@@ -148,6 +148,28 @@ Artisan::command('attendance:auto-close {--minutes= : Abaikan pengaturan dan pak
     return 0;
 })->purpose('Tutup sesi absensi yang sudah lewat waktu selesai + N menit (Pengaturan → Aturan Absensi → Auto-Close)');
 
+Artisan::command('siuba:bersihkan-aset', function () {
+    // Paket update (ZIP) menambah berkas index-*.js/css baru tetapi tidak menghapus yang lama.
+    // Hapus berkas aset yang tidak lagi dirujuk public/app.html.
+    $html = @file_get_contents(public_path('app.html')) ?: '';
+    $used = [];
+    if (preg_match_all('#/assets/([A-Za-z0-9_\-]+\.(?:js|css))#', $html, $m)) {
+        $used = array_unique($m[1]);
+    }
+    if (count($used) < 2) {
+        $this->warn('Berkas app.html tidak merujuk aset yang dikenali; tidak ada yang dihapus.');
+        return 0;
+    }
+    $removed = 0;
+    foreach (array_merge(glob(public_path('assets/index-*.js')) ?: [], glob(public_path('assets/index-*.css')) ?: []) as $file) {
+        if (!in_array(basename($file), $used, true) && @unlink($file)) {
+            $removed++;
+        }
+    }
+    $this->line($removed ? "✓ {$removed} berkas aset lama dihapus." : 'Tidak ada aset lama.');
+    return 0;
+})->purpose('Hapus berkas tampilan (JS/CSS) lama yang tertinggal dari update sebelumnya');
+
 // Bersihkan log perangkat > 60 hari setiap malam (butuh cron: * * * * * php artisan schedule:run)
 Schedule::command('model:prune', ['--model' => [\App\Models\AttendanceDeviceLog::class, \App\Models\AuditLog::class]])->dailyAt('02:15');
 

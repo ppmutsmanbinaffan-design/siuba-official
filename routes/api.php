@@ -112,6 +112,7 @@ Route::prefix('v1')->group(function () {
         // Izin / sakit / dispensasi santri
         Route::get('/student-excusals', [StudentExcusalApiController::class, 'index'])->middleware('permission:attendance.excuses|attendance.view|attendance.monitoring');
         Route::post('/student-excusals', [StudentExcusalApiController::class, 'store'])->middleware('permission:attendance.excuses|attendance.manual');
+        Route::post('/student-excusals/bulk', [StudentExcusalApiController::class, 'bulkStore'])->middleware('permission:attendance.excuses');
         Route::post('/student-excusals/{excusal}/approve', [StudentExcusalApiController::class, 'approve'])->middleware('permission:attendance.excuses');
         Route::post('/student-excusals/{excusal}/reject', [StudentExcusalApiController::class, 'reject'])->middleware('permission:attendance.excuses');
         Route::post('/student-excusals/{excusal}/cancel', [StudentExcusalApiController::class, 'cancel'])->middleware('permission:attendance.excuses');

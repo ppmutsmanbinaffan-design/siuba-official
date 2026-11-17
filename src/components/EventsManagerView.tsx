@@ -81,7 +81,7 @@ interface EventsManagerViewProps {
   onUpdateRegistrationStatus: (registrationId: number, status: EventRegistration['status']) => void;
   onAddParticipantRule: (rule: Partial<ActivityParticipantRule>) => void;
   onRemoveParticipantRule: (ruleId: number) => void;
-  onCreateEventDispensations: (updatedExcusals: StudentExcusal[]) => void;
+  onCreateEventDispensations: (updatedExcusals: StudentExcusal[]) => Promise<boolean> | void;
 }
 
 export const EventsManagerView: React.FC<EventsManagerViewProps> = ({
@@ -356,7 +356,7 @@ export const EventsManagerView: React.FC<EventsManagerViewProps> = ({
   };
 
   // Handle Event Dispensation Creation
-  const handleGenerateDispensations = () => {
+  const handleGenerateDispensations = async () => {
     if (!selectedEvent) return;
 
     const confirmedParticipants = resolvedDynamic.students;
@@ -372,8 +372,12 @@ export const EventsManagerView: React.FC<EventsManagerViewProps> = ({
       existingExcusals: excusals,
     });
 
-    onCreateEventDispensations(updatedExcusals);
-    alert(`Berhasil membuat ${createdCount} dispensasi resmi untuk peserta event "${selectedEvent.name}". Presensi KBM santri tidak akan tercatat Alpha!`);
+    if (createdCount === 0) {
+      alert('Semua peserta sudah memiliki dispensasi untuk event ini.');
+      return;
+    }
+    // Disimpan ke server; notifikasi berhasil/gagal ditampilkan oleh aplikasi
+    await onCreateEventDispensations(updatedExcusals);
   };
 
   return (

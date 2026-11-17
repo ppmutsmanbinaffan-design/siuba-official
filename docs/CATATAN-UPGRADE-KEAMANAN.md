@@ -930,3 +930,21 @@ tanggal uji pemulihan fiktif) dan "perbaikan otomatis" yang hanya mengubah data 
 php artisan optimize:clear
 ```
 Tidak ada migrasi baru. Muat ulang browser (Ctrl+F5).
+
+---
+
+# Update 26 — Pemeriksaan ulang tahap 1–22 dan perbaikan temuan
+
+Pemeriksaan menyeluruh: 161 tes otomatis lulus di SQLite **dan** MariaDB (seluruhnya), instalasi baru dari nol
++ rollback migrasi terakhir berhasil, 45 menu dibuka tanpa galat. Temuan yang langsung diperbaiki:
+
+| Temuan | Dampak | Perbaikan |
+|---|---|---|
+| Tombol "+ Uji Catatan Offline" di Pusat Sinkronisasi | Membuat presensi palsu (santri acak, "hadir") di antrean yang lalu **terkirim ke server sebagai presensi asli** | Tombol dihapus |
+| Simulator Scanner & Simulator RFID saat server offline | Hasil simulasi masuk antrean offline dan ikut tersinkron sebagai presensi asli | Hasil simulasi disimpan terpisah, tidak pernah masuk antrean/daftar presensi asli |
+| Dispensasi peserta event (Manajemen Event) | Hanya tampil di layar, hilang ≤ 60 detik, presensi santri tetap Alpa | Disimpan ke server (endpoint baru `POST /student-excusals/bulk`, tanpa duplikat) |
+| Tombol tanggal "Hari ini / 7 hari / Bulan ini" di laporan & "Hari ini / Kemarin" di Dashboard Terpadu | Sebelum pukul 07:00 WIB memilih tanggal kemarin | Memakai tanggal lokal |
+| Grafik tren 7 hari SDM di Dashboard Terpadu | Hanya data 1 hari yang dimuat, 6 hari lainnya kosong | Data 7 hari dimuat dari server |
+| Tombol "Kirim Sinyal Ping Heartbeat" di Device Management | Membuat alat tampak online padahal tidak | Tombol dihapus (status online hanya dari alat sungguhan) |
+| Dua berkas backup uji coba ikut masuk repositori & paket update | Berkas data uji di folder backup Anda | Dihapus; folder `storage/app/backups` dikecualikan dari repositori |
+| Berkas tampilan lama menumpuk di `public/assets` setiap update | ±60 MB berkas tak terpakai | `jalankan-siuba.bat` menjalankan `php artisan siuba:bersihkan-aset` |

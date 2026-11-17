@@ -279,33 +279,6 @@ export const SyncCenterView: React.FC<SyncCenterViewProps> = ({
     onShowToast(`✓ ${ok} dari ${conflicts.length} konflik diselesaikan (${decision === 'ACCEPT_OFFLINE' ? 'Terima Data Offline' : 'Pertahankan Data Server'}).`, ok === conflicts.length ? 'success' : 'error');
   };
 
-  // Create simulated offline attendance item for demonstration/testing
-  const handleAddSampleOfflineRecord = () => {
-    if (safeStudents.length === 0 || safeSessions.length === 0) {
-      onShowToast('Dibutuhkan minimal 1 data santri dan 1 sesi aktif untuk simulasi.', 'error');
-      return;
-    }
-
-    const randomStudent = safeStudents[Math.floor(Math.random() * safeStudents.length)];
-    const activeSession = safeSessions.find(s => s.status !== 'cancelled') || safeSessions[0];
-
-    OfflineStorageService.addPendingAttendance({
-      sessionId: activeSession.id,
-      activityName: activeSession.activity_name,
-      studentId: randomStudent.id,
-      studentNumber: randomStudent.student_number,
-      studentName: randomStudent.name,
-      classroomName: (randomStudent as any).classroom || 'Kelas Santri',
-      method: 'rfid' as any,
-      status: 'present' as any,
-      operatorId: currentUser.id,
-      operatorName: currentUser.name,
-      notes: 'Simulasi antrean offline',
-    });
-    refreshLocalState();
-    onShowToast(`✓ Simulasi absensi offline santri "${randomStudent.name}" berhasil ditambahkan ke antrean!`, 'success');
-  };
-
   // Backup sungguhan dari database server (dulu hanya mengunduh salinan sebagian data di browser)
   const handleCreateBackup = async () => {
     try {
@@ -527,15 +500,6 @@ export const SyncCenterView: React.FC<SyncCenterViewProps> = ({
             </div>
 
             <div className="flex items-center gap-2.5 flex-wrap self-start lg:self-center">
-              <button
-                id="btn-add-sample-offline"
-                onClick={handleAddSampleOfflineRecord}
-                className="px-3.5 py-2.5 text-xs font-bold text-slate-700 dark:text-zinc-200 bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 dark:hover:bg-zinc-700 rounded-2xl flex items-center gap-1.5 transition cursor-pointer active:scale-95"
-                title="Tambahkan data uji untuk simulasi offline"
-              >
-                <PlusCircle className="w-4 h-4 text-emerald-600" />
-                <span>+ Uji Catatan Offline</span>
-              </button>
 
               {syncedCount > 0 && (
                 <button
@@ -1087,7 +1051,7 @@ export const SyncCenterView: React.FC<SyncCenterViewProps> = ({
                 className="px-5 py-2.5 text-xs font-black bg-[#1F5C45] hover:bg-[#12372A] text-white rounded-2xl flex items-center gap-2 shadow-xs transition active:scale-95 cursor-pointer min-h-[40px]"
               >
                 <Download className="w-4 h-4" />
-                <span>Buat Backup Sekarang (.JSON)</span>
+                <span>Buat &amp; Unduh Backup Server</span>
               </button>
             </div>
           </div>
@@ -1459,13 +1423,9 @@ export const SyncCenterView: React.FC<SyncCenterViewProps> = ({
 
                   {/* Step Action & Navigation */}
                   <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
-                    <button
-                      onClick={handleAddSampleOfflineRecord}
-                      className="w-full sm:w-auto px-5 py-2.5 bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold rounded-2xl cursor-pointer active:scale-95 shadow-xs flex items-center justify-center gap-2"
-                    >
-                      <PlusCircle className="w-3.5 h-3.5" />
-                      <span>+ Tambah Simulasi Catatan Offline</span>
-                    </button>
+                    <p className="text-[11px] text-slate-500">
+                      Antrean ini berisi presensi sungguhan dan akan dikirim ke server — tidak ada tombol "data uji" agar tidak tercampur.
+                    </p>
 
                     <div className="flex items-center gap-2 w-full sm:w-auto">
                       <button

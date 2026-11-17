@@ -33,6 +33,7 @@ echo [2/4] Memeriksa database siuba_db...
 :: 3. Perbarui struktur database + hak akses (aman diulang, data tidak dihapus)
 echo [3/4] Memperbarui struktur database (migrasi)...
 "%PHP%" artisan optimize:clear >nul
+"%PHP%" artisan siuba:bersihkan-aset
 "%PHP%" artisan migrate --force
 if errorlevel 1 (
     echo.

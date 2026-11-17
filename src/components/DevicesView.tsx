@@ -250,17 +250,6 @@ export const DevicesView: React.FC<Props> = ({
   };
 
   // Handle Heartbeat Ping Simulation
-  const handleSimulateHeartbeat = (device: AttendanceDevice) => {
-    const now = new Date().toISOString().slice(0, 19).replace('T', ' ');
-    const updated: AttendanceDevice = {
-      ...device,
-      last_seen_at: now,
-      updated_at: now,
-    };
-    onUpdateDevice(updated);
-    onShowToast(`Heartbeat sinyal diterima dari ${device.device_code} (${now.slice(11, 19)} WIB).`, 'success');
-  };
-
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     setCopiedSecret(true);
@@ -584,13 +573,6 @@ export const DevicesView: React.FC<Props> = ({
                 </div>
 
                 <div className="flex items-center gap-1.5">
-                  <button
-                    onClick={() => handleSimulateHeartbeat(d)}
-                    className="p-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-xl border border-emerald-200 cursor-pointer transition"
-                    title="Kirim Sinyal Ping Heartbeat"
-                  >
-                    <RefreshCw className="w-4 h-4" />
-                  </button>
 
                   <button
                     onClick={() => handleToggleActive(d)}
