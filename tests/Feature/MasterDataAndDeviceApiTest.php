@@ -126,7 +126,8 @@ class MasterDataAndDeviceApiTest extends TestCase
         $this->assertTrue(Hash::check('SudahDiganti123', $sa->password));
         $this->assertSame('Nama Baru', $sa->name);
         $this->assertTrue($sa->hasRole('super-admin'));
-        $this->assertSame('Pimpinan Pondok (contoh)', User::firstWhere('username', 'pimpinan.pondok')->name);
+        // akun contoh berisi nama orang tidak lagi dibuat
+        $this->assertNull(User::firstWhere('username', 'pimpinan.pondok'));
         putenv('ADMIN_DEFAULT_PASSWORD');
         unset($_ENV['ADMIN_DEFAULT_PASSWORD'], $_SERVER['ADMIN_DEFAULT_PASSWORD']);
     }

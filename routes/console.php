@@ -170,6 +170,40 @@ Artisan::command('siuba:bersihkan-aset', function () {
     return 0;
 })->purpose('Hapus berkas tampilan (JS/CSS) lama yang tertinggal dari update sebelumnya');
 
+// Tahap 30: sesi presensi rutin (asrama/shalat/dll.) & KBM dibuat otomatis dari jadwal — dulu hanya lewat tombol.
+// Aman diulang: sesi yang sudah ada dilewati; KBM dilewati pada hari libur kalender akademik.
+Artisan::command('attendance:generate-sessions {--date= : Tanggal awal (YYYY-MM-DD), bawaan hari ini} {--days=1 : Jumlah hari}', function () {
+    $start = $this->option('date') ? \Carbon\Carbon::parse($this->option('date'), 'Asia/Jakarta') : today('Asia/Jakarta');
+    $days = max(1, min(14, (int) $this->option('days')));
+    $routine = app(\App\Services\Routine\RoutineSessionGenerator::class);
+    $kbm = app(\App\Services\Academic\AcademicSessionGenerator::class);
+    $hasYear = \App\Models\AcademicYear::where('is_active', true)->exists();
+    for ($i = 0; $i < $days; $i++) {
+        $d = $start->copy()->addDays($i);
+        $parts = [];
+        try {
+            $r = $routine->generateForDate($d->copy());
+            $parts[] = 'rutin ' . (int) ($r['sessions_created'] ?? 0) . ' baru';
+        } catch (\Throwable $e) {
+            report($e);
+            $parts[] = 'rutin GAGAL: ' . $e->getMessage();
+        }
+        if ($hasYear) {
+            try {
+                $r = $kbm->generateForDate($d->copy());
+                $parts[] = !empty($r['is_holiday']) ? 'KBM libur' : 'KBM ' . (int) ($r['sessions_created'] ?? 0) . ' baru';
+            } catch (\Throwable $e) {
+                report($e);
+                $parts[] = 'KBM GAGAL: ' . $e->getMessage();
+            }
+        } else {
+            $parts[] = 'KBM dilewati (belum ada tahun ajaran aktif)';
+        }
+        $this->line("{$d->toDateString()}: " . implode(', ', $parts));
+    }
+    return 0;
+})->purpose('Buat sesi presensi rutin & KBM dari jadwal (aman diulang)');
+
 Artisan::command('trainer:generate {--date= : Tanggal (YYYY-MM-DD), bawaan hari ini}', function () {
     $date = $this->option('date') ? \Carbon\Carbon::parse($this->option('date')) : today();
     $r = \App\Http\Controllers\Api\TrainerApiController::generateFor($date);
@@ -202,5 +236,20 @@ Schedule::call(fn () => \App\Services\System\SystemHealthService::recordSchedule
 Schedule::command('attendance:auto-close')->everyFiveMinutes()->withoutOverlapping();
 
 // Sesi latihan ekskul hari ini dibuat otomatis dari jadwal mingguan; latihan kemarin difinalisasi
+// Sesi hari ini & besok; tiap jam agar tetap terbuat walau komputer server baru dinyalakan siang hari
+Schedule::command('attendance:generate-sessions', ['--days' => 2])->hourlyAt(3)->withoutOverlapping();
 Schedule::command('trainer:generate')->dailyAt('00:20')->withoutOverlapping();
 Schedule::command('trainer:finalize')->dailyAt('00:40')->withoutOverlapping();
+
+// Akun contoh bawaan versi lama: hapus yang tidak terpakai, nonaktifkan yang pernah dipakai (aman diulang)
+Artisan::command('siuba:hapus-akun-contoh {--dry-run : Hanya tampilkan, jangan ubah apa pun}', function () {
+    $r = app(\App\Services\System\ExampleAccountCleanup::class)->run((bool) $this->option('dry-run'));
+    if (!$r['deleted'] && !$r['deactivated']) {
+        $this->line('Akun contoh: tidak ada yang perlu dibersihkan.');
+        return 0;
+    }
+    $pre = $this->option('dry-run') ? '[uji] ' : '';
+    foreach ($r['deleted'] as $u) $this->info("{$pre}Akun contoh dihapus: {$u}");
+    foreach ($r['deactivated'] as $u => $why) $this->warn("{$pre}Akun contoh dinonaktifkan (pernah dipakai: {$why}): {$u}");
+    return 0;
+})->purpose('Hapus akun contoh bawaan yang tidak terpakai; nonaktifkan yang pernah dipakai');

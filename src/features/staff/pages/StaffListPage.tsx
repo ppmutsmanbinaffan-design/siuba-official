@@ -12,6 +12,7 @@ import { LoadingState, EmptyState } from '../../../components/ui/LoadingState';
 import { Plus, Search, Filter as FilterIcon, RotateCcw, AlertTriangle, Briefcase, Users, Upload } from 'lucide-react';
 import { hasPermission } from '../../../components/auth/PermissionGuard';
 import { DataImportModal } from '../../../components/common/DataImportModal';
+import { authService } from '../../../services/authService';
 
 export interface StaffListPageProps {
   userRole?: UserRole;
@@ -28,7 +29,9 @@ export const StaffListPage: React.FC<StaffListPageProps> = ({
   onNavigateEdit,
   onShowToast,
 }) => {
-  const canCreate = hasPermission(userRole, 'staff.create');
+  // izin diambil dari pengguna yang login (dulu hanya peran → tombol selalu tersembunyi)
+  const staffAuthUser = authService.getState().user;
+  const canCreate = hasPermission(userRole || staffAuthUser?.role, 'staff.create', staffAuthUser?.permissions);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');

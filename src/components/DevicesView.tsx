@@ -249,45 +249,25 @@ export const DevicesView: React.FC<Props> = ({
     setTimeout(() => setCopiedSecret(false), 2000);
   };
 
+  // Isian "Mode Pengaturan" firmware SIUBA RFID (firmware/siuba-rfid): diisi dari HP, tidak perlu mengubah kode.
   const getGenerateConfigSnippet = (device: AttendanceDevice | null) => {
-    if (!device) return '// Pilih perangkat untuk melihat konfigurasi';
-    const secret = device.plain_secret_preview || 'sec_live_YOUR_GENERATED_SECRET_HERE';
-    return `// ================================================================
-// SIUBA ATTENDANCE FIRMWARE CONFIGURATION (ESP32 + RC522)
-// Device: ${device.device_name}
-// Location: ${device.location}
-// ================================================================
-#ifndef SIUBA_CONFIG_H
-#define SIUBA_CONFIG_H
+    if (!device) return 'Pilih perangkat untuk melihat isian pengaturannya.';
+    const host = window.location.hostname;
+    const isLocal = host === 'localhost' || host === '127.0.0.1';
+    const server = isLocal ? 'http://IP-KOMPUTER-SERVER:8000   (lihat ipconfig di komputer server)' : `http://${host}:8000`;
+    const secret = device.plain_secret_preview || '(token yang tampil saat alat dibuat — bila lupa, klik Rotate Token)';
+    return `ISIAN MODE PENGATURAN ALAT RFID SIUBA
+(Sambungkan HP ke Wi-Fi "SIUBA-RFID-xxxx" dari alat, halaman pengaturan terbuka otomatis / buka 192.168.4.1)
 
-// WiFi Access Point Settings
-#define WIFI_SSID       "SIUBA-PESANTREN-LAN"
-#define WIFI_PASSWORD   "PesantrenUtsman2026"
+1. Wi-Fi           : pilih Wi-Fi pesantren yang sama dengan komputer server, isi kata sandinya
+2. Alamat server   : ${server}
+3. Kode alat       : ${device.device_code}
+4. Token alat      : ${secret}
 
-// Local Laravel Attendance Server Gateway
-#define SERVER_BASE_URL "${window.location.origin}"
-#define ATTENDANCE_PATH "/api/v1/iot/rfid-tap"   // POST JSON {"uid":"...","device_id":DEVICE_CODE}
-#define HEARTBEAT_PATH  "/api/v1/iot/ping"
-
-// Device Authentication Credentials
-// Kirim header  X-DEVICE-TOKEN: DEVICE_SECRET  (atau X-GLOBAL-KEY: <NEXABSEN_GLOBAL_KEY>)
-#define DEVICE_CODE     "${device.device_code}"
-#define DEVICE_SECRET   "${secret}"
-
-// Hardware Pin Configuration (ESP32 DevKit v1)
-#define SS_PIN          5   // RC522 SDA/SS
-#define RST_PIN         22  // RC522 RST
-#define BUZZER_PIN      15  // Piezo Buzzer
-#define LED_GREEN_PIN   2   // Status Green LED
-#define LED_RED_PIN     4   // Status Red LED
-#define LED_BLUE_PIN    16  // Status Blue LED (WiFi)
-
-// Telemetry & Rate Limiting
-#define FIRMWARE_VERSION "1.2.0"
-#define HEARTBEAT_INTERVAL_MS 60000 // 60s
-#define CARD_DEBOUNCE_MS      2500  // 2.5s
-
-#endif // SIUBA_CONFIG_H`;
+Catatan:
+- NEXABSEN_GLOBAL_KEY di .env server WAJIB terisi, walaupun alat memakai token sendiri.
+- Program alat & panduan kabel: folder firmware/siuba-rfid (berkas .bin siap pasang tanpa Arduino IDE).
+- Buka pengaturan lagi: nyalakan alat, saat layar menampilkan "Tahan BOOT/FLASH", tahan tombol itu 2 detik.`;
   };
 
   return (
@@ -594,10 +574,10 @@ export const DevicesView: React.FC<Props> = ({
             </div>
             <div>
               <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
-                Header Config Generator (<span className="font-mono text-[#1F5C45]">config.h</span>)
+                Isian Pengaturan Alat RFID
               </h3>
               <p className="text-xs text-slate-500">
-                Generate kode konfigurasi C++ siap pakai untuk di-flash ke mikrokontroler ESP32 DevKit.
+                Nilai yang diisi di Mode Pengaturan alat ESP32 / NodeMCU (lewat HP) — tidak perlu mengubah kode program.
               </p>
             </div>
           </div>
@@ -623,12 +603,12 @@ export const DevicesView: React.FC<Props> = ({
                 navigator.clipboard.writeText(getGenerateConfigSnippet(selectedDeviceForConfig));
                 setCopiedConfigCode(true);
                 setTimeout(() => setCopiedConfigCode(false), 2000);
-                onShowToast('Kode config.h berhasil disalin ke clipboard.', 'success');
+                onShowToast('Isian pengaturan alat disalin.', 'success');
               }}
               className="px-4 py-2 bg-[#1F5C45] hover:bg-[#12372A] text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition-all cursor-pointer active:scale-95 shadow-xs"
             >
               {copiedConfigCode ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-              <span>{copiedConfigCode ? 'Tersalin' : 'Copy Header'}</span>
+              <span>{copiedConfigCode ? 'Tersalin' : 'Salin'}</span>
             </button>
           </div>
         </div>
@@ -846,7 +826,7 @@ export const DevicesView: React.FC<Props> = ({
                 SIMPAN KUNCI RAHASIA INI SEKARANG
               </div>
               <p className="text-[11px] leading-relaxed text-amber-900/90">
-                Kunci rahasia ini hanya ditampilkan <strong>satu kali saja</strong>. Salin dan masukkan ke dalam file <code className="font-mono bg-amber-100 px-1 py-0.5 rounded font-bold">config.h</code> firmware ESP32.
+                Kunci rahasia ini hanya ditampilkan <strong>satu kali saja</strong>. Salin dan isikan ke kolom <strong>Token alat</strong> di Mode Pengaturan alat (lewat HP).
               </p>
             </div>
 

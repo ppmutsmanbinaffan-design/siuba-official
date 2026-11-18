@@ -40,6 +40,9 @@ export interface CreateStaffPayload {
   user_id?: number | null;
   rfid_uid?: string | null;
   photo?: string;
+  create_account?: boolean;
+  account_username?: string;
+  account_role?: string;
 }
 
 export interface UpdateStaffPayload extends Partial<CreateStaffPayload> {}

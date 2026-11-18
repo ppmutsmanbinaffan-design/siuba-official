@@ -1192,3 +1192,86 @@ Kini tersedia HTTPS lokal tanpa internet dan tanpa mengubah pengaturan Chrome di
 ## Bila Apache gagal menyala
 Biasanya port 80/443 dipakai program lain (Skype, IIS, VMware). Lihat `C:\xampp\apache\logs\error.log`,
 atau nyalakan Apache dari XAMPP Control Panel untuk melihat pesannya.
+
+---
+
+# Update 34 — Akun login milik SDM sendiri, akun contoh tanpa nama orang
+
+## Masalah
+- Pilihan **Tautkan Akun Pengguna** di formulir SDM menampilkan semua akun, termasuk 10 **akun contoh bawaan**
+  bernama orang (sebagian nama tokoh nyata) yang tidak ada hubungannya dengan pesantren.
+- Tombol Tambah/Import/Edit/Nonaktifkan di Master SDM selalu tersembunyi (pemeriksaan izin keliru) — sudah diperbaiki.
+- Pesan galat per kolom di formulir SDM (misalnya NIP ganda) tidak pernah tampil di bawah kolomnya.
+
+## Perubahan
+- Bagian **Akun Login SIUBA** di formulir SDM kini punya tiga pilihan:
+  - **Tanpa akun login** — hanya data pegawai & kartu presensi;
+  - **Buat akun untuk SDM ini** — akun atas nama SDM itu sendiri (nama & email dari data SDM), username bawaan
+    = Nomor SDM/NIP, Anda memilih **peran** (Guru, Musyrif, Pelatih, Petugas Masjid, Operator, dll.).
+    Password awal acak ditampilkan **sekali** setelah disimpan, dengan tombol Salin.
+    Perlu izin Manajemen Pengguna (`users.create`); peran Admin/Pimpinan/Kepala Sekolah hanya bisa diberikan Super Admin;
+  - **Tautkan akun yang ada** — hanya akun yang **belum dipakai SDM lain**, ditampilkan sebagai `username — Peran`;
+    akun contoh dikelompokkan terpisah. Akun Super Admin tidak bisa ditautkan.
+- **Akun contoh bawaan** di database diganti namanya menjadi nama peran (`Akun Contoh – Guru`, dst.) dan email
+  berisi nama orang dikosongkan; username, password, dan peran tidak diubah. Akun yang namanya sudah Anda ganti dibiarkan.
+- Instalasi baru hanya membuat akun **superadmin** (tidak lagi 10 akun contoh dengan password yang sama).
+
+## Saran
+Akun contoh memakai password awal yang sama. Bila tidak dipakai, nonaktifkan atau hapus di **Manajemen Pengguna**.
+
+## Langkah setelah update
+**Ada migrasi baru** — jalankan `jalankan-siuba.bat`, lalu Ctrl+F5.
+
+## Tambahan: pembersihan akun contoh
+`jalankan-siuba.bat` kini menjalankan `php artisan siuba:hapus-akun-contoh` **sesudah backup otomatis**:
+- akun contoh yang **tidak pernah dipakai** (tidak pernah login, tanpa sesi login, tidak dirujuk tabel mana pun —
+  diperiksa ke semua kolom yang berelasi ke akun pengguna) **dihapus**;
+- akun contoh yang **pernah dipakai** hanya **dinonaktifkan** dan sesi loginnya dicabut, agar riwayat data utuh;
+- akun yang namanya sudah Anda ubah, atau yang sudah nonaktif, tidak disentuh. Aman diulang.
+- Hasilnya tercatat di Log Audit (`users.example_accounts_cleaned`). Uji tanpa mengubah: `--dry-run`.
+
+---
+
+# Update 35 — Sesi presensi dibuat otomatis
+
+Sebelumnya sesi presensi rutin (shalat, asrama, dll.) dan sesi KBM **hanya** terbentuk bila seseorang menekan
+tombol Generate Sesi setiap hari; penjadwal hanya membuat sesi latihan ekskul.
+- Perintah baru `php artisan attendance:generate-sessions --days=N` membuat sesi rutin & KBM dari jadwal.
+  Aman diulang (sesi yang sudah ada dilewati); KBM dilewati pada hari libur kalender akademik dan bila belum ada
+  tahun ajaran aktif.
+- Penjadwal menjalankannya **tiap jam** (menit ke-3) untuk hari ini & besok, sehingga tetap jalan walau komputer
+  server baru dinyalakan siang hari. `jalankan-siuba.bat` juga menjalankannya sekali saat start.
+- Penjadwal hanya berjalan bila `pasang-penjadwal-windows.bat` sudah dipasang (sekali, Run as administrator).
+
+---
+
+# Update 36 — Program alat RFID (ESP32 / NodeMCU + RC522)
+
+- Folder baru `firmware/siuba-rfid/`: program alat lengkap + `PANDUAN.md` (kabel, pemasangan, pengaturan, arti bunyi).
+- `bin/siuba-rfid-esp32.bin` dan `bin/siuba-rfid-nodemcu.bin` siap dipasang dari browser (esptool-js) tanpa Arduino IDE;
+  diuji kompilasi dengan core ESP32 2.0.17 dan ESP8266 3.1.2.
+- Pengaturan Wi-Fi, alamat server, kode alat, dan token diisi lewat HP (portal Wi-Fi "SIUBA-RFID-xxxx").
+- Antrean offline di alat (hingga 800 tap) dengan jam tap asli; jam alat disetel dari header `X-Server-Time` server.
+- Ping tiap 60 detik ke `/api/v1/iot/ping` (status "terakhir terlihat" di Device Management).
+- Device Management: "Header Config Generator" diganti **Isian Pengaturan Alat RFID** sesuai program baru.
+- Penting: `NEXABSEN_GLOBAL_KEY` di `.env` wajib terisi walaupun alat memakai token sendiri.
+
+---
+
+# Update 37 — Mesin jadi Nexabsen V.4
+
+SIUBA sudah memakai format Nexabsen V.4 (`/api/tap.php`, header `X-GLOBAL-KEY`, `{device_id, uid, tapped_at}`,
+balasan `message` + `data.name`, `action: RESET_CONFIG`). Penyesuaian:
+- Di alamat `/api/tap.php`, penolakan yang sudah final (tidak ada sesi, bukan peserta, santri/SDM nonaktif,
+  di luar waktu) kini dibalas **200 + success=false** (dulu 403/409/422). Dokumen pabrik hanya mengenal
+  200/401/404, sehingga kode lain berisiko dianggap "gagal kirim" dan tap dikirim ulang terus dari antrean mesin.
+  401 (kunci salah), 404 (kartu ditolak), alat belum aktif, dan mode perawatan tidak berubah.
+  Alamat `/api/v1/iot/rfid-tap` (program rakitan) tetap memakai kode semantik.
+- `tapped_at` tanpa zona waktu ("2026-07-28 07:15:30") dibaca sebagai WIB.
+
+Pengisian portal NEXABSEN-CONFIG:
+- URL Endpoint Tap Absen: `http://IP-SERVER:8000/api/tap.php`
+- Global API Key: sama persis dengan `NEXABSEN_GLOBAL_KEY` di `.env` (ganti bawaan pabrik `5daj3fk73`)
+- ID Alat: biarkan bawaan (NX-…) atau beri nama, mis. `GERBANG-PUTRA`
+- UID Kartu Master Admin: UID kartu teknisi Anda; samakan dengan `NEXABSEN_MASTER_ADMIN_UID` di `.env` (opsional)
+Mesin baru tampil di Device Management sebagai **nonaktif** setelah tap pertama → klik Aktifkan.

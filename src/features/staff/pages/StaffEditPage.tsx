@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Staff, User } from '../../../types';
 import { staffApi } from '../api/staffApi';
 import { StaffForm, StaffFormData } from '../components/StaffForm';
+import { NewAccountNotice, NewAccountInfo } from '../components/NewAccountNotice';
 import { PageHeader } from '../../../components/layout/PageHeader';
 import { Button } from '../../../components/ui/Button';
 import { LoadingState } from '../../../components/ui/LoadingState';
@@ -24,6 +25,7 @@ export const StaffEditPage: React.FC<StaffEditPageProps> = ({
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [newAccount, setNewAccount] = useState<{ staffId: number; staffName: string; account: NewAccountInfo } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string[]>>({});
 
@@ -68,16 +70,22 @@ export const StaffEditPage: React.FC<StaffEditPageProps> = ({
         join_date: formData.join_date,
         requires_daily_attendance: formData.requires_daily_attendance,
         is_active: formData.is_active,
-        user_id: formData.user_id,
+        user_id: formData.account_mode === 'link' ? formData.user_id : null,
         rfid_uid: formData.rfid_uid,
         photo: formData.photo,
+        create_account: formData.account_mode === 'create',
+        account_username: formData.account_mode === 'create' ? formData.account_username : undefined,
+        account_role: formData.account_mode === 'create' ? formData.account_role : undefined,
       });
 
       onShowToast(`Perubahan data SDM "${updated.name}" berhasil disimpan.`, 'success');
-      onSuccess(updated.id);
+      const acc = (updated as any).new_account as NewAccountInfo | undefined;
+      if (acc) setNewAccount({ staffId: updated.id, staffName: updated.name, account: acc });
+      else onSuccess(updated.id);
     } catch (err: any) {
-      if (err.status === 422 && err.errors) {
-        setErrors(err.errors);
+      const fieldErrs = err?.fieldErrors && Object.keys(err.fieldErrors).length ? err.fieldErrors : err?.errors;
+      if (err.status === 422 && fieldErrs) {
+        setErrors(fieldErrs);
         onShowToast('Mohon periksa kembali isian formulir SDM.', 'error');
       } else {
         onShowToast(err.message || 'Gagal menyimpan perubahan SDM.', 'error');
@@ -137,6 +145,10 @@ export const StaffEditPage: React.FC<StaffEditPageProps> = ({
         onCancel={onNavigateBack}
         errors={errors}
       />
+      {newAccount && (
+        <NewAccountNotice staffName={newAccount.staffName} account={newAccount.account}
+          onClose={() => { const id = newAccount.staffId; setNewAccount(null); onSuccess(id); }} />
+      )}
     </div>
   );
 };
