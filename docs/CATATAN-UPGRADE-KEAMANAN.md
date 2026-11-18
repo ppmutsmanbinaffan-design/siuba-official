@@ -1366,3 +1366,17 @@ kegiatan (peserta "Anggota Ekskul") + jadwalnya.
 - Diuji di Apache 2.4 + PHP 8.3 untuk kedua cara (Document Root = `public/` dan aplikasi utuh di `public_html`): login, token
   Bearer, mesin RFID lewat HTTP, redirect HTTPS dengan query, dan file rahasia (`.env`, `.git`, `vendor`, log) tidak terbaca.
 - Di komputer pesantren (`jalankan-siuba.bat`) file ini tidak dipakai.
+
+---
+
+# Update 43 — Persiapan pindah ke Hostinger
+
+- `siapkan-hosting.bat` (→ `scripts/hosting/siapkan-hosting.ps1`): menanyakan domain + database hPanel, lalu membuat di
+  `kirim-hosting\`: `.env` produksi (dari `.env` komputer ini; APP_KEY & NEXABSEN_GLOBAL_KEY tetap sama, APP_DEBUG=false,
+  DB_HOST=localhost, cookie aman) dan `siuba-database.sql` (mysqldump XAMPP, kolasi MariaDB baru diganti `utf8mb4_unicode_ci`).
+- `kirim-hosting\siuba-hosting.zip`: kode aplikasi siap unggah (vendor tanpa paket pengembangan, tanpa tes/sumber React/skrip
+  Windows, storage kosong). Diekstrak langsung ke `public_html`; `.htaccess` folder utama mengalihkan ke `public/`.
+- `TRUSTED_PROXIES` (opsional, `.env`): isi `*` bila situs memakai CDN/proxy agar IP pengguna (pembatas login) & HTTPS benar.
+- `kirim-hosting/` dan `kirim-github/` masuk `.gitignore` (berisi password & data santri).
+- Diuji: ZIP diekstrak ke public_html tiruan (Apache + MariaDB, DB_HOST=localhost, password dengan karakter khusus), impor SQL,
+  login + token, mesin Nexabsen lewat HTTP, `schedule:run` dengan path absolut seperti Cron Job hPanel.
