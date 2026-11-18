@@ -1118,3 +1118,77 @@ data KBM pertama disimpan, dan Uji Kesiapan Sistem menyarankan menu yang tidak a
 ## Langkah setelah update
 Tidak ada migrasi baru. Jalankan `jalankan-siuba.bat`, lalu Ctrl+F5. Buka **Master Akademik → Tahun Ajaran**,
 tambah dan aktifkan tahun ajaran 2026/2027, lalu jalankan ulang Uji Kesiapan Sistem.
+
+---
+
+# Update 32 — Tahap 28: Antrean offline presensi SDM
+
+Sejak tahap 26 aplikasi jujur bahwa tap SDM saat server mati tidak tersimpan. Kini tap itu **disimpan dan
+dikirim belakangan**, sama seperti presensi santri.
+
+## Cara kerja
+- Saat server tidak terjangkau, tap kartu/QR/NIP di **Presensi SDM → Dashboard & Scanner** disimpan di perangkat
+  dengan **jam tap aslinya** (jam perangkat dikoreksi dengan selisih jam server yang diukur aplikasi).
+  Pesan kuning "DISIMPAN OFFLINE" menandainya. Tap ganda kartu yang sama dalam 1 menit tidak disimpan dua kali.
+- Antrean dikirim **otomatis** saat server kembali (serta tiap 60 detik), atau lewat tombol **Kirim sekarang**
+  di panel **Antrean Offline Presensi SDM** (di halaman Presensi SDM dan Pusat Sinkronisasi → Antrean).
+  Jumlah antrean SDM ikut tampil di lencana antrean di bagian atas layar.
+- Server memproses tap menurut urutan jam tap dan memakai aturan jam kerja yang sama dengan tap biasa
+  (terlambat, pulang cepat, hari libur, izin disetujui).
+- **Tidak pernah dobel:** setiap tap punya kode unik; kiriman ulang mengembalikan hasil yang sama.
+- **Tap offline yang lebih awal** dari jam masuk yang sudah tercatat (misalnya tap pagi di perangkat offline baru
+  terkirim sore setelah tap pulang di perangkat lain) dianggap sebagai jam masuk sebenarnya; tap yang tadinya
+  dianggap masuk menjadi jam pulang. Catatan presensi diberi keterangan "Tap offline …".
+- Ditolak dengan alasan jelas (tidak dicoba ulang): kartu tidak dikenal, jam perangkat lebih maju dari server,
+  tap lebih dari 7 hari lalu (`SIUBA_STAFF_OFFLINE_MAX_DAYS`), di luar jam presensi, dll.
+- Setiap tap offline tercatat di tabel `staff_offline_scans` (siapa, jam tap, jam perangkat, hasil).
+
+## Perbaikan ikutan
+- Mengetik **token QR (STF-…)** atau UID kartu di kolom scanner lalu menekan Enter dulu selalu "tidak ditemukan"
+  karena hanya NIP yang dicari. Kini NIP, token QR, UID kartu, dan ID semuanya dikenali.
+
+Belum termasuk: pengajuan/persetujuan izin SDM saat offline (tetap memerlukan server).
+
+## API baru
+`POST /staff-attendance/daily/offline-sync` (izin Presensi SDM).
+
+## Langkah setelah update
+**Ada migrasi baru** (`staff_offline_scans`) — dijalankan otomatis oleh `jalankan-siuba.bat`. Lalu Ctrl+F5.
+
+---
+
+# Update 33 — Tahap 29: HTTPS di jaringan pesantren (kamera HP untuk scan QR)
+
+Browser HP hanya mengizinkan kamera di alamat aman (HTTPS). Lewat `http://192.168.x.x:8000` kamera diblokir.
+Kini tersedia HTTPS lokal tanpa internet dan tanpa mengubah pengaturan Chrome di tiap HP.
+
+## Cara kerja
+- `pasang-https-lan.bat` (sekali, di komputer server; meminta izin administrator):
+  1. membuat **sertifikat induk SIUBA** (CA lokal, berlaku 10 tahun) — dibuat sekali, dipakai ulang;
+  2. membuat **sertifikat server** untuk semua IP komputer ini + `localhost` + nama komputer (825 hari);
+  3. menulis `C:\xampp\apache\conf\extra\siuba-https.conf`: Apache XAMPP mendengarkan **port 8443 (HTTPS)**
+     dan meneruskan ke aplikasi di port 8000; httpd.conf dicadangkan dulu (`httpd.conf.sebelum-siuba-https`)
+     dan **dikembalikan otomatis bila konfigurasi ditolak** (`httpd -t`);
+  4. membuka port 8443 di Firewall Windows (jaringan Private/Domain);
+  5. menyalakan ulang Apache dan menampilkan alamat `https://IP:8443`.
+- Di tiap HP, **sekali saja**: buka `http://IP-SERVER:8000/sertifikat`, unduh dan pasang sertifikat SIUBA
+  (petunjuk Android, iPhone, dan Windows ada di halaman itu, beserta sidik jari SHA-256 untuk dicocokkan).
+  Setelah itu buka SIUBA lewat `https://IP-SERVER:8443` — kamera scan QR dan mode offline aplikasi
+  (service worker) aktif.
+- `jalankan-siuba.bat` menyalakan Apache otomatis bila HTTPS sudah dipasang dan menampilkan alamat HTTPS-nya.
+- Bila IP komputer server berubah, jalankan `pasang-https-lan.bat` lagi — HP **tidak** perlu memasang ulang.
+- Untuk melepas: `hapus-https-lan.bat` (menghapus konfigurasi Apache & aturan firewall).
+- **Pusat Sinkronisasi → Kesiapan Perangkat** kini memeriksa apakah HTTPS sudah siap dan dipercaya perangkat itu,
+  dan memberi langkah yang sesuai.
+
+## Keamanan
+- Kunci privat CA dan server tersimpan di `storage\app\https\` (tidak ikut git, tidak bisa diunduh);
+  halaman `/sertifikat` hanya menyajikan sertifikat publik.
+- Laravel hanya mempercayai header `X-Forwarded-*` dari komputer itu sendiri (Apache lokal), sehingga
+  perangkat lain tidak bisa berpura-pura memakai HTTPS.
+- Siapa pun yang memegang `siuba-ca.key` bisa membuat sertifikat palsu yang dipercaya HP petugas — jangan
+  salin folder `storage\app\https` ke komputer lain.
+
+## Bila Apache gagal menyala
+Biasanya port 80/443 dipakai program lain (Skype, IIS, VMware). Lihat `C:\xampp\apache\logs\error.log`,
+atau nyalakan Apache dari XAMPP Control Panel untuk melihat pesannya.

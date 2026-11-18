@@ -44,4 +44,5 @@ Thumbs.db
 /storage/app/initial-admin-password.txt
 # Berkas backup database tidak boleh ikut ke repositori / paket update
 /storage/app/backups/
+/storage/app/https/
 /storage/app/*.sql

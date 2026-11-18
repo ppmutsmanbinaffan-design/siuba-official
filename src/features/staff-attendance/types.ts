@@ -82,7 +82,7 @@ export interface StaffScanFeedbackItem {
   attendanceType: 'daily' | 'teaching' | 'training';
   status?: StaffAttendanceStatus;
   method?: AttendanceMethod;
-  mode?: 'CHECK_IN' | 'CHECK_OUT' | 'RECORDED';
+  mode?: 'CHECK_IN' | 'CHECK_OUT' | 'RECORDED' | 'QUEUED';
   checkInAt?: string;
   checkOutAt?: string;
   lateMinutes?: number;

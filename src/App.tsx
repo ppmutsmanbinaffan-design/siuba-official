@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { startAutoQueueSync } from './services/offlineQueueSync';
+import { startAutoStaffQueueSync } from './features/staff-attendance/offline/staffOfflineQueue';
 import { loadInstitution } from './services/institutionService';
 import { Sidebar } from './components/Sidebar';
 import { TopHeader } from './components/TopHeader';
@@ -749,6 +750,17 @@ export function App() {
         r.conflict > 0 || r.failed > 0 ? 'info' : 'success'
       );
       void refreshServerData(true);
+    });
+  }, [currentUser?.id]);
+
+  // Antrean tap SDM offline (tahap 28) dikirim otomatis saat server kembali
+  useEffect(() => {
+    if (!currentUser) return;
+    return startAutoStaffQueueSync((r) => {
+      const parts = [`${r.success} tap SDM offline terkirim ke server`];
+      if (r.duplicate) parts.push(`${r.duplicate} tap ganda diabaikan`);
+      if (r.rejected) parts.push(`${r.rejected} ditolak — lihat Antrean Offline di Presensi SDM`);
+      showToast(parts.join('; ') + '.', r.rejected ? 'info' : 'success');
     });
   }, [currentUser?.id]);
 

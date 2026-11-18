@@ -21,6 +21,10 @@ return [
 
     // Jeda minimal (menit) antara check-in dan check-out, agar tap ganda tidak langsung tercatat pulang
     'staff_min_minutes_before_checkout' => (int) env('SIUBA_STAFF_MIN_CHECKOUT_MINUTES', 30),
+    // Tap SDM offline lebih lama dari ini ditolak saat dikirim (tahap 28)
+    'staff_offline_max_days' => (int) env('SIUBA_STAFF_OFFLINE_MAX_DAYS', 7),
+    // Port HTTPS LAN yang dipasang pasang-https-lan.bat (tahap 29)
+    'https_port' => (int) env('SIUBA_HTTPS_PORT', 8443),
 
     /*
     | Izinkan reset database dari Maintenance Hub (tetap butuh Super Admin, kata sandi, frasa konfirmasi,

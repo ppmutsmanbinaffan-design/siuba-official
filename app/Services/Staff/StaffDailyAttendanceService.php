@@ -153,6 +153,44 @@ class StaffDailyAttendanceService
                 ];
             }
 
+            // ---------- TAP OFFLINE YANG LEBIH AWAL DARI CHECK-IN TERCATAT ----------
+            // Terjadi bila tap masuk dicatat offline lalu baru terkirim setelah tap lain di perangkat online.
+            // Tap paling awal adalah jam masuk yang sebenarnya.
+            if ($at->lt($record->check_in_at)) {
+                if ($at->lt($time($sch['check_in_open_at'] ?? '00:00'))) {
+                    return $this->fail('CHECK_IN_NOT_OPEN', "Presensi masuk baru dibuka pukul {$sch['check_in_open_at']}.", $staff, $record);
+                }
+                $start = $time($sch['scheduled_start_at'] ?? '07:00');
+                $late = isset($sch['late_after']) && $at->gt($time($sch['late_after']));
+                $lateMinutes = $late ? max(1, (int) floor($start->diffInMinutes($at, true))) : 0;
+                $minGap = (int) config('siuba.staff_min_minutes_before_checkout', 30);
+                $prevIn = $record->check_in_at->copy();
+                $attrs = [
+                    'status' => in_array($record->status, ['present', 'late', 'absent'], true) ? ($late ? 'late' : 'present') : $record->status,
+                    'check_in_at' => $at,
+                    'check_in_method' => $method,
+                    'late_minutes' => min(65535, $lateMinutes),
+                ];
+                $mode = 'CHECK_IN';
+                if (!$record->check_out_at && $at->diffInMinutes($prevIn, true) >= $minGap) {
+                    // tap yang dulu dianggap "masuk" sebenarnya tap pulang
+                    $end = $time($sch['scheduled_end_at'] ?? '16:00');
+                    $early = $prevIn->lt($end) ? (int) floor($prevIn->diffInMinutes($end, true)) : 0;
+                    $attrs += ['check_out_at' => $prevIn, 'check_out_method' => $record->check_in_method, 'early_leave_minutes' => min(65535, $early)];
+                }
+                $attrs['notes'] = trim(($record->notes ? $record->notes . ' | ' : '') . 'Jam masuk dikoreksi dari tap offline ' . $at->format('H:i'));
+                $record->update($attrs);
+
+                return [
+                    'success' => true,
+                    'code' => 'CHECK_IN_CORRECTED',
+                    'mode' => $mode,
+                    'message' => "Jam masuk {$staff->name} dikoreksi ke {$at->format('H:i')} (tap offline lebih awal)" . ($late ? " — terlambat {$lateMinutes}m" : '') . '.',
+                    'record' => $record->fresh('staff'),
+                    'staff' => $staff,
+                ];
+            }
+
             // ---------- CHECK-OUT ----------
             if ($record->check_out_at) {
                 return $this->fail('ALREADY_CHECKED_OUT', "{$staff->name} sudah check-out pukul {$record->check_out_at->format('H:i')}.", $staff, $record);

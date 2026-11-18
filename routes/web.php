@@ -93,6 +93,10 @@ $servePsbPublic = function () {
 Route::get('/psb', $servePsbPublic);
 Route::get('/ppdb', $servePsbPublic);
 
+// Sertifikat HTTPS LAN untuk HP petugas (tahap 29)
+Route::get('/sertifikat', [\App\Http\Controllers\HttpsCertificateController::class, 'page']);
+Route::get('/sertifikat/siuba-ca.crt', [\App\Http\Controllers\HttpsCertificateController::class, 'download']);
+
 Route::get('/{any}', function () {
     $indexPath = public_path('app.html');
     if (!File::exists($indexPath)) {

@@ -43,13 +43,27 @@ export const DeviceReadinessPanel: React.FC = () => {
     const host = window.location.hostname;
 
     // 1. Kamera (QR) butuh HTTPS atau localhost
-    checks.push(window.isSecureContext
-      ? { label: 'Kamera untuk scan QR', level: 'ok', detail: `Diizinkan browser (alamat aman: ${window.location.protocol}//${host}).` }
-      : {
-          label: 'Kamera untuk scan QR', level: 'bad',
-          detail: `Browser memblokir kamera di alamat http://${host} (bukan HTTPS/localhost).`,
-          fix: 'Di HP Chrome: buka chrome://flags/#unsafely-treat-insecure-origin-as-secure, isi alamat server ini, aktifkan, lalu mulai ulang Chrome. Alternatif: pakai alat RFID atau presensi manual.',
-        });
+    if (window.isSecureContext) {
+      checks.push({ label: 'Kamera untuk scan QR', level: 'ok', detail: `Diizinkan browser (alamat aman: ${window.location.protocol}//${host}).` });
+    } else {
+      // Tahap 29: cek apakah HTTPS LAN (Apache :8443) tersedia dan sertifikatnya sudah dipercaya perangkat ini
+      const httpsUrl = `https://${host}:8443`;
+      const httpsOk = await Promise.race([
+        fetch(`${httpsUrl}/api/v1/health`, { mode: 'no-cors', cache: 'no-store' }).then(() => true).catch(() => false),
+        new Promise<boolean>((r) => setTimeout(() => r(false), 4000)),
+      ]);
+      checks.push(httpsOk
+        ? {
+            label: 'Kamera untuk scan QR', level: 'warn',
+            detail: `Alamat ini (http) tidak boleh memakai kamera, tetapi HTTPS sudah siap dan dipercaya perangkat ini.`,
+            fix: `Buka SIUBA lewat ${httpsUrl} (simpan sebagai bookmark / tambahkan ke layar utama).`,
+          }
+        : {
+            label: 'Kamera untuk scan QR', level: 'bad',
+            detail: `Browser memblokir kamera di alamat http://${host} (bukan HTTPS/localhost).`,
+            fix: `Admin: jalankan pasang-https-lan.bat di komputer server (sekali). Lalu di HP ini buka http://${window.location.host}/sertifikat, pasang sertifikat SIUBA, dan pakai ${httpsUrl}. Alternatif: alat RFID atau presensi manual.`,
+          });
+    }
 
     // 2. Mode offline (service worker)
     const sw = 'serviceWorker' in navigator ? await navigator.serviceWorker.getRegistration().catch(() => undefined) : undefined;

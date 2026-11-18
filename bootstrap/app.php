@@ -13,6 +13,9 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->prepend(\App\Http\Middleware\CorrelationIdMiddleware::class);
+        // HTTPS LAN (tahap 29): Apache XAMPP di komputer yang sama meneruskan https://IP:8443 ke port 8000.
+        // Percayai header X-Forwarded-* hanya dari mesin ini agar Laravel tahu permintaan aslinya HTTPS.
+        $middleware->trustProxies(at: ['127.0.0.1', '::1']);
         $middleware->validateCsrfTokens(except: [
             'tap.php',
             'api/tap.php',

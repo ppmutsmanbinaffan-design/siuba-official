@@ -51,6 +51,7 @@ import { AudioFeedbackService } from '../services/audioFeedbackService';
 import { todayLocalDate } from '../utils/today';
 import { TeachingAttendanceModule } from '../features/staff-attendance/pages/TeachingAttendanceModule';
 import { TrainerAttendanceView } from './TrainerAttendanceView';
+import { StaffOfflineQueuePanel } from '../features/staff-attendance/offline/StaffOfflineQueuePanel';
 
 interface StaffAttendanceViewProps {
   currentUser?: User;
@@ -214,13 +215,23 @@ export const StaffAttendanceView: React.FC<StaffAttendanceViewProps> = ({
     setScanFeedback(null);
 
     try {
+      const id = input.trim();
+      const known = staffList.find((st) =>
+        method === 'qr' ? st.qr_token === id
+          : method === 'rfid' ? (st.rfid_uid || '').replace(/[^0-9A-F]/gi, '').toUpperCase() === id.replace(/[^0-9A-F]/gi, '').toUpperCase()
+          : st.staff_number === id || st.qr_token === id || String(st.id) === id);
       const res = await StaffAttendanceApi.recordDailyScan({
-        identifier: input.trim(),
+        identifier: id,
         method,
         operatorName: currentUser?.name || 'Admin',
+        staffName: known?.name,
       });
 
-      if (res.success) {
+      if (res.mode === 'QUEUED') {
+        AudioFeedbackService.playSuccess();
+        setScanFeedback({ success: true, message: res.message, mode: 'DISIMPAN OFFLINE' });
+        setScannerInput('');
+      } else if (res.success) {
         AudioFeedbackService.playSuccess();
         setScanFeedback({ success: true, message: res.message, mode: res.mode });
         setScannerInput('');
@@ -877,7 +888,9 @@ export const StaffAttendanceView: React.FC<StaffAttendanceViewProps> = ({
             {/* Scan Feedback Banner */}
             {scanFeedback && (
               <div className={`mt-4 p-3.5 rounded-lg text-xs font-medium flex items-center gap-2.5 ${
-                scanFeedback.success 
+                scanFeedback.mode === 'DISIMPAN OFFLINE'
+                  ? 'bg-amber-50 text-amber-900 border border-amber-200'
+                  : scanFeedback.success 
                   ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' 
                   : 'bg-rose-50 text-rose-800 border border-rose-200'
               }`}>
@@ -889,6 +902,8 @@ export const StaffAttendanceView: React.FC<StaffAttendanceViewProps> = ({
               </div>
             )}
           </div>
+
+          <StaffOfflineQueuePanel onSynced={() => void refreshData()} />
 
           {/* Quick Staff Tapping Grid */}
           <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">

@@ -47,6 +47,7 @@ import { OfflineStorageService } from '../services/offlineStorageService';
 import { ServerConnectivityService } from '../services/serverConnectivityService';
 import { BackupCenterTab } from '../features/maintenance/components/BackupCenterTab';
 import { DeviceReadinessPanel } from './DeviceReadinessPanel';
+import { StaffOfflineQueuePanel } from '../features/staff-attendance/offline/StaffOfflineQueuePanel';
 
 interface SyncCenterViewProps {
   sessions?: AttendanceSession[];
@@ -428,6 +429,7 @@ export const SyncCenterView: React.FC<SyncCenterViewProps> = ({
       {/* ========================================================================= */}
       {activeTab === 'queue' && (
         <div className="space-y-4">
+          <StaffOfflineQueuePanel onShowToast={onShowToast} hideWhenEmpty />
           {/* Action Toolbar */}
           <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-white dark:bg-zinc-900 p-5 rounded-3xl border border-slate-200/90 dark:border-zinc-800 shadow-sm">
             <div>

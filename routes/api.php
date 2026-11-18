@@ -122,6 +122,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/daily', [StaffAttendanceApiController::class, 'daily'])->middleware('permission:staff.attendance|staff.reports|staff.view');
             Route::get('/daily/summary', [StaffAttendanceApiController::class, 'summary'])->middleware('permission:staff.attendance|staff.reports|staff.view');
             Route::post('/daily/scan', [StaffAttendanceApiController::class, 'scan'])->middleware('permission:staff.attendance');
+            Route::post('/daily/offline-sync', [StaffAttendanceApiController::class, 'offlineSync'])->middleware('permission:staff.attendance');
             Route::post('/daily/manual', [StaffAttendanceApiController::class, 'manual'])->middleware('permission:staff.attendance');
             Route::post('/daily/finalize', [StaffAttendanceApiController::class, 'finalize'])->middleware('permission:staff.edit|staff.reports');
             Route::get('/work-schedule', [StaffAttendanceApiController::class, 'workSchedule'])->middleware('permission:staff.attendance|staff.reports|staff.view');

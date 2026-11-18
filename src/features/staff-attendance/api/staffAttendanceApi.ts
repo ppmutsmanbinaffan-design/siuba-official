@@ -14,6 +14,7 @@ import { StaffAttendanceService } from '../../../services/staffAttendanceService
 import { AuditService } from '../../../services/auditService';
 
 import { apiClient, isOfflineError } from '../../../services/apiClient';
+import { enqueueStaffScan } from '../offline/staffOfflineQueue';
 import { todayLocalDate } from '../../../utils/today';
 
 /** Gabungkan presensi harian dari server ke cache lokal; presensi mengajar/melatih lokal tetap dipertahankan. */
@@ -63,6 +64,7 @@ export class StaffAttendanceApi {
     identifier: string; // QR token or RFID UID
     method: AttendanceMethod;
     operatorName?: string;
+    staffName?: string; // untuk pesan antrean offline
   }): Promise<StaffScanFeedbackItem> {
     try {
       const res: any = await apiClient.post('/staff-attendance/daily/scan', { identifier: params.identifier, method: params.method });
@@ -76,11 +78,19 @@ export class StaffAttendanceApi {
         } as StaffScanFeedbackItem;
       }
     }
-    // Tidak ada antrean offline untuk data SDM: dulu disimpan diam-diam di browser dan tidak pernah sampai ke server
+    // Server tidak terjangkau: simpan ke antrean perangkat (tahap 28), dikirim otomatis saat server kembali.
+    const q = enqueueStaffScan({ identifier: params.identifier, method: params.method as any, staffName: params.staffName });
+    const base = {
+      id: String(Date.now()), timestamp: new Date().toISOString(), attendanceType: 'daily' as const, method: params.method,
+      lateMinutes: 0, earlyLeaveMinutes: 0, contextName: 'Presensi Harian Kantor / Gerbang', staffName: params.staffName,
+    };
+    if (!q.ok) {
+      return { ...base, resultCode: 'ALREADY_CHECKED_IN' as any, success: false, message: (q as { message: string }).message } as StaffScanFeedbackItem;
+    }
+    const jam = new Date((q as { item: { estimated_server_time: string } }).item.estimated_server_time).toLocaleTimeString('id-ID', { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit' });
     return {
-      id: String(Date.now()), timestamp: new Date().toISOString(), resultCode: 'NETWORK_OFFLINE' as any,
-      success: false, message: 'Server tidak terjangkau. Data SDM tidak bisa disimpan saat offline — coba lagi setelah tersambung.', attendanceType: 'daily', method: params.method,
-      lateMinutes: 0, earlyLeaveMinutes: 0, contextName: 'Presensi Harian Kantor / Gerbang',
+      ...base, resultCode: 'QUEUED_OFFLINE' as any, success: true, mode: 'QUEUED',
+      message: `Server tidak terjangkau — tap ${params.staffName || params.identifier} pukul ${jam} disimpan di perangkat ini dan akan dikirim otomatis saat server tersambung.`,
     } as StaffScanFeedbackItem;
   }
 

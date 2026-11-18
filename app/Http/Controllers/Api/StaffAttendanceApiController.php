@@ -7,6 +7,7 @@ use App\Http\Responses\ApiResponse;
 use App\Http\Transformers\SpaTransformer;
 use App\Models\StaffAbsenceRequest;
 use App\Models\StaffAttendanceRecord;
+use App\Models\StaffOfflineScan;
 use App\Models\StaffProfile;
 use App\Models\Student;
 use App\Services\Security\AuditService;
@@ -75,16 +76,131 @@ class StaffAttendanceApiController extends Controller
             'method' => 'required|in:qr,rfid,manual',
         ]);
 
-        $id = trim($data['identifier']);
-        $staff = match ($data['method']) {
-            'qr' => StaffProfile::where('qr_token', $id)->first(),
-            'rfid' => StaffProfile::where('rfid_uid', Student::normalizeRfidUid($id))->first(),
-            default => StaffProfile::where('staff_number', $id)->first() ?? (ctype_digit($id) ? StaffProfile::find((int) $id) : null),
-        };
+        $staff = $this->findStaff($data['method'], $data['identifier']);
 
         return response()->json(['success' => true, 'data' => $this->scanPayload(
             $this->service->scan($staff, $data['method'], null, $request->user())
         )]);
+    }
+
+    private function findStaff(string $method, string $identifier): ?StaffProfile
+    {
+        $id = trim($identifier);
+
+        return match ($method) {
+            'qr' => StaffProfile::where('qr_token', $id)->first(),
+            'rfid' => ($uid = Student::normalizeRfidUid($id)) ? StaffProfile::where('rfid_uid', $uid)->first() : null,
+            // ketik manual: NIP, token QR (STF-…), UID kartu, atau ID
+            default => StaffProfile::where('staff_number', $id)->first()
+                ?? StaffProfile::where('qr_token', $id)->first()
+                ?? (($uid = Student::normalizeRfidUid($id)) ? StaffProfile::where('rfid_uid', $uid)->first() : null)
+                ?? (ctype_digit($id) ? StaffProfile::find((int) $id) : null),
+        };
+    }
+
+    /**
+     * Tahap 28 — kirim antrean tap SDM yang dicatat saat server tidak terjangkau.
+     * Diproses urut jam tap; client_request_id yang sudah pernah diproses mengembalikan hasil lama (tidak dobel).
+     * Hasil apa pun (berhasil/ditolak) bersifat final; hanya galat server yang membuat item dicoba lagi.
+     */
+    public function offlineSync(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'items' => 'required|array|min:1|max:200',
+            'items.*.client_request_id' => 'required|string|max:64',
+            'items.*.identifier' => 'required|string|max:100',
+            'items.*.method' => 'required|in:qr,rfid,manual',
+            'items.*.captured_at_client' => 'required|date',
+            'items.*.estimated_server_time' => 'nullable|date',
+            'items.*.clock_offset_ms' => 'nullable|integer',
+            'items.*.installation_id' => 'nullable|string|max:64',
+        ]);
+
+        $now = now();
+        $maxDays = (int) config('siuba.staff_offline_max_days', 7);
+        $items = collect($data['items'])->map(function ($it) use ($now) {
+            $client = Carbon::parse($it['captured_at_client'])->setTimezone(config('app.timezone'));
+            $at = $client->copy();
+            if (!empty($it['estimated_server_time'])) {
+                $est = Carbon::parse($it['estimated_server_time'])->setTimezone(config('app.timezone'));
+                if ($est->lte($now->copy()->addMinute()) && abs($est->diffInSeconds($client, false)) < 86400) {
+                    $at = $est;
+                }
+            }
+            return $it + ['_at' => $at, '_client' => $client];
+        })->sortBy(fn ($it) => $it['_at']->getTimestamp())->values();
+
+        $results = [];
+        foreach ($items as $it) {
+            $existing = StaffOfflineScan::where('client_request_id', $it['client_request_id'])->first();
+            if ($existing) {
+                $results[] = $this->offlineResult($existing, true);
+                continue;
+            }
+            $staff = null;
+            try {
+                $at = $it['_at'];
+                if ($at->gt($now->copy()->addMinutes(5))) {
+                    $r = ['success' => false, 'code' => 'TIME_IN_FUTURE', 'message' => 'Jam perangkat lebih maju dari jam server — tap ditolak. Periksa jam HP/komputer.'];
+                } elseif ($at->lt($now->copy()->subDays($maxDays)->startOfDay())) {
+                    $r = ['success' => false, 'code' => 'TOO_OLD', 'message' => "Tap lebih dari {$maxDays} hari yang lalu — catat lewat presensi manual bila perlu."];
+                } else {
+                    $staff = $this->findStaff($it['method'], $it['identifier']);
+                    $r = $this->service->scan($staff, $it['method'], $at->copy(), $request->user());
+                    if (!empty($r['record']) && ($r['success'] ?? false)) {
+                        $r['record']->update(['notes' => trim(($r['record']->notes ?? '') . ' | Tap offline ' . $at->format('d/m H:i') . ', terkirim ' . $now->format('d/m H:i'), ' |')]);
+                    }
+                }
+                $scan = StaffOfflineScan::create([
+                    'client_request_id' => $it['client_request_id'],
+                    'staff_profile_id' => ($r['staff'] ?? $staff)?->id,
+                    'staff_attendance_record_id' => ($r['record'] ?? null)?->id,
+                    'identifier' => mb_substr($it['identifier'], 0, 100),
+                    'method' => $it['method'],
+                    'captured_at' => $at,
+                    'captured_at_client' => $it['_client'],
+                    'clock_offset_ms' => $it['clock_offset_ms'] ?? null,
+                    'success' => (bool) $r['success'],
+                    'result_code' => $r['code'],
+                    'result_message' => mb_substr((string) $r['message'], 0, 255),
+                    'installation_id' => $it['installation_id'] ?? null,
+                    'user_id' => $request->user()?->id,
+                ]);
+                $results[] = $this->offlineResult($scan, false, $r);
+            } catch (\Illuminate\Database\UniqueConstraintViolationException) {
+                $results[] = $this->offlineResult(StaffOfflineScan::where('client_request_id', $it['client_request_id'])->firstOrFail(), true);
+            } catch (\Throwable $e) {
+                report($e);
+                $results[] = ['client_request_id' => $it['client_request_id'], 'success' => false, 'final' => false,
+                    'code' => 'SERVER_ERROR', 'message' => 'Galat server; akan dicoba lagi.'];
+            }
+        }
+
+        $ok = collect($results)->where('success', true)->count();
+        if ($ok > 0) {
+            $this->audit('staff_attendance.offline_synced', 0, null, ['received' => count($results), 'success' => $ok], "{$ok} tap SDM offline terkirim", $request);
+        }
+
+        return response()->json(['success' => true, 'data' => ['results' => $results, 'server_time' => $now->toIso8601String()]]);
+    }
+
+    private function offlineResult(StaffOfflineScan $scan, bool $replay, ?array $r = null): array
+    {
+        $record = $r['record'] ?? null;
+
+        return [
+            'client_request_id' => $scan->client_request_id,
+            'success' => (bool) $scan->success,
+            'final' => true,
+            'replay' => $replay,
+            'duplicate' => in_array($scan->result_code, ['ALREADY_CHECKED_OUT', 'TOO_SOON_TO_CHECK_OUT'], true),
+            'code' => $scan->result_code,
+            'message' => $scan->result_message,
+            'mode' => $r['mode'] ?? null,
+            'captured_at' => $scan->captured_at?->toIso8601String(),
+            'staff_name' => $scan->staff?->name,
+            'record' => $record ? SpaTransformer::staffRecord($record->loadMissing('staff')) : null,
+        ];
     }
 
     /**

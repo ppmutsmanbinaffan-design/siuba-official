@@ -54,10 +54,25 @@ if errorlevel 1 (
     echo.
 )
 
+:: HTTPS LAN (tahap 29): nyalakan Apache XAMPP bila HTTPS sudah dipasang dan Apache belum aktif
+set HTTPS_INFO=
+if exist "storage\app\https\server.crt" if exist "C:\xampp\apache\conf\extra\siuba-https.conf" (
+    tasklist /FI "IMAGENAME eq httpd.exe" 2>NUL | find /I "httpd.exe" >NUL
+    if errorlevel 1 (
+        echo [INFO] Menyalakan Apache XAMPP untuk HTTPS LAN port 8443...
+        start "" /B /D "C:\xampp\apache" "C:\xampp\apache\bin\httpd.exe"
+    )
+    set HTTPS_INFO=1
+)
+
 :: 4. Jalankan server
 echo.
 echo ========================================================
 echo  [4/4] SIUBA SIAP. Buka di browser:  http://localhost:8000
+if defined HTTPS_INFO (
+    echo  HP petugas ^(kamera scan QR^) pakai alamat HTTPS:
+    for /f "tokens=2 delims=:" %%I in ('ipconfig ^| findstr /C:"IPv4"') do for /f "tokens=*" %%J in ("%%I") do echo     https://%%J:8443
+)
 echo  JANGAN TUTUP JENDELA INI selama aplikasi dipakai.
 echo ========================================================
 echo.
