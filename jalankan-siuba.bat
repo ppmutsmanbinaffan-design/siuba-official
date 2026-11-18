@@ -45,6 +45,8 @@ if errorlevel 1 (
 "%PHP%" artisan db:seed --class=AdminUserSeeder --force
 "%PHP%" artisan db:seed --class=ActivityCategorySeeder --force
 "%PHP%" artisan system:backup --notes="Backup otomatis saat aplikasi dinyalakan" --if-older-than=20
+:: Akun contoh bawaan versi lama: hapus yang tidak terpakai, nonaktifkan yang pernah dipakai (sesudah backup)
+"%PHP%" artisan siuba:hapus-akun-contoh
 
 :: Ingatkan bila penjadwal otomatis (auto-close sesi, backup harian) belum dipasang
 schtasks /Query /TN "SIUBA Penjadwal" >nul 2>&1

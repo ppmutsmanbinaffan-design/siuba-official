@@ -1221,3 +1221,11 @@ Akun contoh memakai password awal yang sama. Bila tidak dipakai, nonaktifkan ata
 
 ## Langkah setelah update
 **Ada migrasi baru** — jalankan `jalankan-siuba.bat`, lalu Ctrl+F5.
+
+## Tambahan: pembersihan akun contoh
+`jalankan-siuba.bat` kini menjalankan `php artisan siuba:hapus-akun-contoh` **sesudah backup otomatis**:
+- akun contoh yang **tidak pernah dipakai** (tidak pernah login, tanpa sesi login, tidak dirujuk tabel mana pun —
+  diperiksa ke semua kolom yang berelasi ke akun pengguna) **dihapus**;
+- akun contoh yang **pernah dipakai** hanya **dinonaktifkan** dan sesi loginnya dicabut, agar riwayat data utuh;
+- akun yang namanya sudah Anda ubah, atau yang sudah nonaktif, tidak disentuh. Aman diulang.
+- Hasilnya tercatat di Log Audit (`users.example_accounts_cleaned`). Uji tanpa mengubah: `--dry-run`.

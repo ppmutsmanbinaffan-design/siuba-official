@@ -204,3 +204,16 @@ Schedule::command('attendance:auto-close')->everyFiveMinutes()->withoutOverlappi
 // Sesi latihan ekskul hari ini dibuat otomatis dari jadwal mingguan; latihan kemarin difinalisasi
 Schedule::command('trainer:generate')->dailyAt('00:20')->withoutOverlapping();
 Schedule::command('trainer:finalize')->dailyAt('00:40')->withoutOverlapping();
+
+// Akun contoh bawaan versi lama: hapus yang tidak terpakai, nonaktifkan yang pernah dipakai (aman diulang)
+Artisan::command('siuba:hapus-akun-contoh {--dry-run : Hanya tampilkan, jangan ubah apa pun}', function () {
+    $r = app(\App\Services\System\ExampleAccountCleanup::class)->run((bool) $this->option('dry-run'));
+    if (!$r['deleted'] && !$r['deactivated']) {
+        $this->line('Akun contoh: tidak ada yang perlu dibersihkan.');
+        return 0;
+    }
+    $pre = $this->option('dry-run') ? '[uji] ' : '';
+    foreach ($r['deleted'] as $u) $this->info("{$pre}Akun contoh dihapus: {$u}");
+    foreach ($r['deactivated'] as $u => $why) $this->warn("{$pre}Akun contoh dinonaktifkan (pernah dipakai: {$why}): {$u}");
+    return 0;
+})->purpose('Hapus akun contoh bawaan yang tidak terpakai; nonaktifkan yang pernah dipakai');
