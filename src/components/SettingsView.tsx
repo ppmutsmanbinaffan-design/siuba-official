@@ -65,6 +65,7 @@ interface SystemConfigState {
   // Attendance & Hardware Rules
   lateToleranceMinutes: number;
   autoCloseSessionMinutes: number;
+  autoOpenScheduledSessions: boolean;
   rfidDebounceSeconds: number;
   allowSelfExcusal: boolean;
   enableKioskFullscreen: boolean;
@@ -109,6 +110,7 @@ const DEFAULT_CONFIG: SystemConfigState = {
 
   lateToleranceMinutes: 15,
   autoCloseSessionMinutes: 30,
+  autoOpenScheduledSessions: true,
   rfidDebounceSeconds: 5,
   allowSelfExcusal: true,
   enableKioskFullscreen: false,
@@ -181,6 +183,7 @@ export const SettingsView: React.FC<Props> = ({
           city: i.city ?? '',
           lateToleranceMinutes: a.late_tolerance_minutes ?? prev.lateToleranceMinutes,
           autoCloseSessionMinutes: a.auto_close_session_minutes ?? prev.autoCloseSessionMinutes,
+          autoOpenScheduledSessions: a.auto_open_scheduled_sessions ?? prev.autoOpenScheduledSessions,
           rfidDebounceSeconds: a.rfid_debounce_seconds ?? prev.rfidDebounceSeconds,
           allowSelfExcusal: a.allow_self_excusal ?? prev.allowSelfExcusal,
           enableKioskFullscreen: a.enable_kiosk_fullscreen ?? prev.enableKioskFullscreen,
@@ -252,6 +255,7 @@ export const SettingsView: React.FC<Props> = ({
       await apiClient.put('/settings/attendance', {
         late_tolerance_minutes: config.lateToleranceMinutes,
         auto_close_session_minutes: config.autoCloseSessionMinutes,
+        auto_open_scheduled_sessions: config.autoOpenScheduledSessions,
         rfid_debounce_seconds: config.rfidDebounceSeconds,
         allow_self_excusal: config.allowSelfExcusal,
         enable_kiosk_fullscreen: config.enableKioskFullscreen,
@@ -260,6 +264,7 @@ export const SettingsView: React.FC<Props> = ({
       applyServerAttendanceRules({
         late_tolerance_minutes: config.lateToleranceMinutes,
         auto_close_session_minutes: config.autoCloseSessionMinutes,
+        auto_open_scheduled_sessions: config.autoOpenScheduledSessions,
         rfid_debounce_seconds: config.rfidDebounceSeconds,
         allow_self_excusal: config.allowSelfExcusal,
         enable_kiosk_fullscreen: config.enableKioskFullscreen,
@@ -890,6 +895,21 @@ export const SettingsView: React.FC<Props> = ({
               />
               <span className="text-[10px] text-slate-500 block">
                 Santri yang hadir setelah toleransi akan otomatis berstatus <strong>Terlambat</strong>. Berlaku untuk sesi KBM baru dan kegiatan yang tidak punya toleransi sendiri.
+              </span>
+            </div>
+
+            <div className="p-4 bg-slate-50 dark:bg-zinc-950/60 rounded-2xl border border-slate-200/80 dark:border-zinc-800 space-y-2">
+              <label className="flex items-center justify-between gap-3 cursor-pointer">
+                <span className="text-xs font-bold text-slate-900 dark:text-white">Buka Sesi Otomatis Saat Jam Mulai</span>
+                <input
+                  type="checkbox"
+                  className="w-5 h-5 accent-emerald-700"
+                  checked={config.autoOpenScheduledSessions}
+                  onChange={(e) => handleConfigChange('autoOpenScheduledSessions', e.target.checked)}
+                />
+              </label>
+              <span className="text-[10px] text-slate-500 block">
+                Sesi dari <strong>Jadwal Rutin</strong> dibuka otomatis (dicek tiap menit) agar tap kartu RFID langsung diterima. Matikan bila petugas ingin membuka setiap sesi secara manual. Sesi KBM dan event tetap dibuka oleh guru/panitia.
               </span>
             </div>
 

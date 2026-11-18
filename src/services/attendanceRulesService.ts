@@ -7,6 +7,7 @@ import { AudioFeedbackService } from './audioFeedbackService';
 export interface AttendanceRules {
   late_tolerance_minutes: number;
   auto_close_session_minutes: number;
+  auto_open_scheduled_sessions?: boolean;
   rfid_debounce_seconds: number;
   allow_self_excusal: boolean;
   enable_kiosk_fullscreen: boolean;

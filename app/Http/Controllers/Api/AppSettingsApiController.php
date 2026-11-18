@@ -55,6 +55,7 @@ class AppSettingsApiController extends Controller
                 'late_tolerance_minutes' => 'required|integer|min:0|max:120', 'auto_close_session_minutes' => 'required|integer|min:0|max:600',
                 'rfid_debounce_seconds' => 'required|integer|min:0|max:300', 'allow_self_excusal' => 'boolean',
                 'enable_kiosk_fullscreen' => 'boolean', 'enable_audio_chime' => 'boolean',
+                'auto_open_scheduled_sessions' => 'boolean',
             ],
             'security' => [
                 'session_timeout_minutes' => 'required|integer|min:0|max:1440',

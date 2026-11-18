@@ -1316,3 +1316,20 @@ Mesin Absensindo menulis UID kartu sebagai angka **desimal dengan urutan byte te
   UID heksadesimal 4 byte (8 karakter) dan 7 byte (14 karakter) tidak berubah.
 - Migrasi mengubah UID desimal yang sudah tersimpan; bila bentuk bakunya sudah dipakai kartu lain, dilewati
   dan dicatat di `storage/logs/laravel.log`.
+
+---
+
+# Update 40 — Kegiatan baru langsung punya sesi; sesi dibuka otomatis
+
+Masalah: kegiatan yang dibuat di **Master Kegiatan** tidak pernah muncul di **Sesi Absensi**, karena sesi hanya
+dibuat dari **Jadwal Rutin**, dan tidak ada petunjuk soal itu. Selain itu kolom `auto_open` jadwal tidak pernah
+dijalankan, sehingga sesi rutin tetap DRAF (tap RFID ditolak "Sesi Blm Dibuka") sampai dibuka manual.
+
+Perubahan:
+- Kartu kegiatan tanpa jadwal menampilkan **"Belum punya jadwal"** + tombol **Buat Jadwal & Sesi Hari Ini**
+  (setiap hari / hari tertentu, memakai jam standar kegiatan). Sesi hari ini langsung dibuat bila jadwal berlaku hari ini.
+  Jadwal baru juga ditambahkan ke daftar Jadwal Rutin di aplikasi agar tidak terhapus saat Jadwal Rutin disimpan.
+- **Buka Sesi Otomatis Saat Jam Mulai** (Pengaturan → Aturan Absensi, bawaan aktif): penjadwal tiap menit membuka
+  sesi DRAF dari Jadwal Rutin yang jam mulainya tiba (`php artisan attendance:auto-open`). Sesi KBM/event tidak disentuh.
+  Penutupan otomatis tetap lewat Auto-Close.
+- `jalankan-siuba.bat` juga menjalankan auto-open sekali saat start.

@@ -182,6 +182,54 @@ class SessionService
      *
      * @return array{closed:int, finalized:int, sessions:array<int,string>}
      */
+    /**
+     * Buka otomatis sesi DRAF dari Jadwal Rutin yang jam mulainya sudah tiba dan belum selesai.
+     * Berlaku bila Pengaturan → Aturan Absensi "Buka sesi otomatis" aktif, atau jadwalnya ditandai auto_open.
+     * Sesi KBM/event (tanpa jadwal rutin) tidak disentuh — dibuka oleh guru/panitia.
+     *
+     * @return array{opened:int, sessions:string[]}
+     */
+    public function autoOpenDue(?Carbon $now = null): array
+    {
+        $now ??= Carbon::now('Asia/Jakarta');
+        $global = (bool) (\App\Models\AppSetting::get('attendance')['auto_open_scheduled_sessions'] ?? true);
+        $result = ['opened' => 0, 'sessions' => []];
+
+        $sessions = AttendanceSession::with('schedule')
+            ->where('status', SessionStatus::DRAFT)
+            ->whereNotNull('activity_schedule_id')
+            ->where('start_at', '<=', $now)
+            ->where('end_at', '>', $now)
+            ->orderBy('start_at')
+            ->limit(200)
+            ->get();
+
+        foreach ($sessions as $session) {
+            if (!$global && !($session->schedule?->auto_open)) {
+                continue;
+            }
+            $session->update(['status' => SessionStatus::OPEN, 'opened_by' => null, 'opened_at' => $now->copy()]);
+            $result['opened']++;
+            $result['sessions'][] = $session->session_code;
+        }
+
+        if ($result['opened'] > 0) {
+            try {
+                \App\Models\AuditLog::create([
+                    'event' => 'attendance.session.auto_opened',
+                    'auditable_type' => AttendanceSession::class,
+                    'new_values' => $result,
+                    'reason' => "Sistem membuka otomatis {$result['opened']} sesi sesuai jam mulai jadwal.",
+                    'created_at' => now(),
+                ]);
+            } catch (\Throwable) {
+                // audit tidak boleh menggagalkan pembukaan
+            }
+        }
+
+        return $result;
+    }
+
     public function autoCloseExpired(?int $minutes = null, ?Carbon $now = null): array
     {
         $minutes ??= (int) (\App\Models\AppSetting::get('attendance')['auto_close_session_minutes'] ?? 0);

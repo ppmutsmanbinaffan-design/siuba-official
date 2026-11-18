@@ -245,6 +245,7 @@ export interface ActivityCategory {
 
 export interface Activity {
   id: number;
+  schedule_count?: number; // jadwal rutin aktif (0 = belum muncul di Sesi Absensi)
   activity_category_id: number;
   category_code?: string;
   category_name: string;
