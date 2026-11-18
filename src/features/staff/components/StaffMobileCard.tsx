@@ -5,6 +5,7 @@ import { StatusBadge } from '../../../components/common/StatusBadge';
 import { ActionMenu, ActionMenuItem } from '../../../components/ui/ActionMenu';
 import { Eye, Edit3, Power, Phone, Briefcase } from 'lucide-react';
 import { hasPermission } from '../../../components/auth/PermissionGuard';
+import { authService } from '../../../services/authService';
 
 export interface StaffMobileCardProps {
   staff: Staff;
@@ -30,8 +31,10 @@ export const StaffMobileCard: React.FC<StaffMobileCardProps> = ({
   onEdit,
   onToggleStatus,
 }) => {
-  const canEdit = hasPermission(userRole, 'staff.edit');
-  const canDeactivate = hasPermission(userRole, 'staff.deactivate');
+  // izin diambil dari pengguna yang login (dulu hanya peran → tombol selalu tersembunyi)
+  const staffAuthUser = authService.getState().user;
+  const canEdit = hasPermission(userRole || staffAuthUser?.role, 'staff.edit', staffAuthUser?.permissions);
+  const canDeactivate = hasPermission(userRole || staffAuthUser?.role, 'staff.deactivate', staffAuthUser?.permissions);
 
   const menuItems: ActionMenuItem[] = [
     {

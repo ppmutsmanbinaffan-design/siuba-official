@@ -20,6 +20,7 @@ import {
   Mail
 } from 'lucide-react';
 import { hasPermission } from '../../../components/auth/PermissionGuard';
+import { authService } from '../../../services/authService';
 
 export interface StaffDetailPageProps {
   staffId: number;
@@ -57,7 +58,11 @@ export const StaffDetailPage: React.FC<StaffDetailPageProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'profile' | 'employment' | 'credentials'>('profile');
 
-  const canEdit = hasPermission(userRole, 'staff.edit');
+  // izin diambil dari pengguna yang login (dulu hanya peran → tombol selalu tersembunyi)
+
+  const staffAuthUser = authService.getState().user;
+
+  const canEdit = hasPermission(userRole || staffAuthUser?.role, 'staff.edit', staffAuthUser?.permissions);
 
   useEffect(() => {
     let isMounted = true;
