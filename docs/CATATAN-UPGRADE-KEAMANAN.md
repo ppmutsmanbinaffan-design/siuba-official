@@ -1255,3 +1255,23 @@ tombol Generate Sesi setiap hari; penjadwal hanya membuat sesi latihan ekskul.
 - Ping tiap 60 detik ke `/api/v1/iot/ping` (status "terakhir terlihat" di Device Management).
 - Device Management: "Header Config Generator" diganti **Isian Pengaturan Alat RFID** sesuai program baru.
 - Penting: `NEXABSEN_GLOBAL_KEY` di `.env` wajib terisi walaupun alat memakai token sendiri.
+
+---
+
+# Update 37 — Mesin jadi Nexabsen V.4
+
+SIUBA sudah memakai format Nexabsen V.4 (`/api/tap.php`, header `X-GLOBAL-KEY`, `{device_id, uid, tapped_at}`,
+balasan `message` + `data.name`, `action: RESET_CONFIG`). Penyesuaian:
+- Di alamat `/api/tap.php`, penolakan yang sudah final (tidak ada sesi, bukan peserta, santri/SDM nonaktif,
+  di luar waktu) kini dibalas **200 + success=false** (dulu 403/409/422). Dokumen pabrik hanya mengenal
+  200/401/404, sehingga kode lain berisiko dianggap "gagal kirim" dan tap dikirim ulang terus dari antrean mesin.
+  401 (kunci salah), 404 (kartu ditolak), alat belum aktif, dan mode perawatan tidak berubah.
+  Alamat `/api/v1/iot/rfid-tap` (program rakitan) tetap memakai kode semantik.
+- `tapped_at` tanpa zona waktu ("2026-07-28 07:15:30") dibaca sebagai WIB.
+
+Pengisian portal NEXABSEN-CONFIG:
+- URL Endpoint Tap Absen: `http://IP-SERVER:8000/api/tap.php`
+- Global API Key: sama persis dengan `NEXABSEN_GLOBAL_KEY` di `.env` (ganti bawaan pabrik `5daj3fk73`)
+- ID Alat: biarkan bawaan (NX-…) atau beri nama, mis. `GERBANG-PUTRA`
+- UID Kartu Master Admin: UID kartu teknisi Anda; samakan dengan `NEXABSEN_MASTER_ADMIN_UID` di `.env` (opsional)
+Mesin baru tampil di Device Management sebagai **nonaktif** setelah tap pertama → klik Aktifkan.

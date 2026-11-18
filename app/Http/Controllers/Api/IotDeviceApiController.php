@@ -39,7 +39,29 @@ class IotDeviceApiController extends Controller
      * peserta terdaftar, anti tap-ganda) dijalankan oleh AttendanceService — sama persis
      * dengan absensi QR & manual, sehingga laporan konsisten antar-metode.
      */
+    /**
+     * Kompatibilitas mesin Nexabsen V.4 (alamat /api/tap.php sesuai dokumen pabrik): dokumen hanya mengenal
+     * 200 (sukses), 401 (kunci salah), 404 (kartu ditolak). Penolakan yang sudah final (tidak ada sesi, bukan peserta,
+     * santri/SDM nonaktif, di luar waktu) dikirim sebagai 200 + success=false agar mesin menampilkan pesannya dan
+     * TIDAK mengirim ulang tap itu dari antrean offline. Alat belum aktif / perawatan / galat server tidak diubah.
+     */
     public function handleRfidTap(Request $request): JsonResponse
+    {
+        $response = $this->processRfidTap($request);
+        if (str_ends_with($request->path(), 'tap.php')) {
+            $status = $response->getStatusCode();
+            $code = (string) ($response->getData(true)['code'] ?? '');
+            $final = in_array($status, [409, 422], true)
+                || ($status === 403 && !in_array($code, ['DEVICE_NOT_ACTIVE', 'DEVICE_DISABLED'], true));
+            if ($final) {
+                $response->setStatusCode(200);
+            }
+        }
+
+        return $response;
+    }
+
+    private function processRfidTap(Request $request): JsonResponse
     {
         // 1. Ekstrak payload (raw JSON, form-data, atau query param)
         $jsonData = json_decode($request->getContent(), true);
