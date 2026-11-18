@@ -1,0 +1,61 @@
+# SIUBA — konfigurasi Apache untuk hosting (cPanel / VPS).
+# Dipakai bila "Document Root" domain diarahkan ke folder public/ (cara yang disarankan).
+# Saat di komputer pesantren (jalankan-siuba.bat) file ini tidak dipakai, jadi aman.
+
+<IfModule mod_negotiation.c>
+    Options -MultiViews -Indexes
+</IfModule>
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Teruskan header Authorization (token Bearer mesin Absensindo & login aplikasi)
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+    RewriteCond %{HTTP:x-xsrf-token} .
+    RewriteRule .* - [E=HTTP_X_XSRF_TOKEN:%{HTTP:X-XSRF-Token}]
+
+    # Paksa HTTPS untuk pengguna — KECUALI alamat mesin RFID (firmware umumnya hanya HTTP;
+    # redirect membuat tap gagal). Memakai THE_REQUEST (alamat asli) agar benar juga saat
+    # aplikasi diunggah utuh ke public_html. Hanya aktif di domain publik, bukan IP LAN.
+    RewriteCond %{HTTPS} !=on
+    RewriteCond %{HTTP:X-Forwarded-Proto} !https
+    RewriteCond %{HTTP_HOST} !^(localhost|127\.0\.0\.1|192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[01])\.) [NC]
+    RewriteCond %{THE_REQUEST} !\s/+(api/)?tap\.php [NC]
+    RewriteCond %{THE_REQUEST} !\s/+api/device(/|\s|\?) [NC]
+    RewriteCond %{THE_REQUEST} !\s/+api/v1/(iot/|tap\.php) [NC]
+    RewriteCond %{THE_REQUEST} !\s/+\.well-known/ [NC]
+    RewriteCond %{THE_REQUEST} ^\S+\s+(/[^\s?]*)
+    RewriteRule ^ https://%{HTTP_HOST}%1 [L,R=301]
+
+    # Semua alamat lain ditangani aplikasi (Laravel → halaman aplikasi)
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^ index.php [L]
+</IfModule>
+
+# Jangan pernah sajikan file tersembunyi / konfigurasi (kecuali .well-known untuk SSL)
+<IfModule mod_rewrite.c>
+    RewriteRule (^|/)\.(?!well-known/) - [F,L]
+</IfModule>
+<FilesMatch "(?i)\.(env|log|sql|sqlite|bak|zip|bundle|ini|sh|bat|ps1|md)$">
+    Require all denied
+</FilesMatch>
+
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    Header always unset X-Powered-By
+    # Berkas aplikasi bernama-hash boleh di-cache lama; app.html & sw.js selalu dicek ulang
+    <FilesMatch "^index-[A-Za-z0-9_-]+\.(js|css)$">
+        Header set Cache-Control "public, max-age=31536000, immutable"
+    </FilesMatch>
+    <FilesMatch "^(app\.html|sw\.js|manifest\.(json|webmanifest))$">
+        Header set Cache-Control "no-cache, must-revalidate"
+    </FilesMatch>
+</IfModule>
+
+<IfModule mod_mime.c>
+    AddType application/manifest+json .webmanifest
+</IfModule>
