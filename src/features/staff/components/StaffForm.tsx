@@ -15,6 +15,7 @@ import {
   Clock 
 } from 'lucide-react';
 import { todayLocalDate } from '../../../utils/today';
+import { StaffAccountSection, AccountMode } from './StaffAccountSection';
 
 export interface StaffFormData {
   staff_number: string;
@@ -32,6 +33,9 @@ export interface StaffFormData {
   user_id: number | null;
   rfid_uid: string;
   photo?: string;
+  account_mode: AccountMode;
+  account_username: string;
+  account_role: string;
 }
 
 export interface StaffFormProps {
@@ -70,6 +74,9 @@ export const StaffForm: React.FC<StaffFormProps> = ({
     user_id: initialData?.user_id ?? null,
     rfid_uid: initialData?.rfid_uid || '',
     photo: initialData?.photo || '',
+    account_mode: initialData?.user_id ? 'link' : 'none',
+    account_username: '',
+    account_role: '',
   });
 
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -381,22 +388,26 @@ export const StaffForm: React.FC<StaffFormProps> = ({
           </div>
           <div>
             <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-100">Akun Sistem & Kredensial</h3>
-            <p className="text-xs text-zinc-700 dark:text-zinc-300">Tautkan akun login SIUBA dan kartu RFID untuk tapping.</p>
+            <p className="text-xs text-zinc-700 dark:text-zinc-300">Akun login SIUBA milik SDM ini dan kartu RFID untuk tapping.</p>
           </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Select
-            label="Tautkan Akun Pengguna (Login)"
-            value={formData.user_id ? String(formData.user_id) : ''}
-            onChange={(e) => handleChange('user_id', e.target.value ? Number(e.target.value) : null)}
-            options={[
-              { value: '', label: '-- Belum Ditautkan Akun --' },
-              ...users.map((u) => ({ value: String(u.id), label: `${u.name} (${u.email}) - [${u.role}]` })),
-            ]}
-            error={fieldErrors.user_id}
-            helperText="Memungkinkan staff login ke aplikasi SIUBA."
-          />
+          <div className="sm:col-span-2">
+            <StaffAccountSection
+              staffId={initialData?.id ? Number(initialData.id) : undefined}
+              staffNumber={formData.staff_number}
+              staffType={formData.staff_type}
+              linkedUsername={(initialData as any)?.username || null}
+              linkedRoleLabel={((initialData as any)?.roles || []).join(', ')}
+              mode={formData.account_mode}
+              userId={formData.user_id}
+              accountUsername={formData.account_username}
+              accountRole={formData.account_role}
+              errors={fieldErrors}
+              onChange={(patch) => setFormData((prev) => ({ ...prev, ...patch }))}
+            />
+          </div>
 
           <Input
             label="RFID Card UID"

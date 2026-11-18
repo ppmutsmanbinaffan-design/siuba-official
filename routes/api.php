@@ -104,6 +104,7 @@ Route::prefix('v1')->group(function () {
 
         // Master Data SDM (guru, pelatih, musyrif, staf)
         Route::get('/staff', [StaffApiController::class, 'index'])->middleware('permission:staff.view');
+        Route::get('/staff/linkable-accounts', [StaffApiController::class, 'linkableAccounts'])->middleware('permission:staff.create|staff.edit');
         Route::get('/staff/{staff}', [StaffApiController::class, 'show'])->middleware('permission:staff.view');
         Route::post('/staff', [StaffApiController::class, 'store'])->middleware('permission:staff.create');
         Route::match(['put', 'patch'], '/staff/{staff}', [StaffApiController::class, 'update'])->middleware('permission:staff.edit|staff.deactivate');

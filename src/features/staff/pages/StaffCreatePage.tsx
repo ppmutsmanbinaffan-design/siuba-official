@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { User } from '../../../types';
 import { staffApi } from '../api/staffApi';
 import { StaffForm, StaffFormData } from '../components/StaffForm';
+import { NewAccountNotice, NewAccountInfo } from '../components/NewAccountNotice';
 import { PageHeader } from '../../../components/layout/PageHeader';
 import { Button } from '../../../components/ui/Button';
 import { ArrowLeft } from 'lucide-react';
@@ -19,6 +20,7 @@ export const StaffCreatePage: React.FC<StaffCreatePageProps> = ({
 }) => {
   const [users, setUsers] = useState<User[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [newAccount, setNewAccount] = useState<{ staffId: number; staffName: string; account: NewAccountInfo } | null>(null);
   const [errors, setErrors] = useState<Record<string, string[]>>({});
 
   useEffect(() => {
@@ -42,16 +44,22 @@ export const StaffCreatePage: React.FC<StaffCreatePageProps> = ({
         join_date: formData.join_date,
         requires_daily_attendance: formData.requires_daily_attendance,
         is_active: formData.is_active,
-        user_id: formData.user_id,
+        user_id: formData.account_mode === 'link' ? formData.user_id : null,
         rfid_uid: formData.rfid_uid,
         photo: formData.photo,
+        create_account: formData.account_mode === 'create',
+        account_username: formData.account_mode === 'create' ? formData.account_username : undefined,
+        account_role: formData.account_mode === 'create' ? formData.account_role : undefined,
       });
 
       onShowToast(`SDM "${created.name}" berhasil didaftarkan.`, 'success');
-      onSuccess(created.id);
+      const acc = (created as any).new_account as NewAccountInfo | undefined;
+      if (acc) setNewAccount({ staffId: created.id, staffName: created.name, account: acc });
+      else onSuccess(created.id);
     } catch (err: any) {
-      if (err.status === 422 && err.errors) {
-        setErrors(err.errors);
+      const fieldErrs = err?.fieldErrors && Object.keys(err.fieldErrors).length ? err.fieldErrors : err?.errors;
+      if (err.status === 422 && fieldErrs) {
+        setErrors(fieldErrs);
         onShowToast('Mohon periksa kembali isian formulir SDM.', 'error');
       } else {
         onShowToast(err.message || 'Gagal mendaftarkan data SDM.', 'error');
@@ -85,6 +93,10 @@ export const StaffCreatePage: React.FC<StaffCreatePageProps> = ({
         onCancel={onNavigateBack}
         errors={errors}
       />
+      {newAccount && (
+        <NewAccountNotice staffName={newAccount.staffName} account={newAccount.account}
+          onClose={() => { const id = newAccount.staffId; setNewAccount(null); onSuccess(id); }} />
+      )}
     </div>
   );
 };

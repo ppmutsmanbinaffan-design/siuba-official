@@ -1192,3 +1192,32 @@ Kini tersedia HTTPS lokal tanpa internet dan tanpa mengubah pengaturan Chrome di
 ## Bila Apache gagal menyala
 Biasanya port 80/443 dipakai program lain (Skype, IIS, VMware). Lihat `C:\xampp\apache\logs\error.log`,
 atau nyalakan Apache dari XAMPP Control Panel untuk melihat pesannya.
+
+---
+
+# Update 34 — Akun login milik SDM sendiri, akun contoh tanpa nama orang
+
+## Masalah
+- Pilihan **Tautkan Akun Pengguna** di formulir SDM menampilkan semua akun, termasuk 10 **akun contoh bawaan**
+  bernama orang (sebagian nama tokoh nyata) yang tidak ada hubungannya dengan pesantren.
+- Tombol Tambah/Import/Edit/Nonaktifkan di Master SDM selalu tersembunyi (pemeriksaan izin keliru) — sudah diperbaiki.
+- Pesan galat per kolom di formulir SDM (misalnya NIP ganda) tidak pernah tampil di bawah kolomnya.
+
+## Perubahan
+- Bagian **Akun Login SIUBA** di formulir SDM kini punya tiga pilihan:
+  - **Tanpa akun login** — hanya data pegawai & kartu presensi;
+  - **Buat akun untuk SDM ini** — akun atas nama SDM itu sendiri (nama & email dari data SDM), username bawaan
+    = Nomor SDM/NIP, Anda memilih **peran** (Guru, Musyrif, Pelatih, Petugas Masjid, Operator, dll.).
+    Password awal acak ditampilkan **sekali** setelah disimpan, dengan tombol Salin.
+    Perlu izin Manajemen Pengguna (`users.create`); peran Admin/Pimpinan/Kepala Sekolah hanya bisa diberikan Super Admin;
+  - **Tautkan akun yang ada** — hanya akun yang **belum dipakai SDM lain**, ditampilkan sebagai `username — Peran`;
+    akun contoh dikelompokkan terpisah. Akun Super Admin tidak bisa ditautkan.
+- **Akun contoh bawaan** di database diganti namanya menjadi nama peran (`Akun Contoh – Guru`, dst.) dan email
+  berisi nama orang dikosongkan; username, password, dan peran tidak diubah. Akun yang namanya sudah Anda ganti dibiarkan.
+- Instalasi baru hanya membuat akun **superadmin** (tidak lagi 10 akun contoh dengan password yang sama).
+
+## Saran
+Akun contoh memakai password awal yang sama. Bila tidak dipakai, nonaktifkan atau hapus di **Manajemen Pengguna**.
+
+## Langkah setelah update
+**Ada migrasi baru** — jalankan `jalankan-siuba.bat`, lalu Ctrl+F5.
