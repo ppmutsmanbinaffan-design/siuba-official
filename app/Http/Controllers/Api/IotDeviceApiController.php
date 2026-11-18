@@ -61,6 +61,15 @@ class IotDeviceApiController extends Controller
         return $response;
     }
 
+    /** Dipakai adaptor protokol lain (mis. Absensindo) agar aturan tap SIUBA tetap satu. */
+    public function processTapFor(AttendanceDevice $device, string $uid, ?string $tappedAt, ?string $ip): JsonResponse
+    {
+        $sub = Request::create('/api/v1/iot/rfid-tap', 'POST', [], [], [], ['REMOTE_ADDR' => $ip ?: '127.0.0.1', 'CONTENT_TYPE' => 'application/json'],
+            json_encode(['uid' => $uid, 'device_id' => $device->device_code, 'tapped_at' => $tappedAt]));
+
+        return $this->processRfidTap($sub);
+    }
+
     private function processRfidTap(Request $request): JsonResponse
     {
         // 1. Ekstrak payload (raw JSON, form-data, atau query param)
@@ -197,6 +206,7 @@ class IotDeviceApiController extends Controller
         [$lcd, $http] = match ($r['code']) {
             'CHECK_IN_SUCCESS' => [($r['record']->status ?? '') === 'late' ? 'Masuk (TELAT)' : 'Masuk Sukses', 200],
             'CHECK_OUT_SUCCESS' => ['Pulang Sukses', 200],
+            'CHECK_IN_CORRECTED' => ['Masuk Dikoreksi', 200],
             'ALREADY_CHECKED_OUT', 'TOO_SOON_TO_CHECK_OUT' => ['Sudah Absen', 200],
             'STAFF_INACTIVE' => ['SDM Nonaktif!', 403],
             'ON_APPROVED_ABSENCE' => ['Sedang Izin', 409],

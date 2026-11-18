@@ -141,6 +141,7 @@ Route::prefix('v1')->group(function () {
         Route::post('/activities', [RoutineApiController::class, 'storeActivity'])->middleware('permission:activities.create');
         Route::put('/activities/{activity}', [RoutineApiController::class, 'updateActivity'])->middleware('permission:activities.update');
         Route::delete('/activities/{activity}', [RoutineApiController::class, 'deleteActivity'])->middleware('permission:activities.delete');
+        Route::post('/activities/{activity}/quick-schedule', [RoutineApiController::class, 'quickSchedule'])->middleware('permission:routine_schedule.manage');
         Route::put('/routine-schedules/sync', [RoutineApiController::class, 'sync'])->middleware('permission:routine_schedule.manage');
         Route::post('/routine-schedules/generate', [RoutineApiController::class, 'generate'])->middleware('permission:attendance.sessions.create|routine_schedule.manage');
         Route::post('/attendance/sessions', [RoutineApiController::class, 'storeSession'])->middleware('permission:attendance.sessions.create');
@@ -492,6 +493,7 @@ Route::prefix('v1')->group(function () {
         Route::post('/', [DeviceManagementApiController::class, 'store'])->middleware('permission:devices.create|devices.manage');
         Route::patch('/{device}', [DeviceManagementApiController::class, 'update'])->middleware('permission:devices.manage|devices.update');
         Route::post('/{device}/token', [DeviceManagementApiController::class, 'rotateToken'])->middleware('permission:devices.manage|devices.update');
+        Route::post('/{device}/reset-pairing', [DeviceManagementApiController::class, 'resetPairing'])->middleware('permission:devices.manage|devices.update');
     });
 
     // Registrasi kartu RFID (dipakai halaman /registrasi-rfid) - wajib login admin

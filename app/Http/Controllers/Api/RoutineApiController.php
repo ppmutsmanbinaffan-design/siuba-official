@@ -88,6 +88,54 @@ class RoutineApiController extends Controller
         return response()->json(['success' => true, 'message' => 'Kegiatan berhasil diperbarui.', 'data' => $this->activity($activity->fresh('category'))]);
     }
 
+    /**
+     * Buat jadwal rutin dari jam standar kegiatan, lalu langsung buat sesi hari ini (bila jadwal berlaku hari ini).
+     * Untuk kegiatan yang didaftarkan di Master Kegiatan tetapi belum punya jadwal (sehingga tidak muncul di Sesi Absensi).
+     */
+    public function quickSchedule(Request $request, Activity $activity, RoutineSessionGenerator $generator): JsonResponse
+    {
+        $data = $request->validate([
+            'frequency' => 'required|in:daily,selected_days',
+            'days_of_week' => 'required_if:frequency,selected_days|array',
+            'days_of_week.*' => 'in:' . implode(',', array_keys(self::DAYS)),
+        ], ['days_of_week.required_if' => 'Pilih minimal satu hari.']);
+        if (!$activity->is_active || !$activity->attendance_enabled) {
+            return ApiResponse::error('ACTIVITY_INACTIVE', 'Kegiatan nonaktif atau presensinya dimatikan. Aktifkan dulu di Master Kegiatan.', null, 422);
+        }
+        $row = $this->activity($activity);
+        $days = array_values(array_unique(array_map(fn ($d) => self::DAYS[$d], $data['days_of_week'] ?? [])));
+
+        $schedule = ActivitySchedule::create([
+            'activity_id' => $activity->id,
+            'frequency' => $data['frequency'],
+            'day_of_week' => null,
+            'days_of_week' => $data['frequency'] === 'selected_days' ? $days : null,
+            'start_time' => $row['default_start_time'], 'present_until' => $row['default_present_until'],
+            'late_until' => $row['default_late_until'], 'end_time' => $row['default_end_time'],
+            'auto_generate_session' => true, 'auto_open' => true, 'auto_close' => true,
+            'schedule_set_code' => 'NORMAL', 'location' => $activity->location, 'is_active' => true,
+        ]);
+
+        $today = Carbon::now('Asia/Jakarta')->startOfDay();
+        $r = $generator->generateForDate($today->copy());
+        app(\App\Services\Attendance\SessionService::class)->autoOpenDue();
+        $created = (int) ($r['sessions_created'] ?? 0);
+        $appliesToday = $schedule->appliesOn($today->copy());
+
+        return response()->json([
+            'success' => true,
+            'message' => $appliesToday
+                ? "Jadwal '{$activity->name}' dibuat ({$row['default_start_time']}–{$row['default_end_time']}); sesi hari ini sudah ada di Sesi Absensi."
+                : "Jadwal '{$activity->name}' dibuat; sesi akan muncul otomatis pada hari yang dipilih.",
+            'data' => [
+                'schedule' => $this->schedule($schedule->fresh('activity')),
+                'sessions_created_today' => $created,
+                'applies_today' => $appliesToday,
+                'activity' => $this->activity($activity->fresh('category')),
+            ],
+        ], 201);
+    }
+
     public function deleteActivity(Activity $activity): JsonResponse
     {
         if ($activity->attendanceSessions()->exists()) {
@@ -394,6 +442,7 @@ class RoutineApiController extends Controller
             'default_present_until' => $this->hm($a->default_present_until) ?? '07:15',
             'default_late_until' => $this->hm($a->default_late_until) ?? '07:30',
             'default_end_time' => $this->hm($a->default_end_time) ?? '08:00',
+            'schedule_count' => $a->schedules()->where('is_active', true)->count(),
         ];
         if (isset(self::TARGET_FIELDS[$type])) {
             $row[self::TARGET_FIELDS[$type]] = $a->participant_target_id;

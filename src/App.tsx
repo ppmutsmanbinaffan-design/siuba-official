@@ -1722,6 +1722,21 @@ export function App() {
               onAddActivity={handleAddActivity}
               onUpdateActivity={handleUpdateActivity}
               onDeleteActivity={handleDeleteActivity}
+              onQuickSchedule={async (activityId, frequency, days) => {
+                try {
+                  const res: any = await apiClient.post(`/activities/${activityId}/quick-schedule`, { frequency, days_of_week: days });
+                  const d = res?.data;
+                  // tambahkan ke daftar Jadwal Rutin agar tidak terhapus saat Jadwal Rutin disimpan berikutnya
+                  if (d?.schedule) setRoutineSchedules((prev) => [...prev.filter((x) => x.id !== d.schedule.id), d.schedule]);
+                  if (d?.activity) setActivities((prev) => prev.map((a) => (a.id === activityId ? { ...a, ...d.activity } : a)));
+                  showToast(res?.message || 'Jadwal dibuat.', 'success');
+                  void refreshServerData(true);
+                  return true;
+                } catch (err: any) {
+                  showToast(err?.message || 'Gagal membuat jadwal.', 'error');
+                  return false;
+                }
+              }}
             />
           )}
 

@@ -49,6 +49,7 @@ if errorlevel 1 (
 "%PHP%" artisan siuba:hapus-akun-contoh
 :: Sesi presensi hari ini & besok dari jadwal (aman diulang)
 "%PHP%" artisan attendance:generate-sessions --days=2
+"%PHP%" artisan attendance:auto-open
 
 :: Ingatkan bila penjadwal otomatis (auto-close sesi, backup harian) belum dipasang
 schtasks /Query /TN "SIUBA Penjadwal" >nul 2>&1

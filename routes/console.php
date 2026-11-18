@@ -134,6 +134,12 @@ Artisan::command('siuba:device-deactivate {code}', function () {
     return $updated ? 0 : 1;
 })->purpose('Nonaktifkan perangkat RFID (tap dari alat ini akan ditolak)');
 
+Artisan::command('attendance:auto-open', function () {
+    $r = app(\App\Services\Attendance\SessionService::class)->autoOpenDue();
+    $this->line($r['opened'] ? "{$r['opened']} sesi dibuka otomatis: " . implode(', ', $r['sessions']) : 'Tidak ada sesi yang perlu dibuka.');
+    return 0;
+})->purpose('Buka sesi absensi dari Jadwal Rutin saat jam mulai tiba (Pengaturan → Aturan Absensi)');
+
 Artisan::command('attendance:auto-close {--minutes= : Abaikan pengaturan dan pakai N menit}', function () {
     $minutes = $this->option('minutes');
     $result = app(\App\Services\Attendance\SessionService::class)->autoCloseExpired($minutes !== null && $minutes !== '' ? (int) $minutes : null);
@@ -234,6 +240,8 @@ Schedule::call(fn () => \App\Services\System\SystemHealthService::recordSchedule
 
 // Tutup otomatis sesi absensi yang sudah lewat waktu selesai + N menit (0 = nonaktif)
 Schedule::command('attendance:auto-close')->everyFiveMinutes()->withoutOverlapping();
+// Buka otomatis sesi dari Jadwal Rutin saat jam mulai tiba
+Schedule::command('attendance:auto-open')->everyMinute()->withoutOverlapping();
 
 // Sesi latihan ekskul hari ini dibuat otomatis dari jadwal mingguan; latihan kemarin difinalisasi
 // Sesi hari ini & besok; tiap jam agar tetap terbuat walau komputer server baru dinyalakan siang hari

@@ -1275,3 +1275,61 @@ Pengisian portal NEXABSEN-CONFIG:
 - ID Alat: biarkan bawaan (NX-…) atau beri nama, mis. `GERBANG-PUTRA`
 - UID Kartu Master Admin: UID kartu teknisi Anda; samakan dengan `NEXABSEN_MASTER_ADMIN_UID` di `.env` (opsional)
 Mesin baru tampil di Device Management sebagai **nonaktif** setelah tap pertama → klik Aktifkan.
+
+---
+
+# Update 38 — Mesin RFID Absensindo
+
+Mesin Absensindo (ESP32 Wemos D1 R32 + RC522) memakai protokol sendiri: aktivasi dengan Serial Number + MAC
+menghasilkan token Bearer, lalu cek/heartbeat/tap ke `{Server URL}/api/device/...`, balasan
+`{success, code, message, data.reason}`. SIUBA kini melayani protokol ini (`AbsensindoDeviceApiController`),
+memakai aturan tap SIUBA yang sama (santri & SDM, jam tap offline, kartu baru → Registrasi Kartu RFID).
+
+Sumber: dokumen panduan pabrik + bagian aplikasi Absensindo yang tidak diacak (controller, validasi, middleware,
+migrasi). Daftar rute pabrik diacak dan tidak dibuka; karena itu fungsi dikenali dari isi permintaan, dan jalur yang
+dipakai mesin dicatat di log perangkat saat aktivasi.
+
+Pemasangan:
+1. Device Management → Tambah Perangkat, **Kode Perangkat = Serial Number** mesin (tampil di LCD). Bila lupa,
+   mesin yang meminta aktivasi otomatis tercatat NONAKTIF → klik Aktifkan → restart mesin.
+2. Setup mesin (tahan tombol ±5 detik): Server URL `http://IP-SERVER:8000` **tanpa /api**, zona WIB, Wi-Fi 2,4 GHz
+   yang sama dengan server dan **tersambung internet** (mesin menyetel jam dari internet).
+3. Mesin mengaktifkan diri; Device Management menampilkan SN, MAC, versi firmware.
+   Ganti unit / MAC MISMATCH / TOKEN INVALID → **Reset Pasangan Mesin**, lalu restart mesin.
+
+Disesuaikan dengan dokumentasi resmi absensindo.id/api-docs: jalur `/api/device/activate|cek|attendance|heartbeat`,
+`time` berformat HH:MM, `student_name` maks. 20 karakter, heartbeat `reason: ok`, mesin nonaktif → 403 `device_inactive`.
+Bila token tidak dikenal (`invalid_token`), mesin menghapus tokennya dan aktivasi ulang sendiri.
+
+Catatan: dokumen pabrik meminta HTTPS. Bila mesin menolak `http://`, gunakan HTTPS LAN (pasang-https-lan.bat,
+`https://IP-SERVER:8443`).
+
+---
+
+# Update 39 — Satu kartu, nomor sama di semua mesin
+
+Mesin Absensindo menulis UID kartu sebagai angka **desimal dengan urutan byte terbalik**; Nexabsen menulis
+**heksadesimal**. Contoh kartu yang sama: Nexabsen `AA38A284`, Absensindo `2225223850`
+(= 0x84A238AA → dibalik per byte = AA38A284).
+- `Student::normalizeRfidUid` kini mengubah UID desimal 9–17 digit (selain 14) ke bentuk baku heksadesimal.
+  Berlaku di semua tempat: tap kedua mesin, Registrasi Kartu RFID, formulir & impor santri/SDM.
+  UID heksadesimal 4 byte (8 karakter) dan 7 byte (14 karakter) tidak berubah.
+- Migrasi mengubah UID desimal yang sudah tersimpan; bila bentuk bakunya sudah dipakai kartu lain, dilewati
+  dan dicatat di `storage/logs/laravel.log`.
+
+---
+
+# Update 40 — Kegiatan baru langsung punya sesi; sesi dibuka otomatis
+
+Masalah: kegiatan yang dibuat di **Master Kegiatan** tidak pernah muncul di **Sesi Absensi**, karena sesi hanya
+dibuat dari **Jadwal Rutin**, dan tidak ada petunjuk soal itu. Selain itu kolom `auto_open` jadwal tidak pernah
+dijalankan, sehingga sesi rutin tetap DRAF (tap RFID ditolak "Sesi Blm Dibuka") sampai dibuka manual.
+
+Perubahan:
+- Kartu kegiatan tanpa jadwal menampilkan **"Belum punya jadwal"** + tombol **Buat Jadwal & Sesi Hari Ini**
+  (setiap hari / hari tertentu, memakai jam standar kegiatan). Sesi hari ini langsung dibuat bila jadwal berlaku hari ini.
+  Jadwal baru juga ditambahkan ke daftar Jadwal Rutin di aplikasi agar tidak terhapus saat Jadwal Rutin disimpan.
+- **Buka Sesi Otomatis Saat Jam Mulai** (Pengaturan → Aturan Absensi, bawaan aktif): penjadwal tiap menit membuka
+  sesi DRAF dari Jadwal Rutin yang jam mulainya tiba (`php artisan attendance:auto-open`). Sesi KBM/event tidak disentuh.
+  Penutupan otomatis tetap lewat Auto-Close.
+- `jalankan-siuba.bat` juga menjalankan auto-open sekali saat start.

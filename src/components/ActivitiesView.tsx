@@ -51,6 +51,8 @@ interface ActivitiesViewProps {
   onAddActivity: (activity: Partial<Activity>) => void;
   onUpdateActivity: (activityId: number, activity: Partial<Activity>) => void;
   onDeleteActivity?: (activityId: number) => void;
+  /** Buat jadwal rutin dari jam standar kegiatan + sesi hari ini. */
+  onQuickSchedule?: (activityId: number, frequency: 'daily' | 'selected_days', days: string[]) => Promise<boolean>;
 }
 
 export const ActivitiesView: React.FC<ActivitiesViewProps> = ({
@@ -69,7 +71,12 @@ export const ActivitiesView: React.FC<ActivitiesViewProps> = ({
   onAddActivity,
   onUpdateActivity,
   onDeleteActivity,
+  onQuickSchedule,
 }) => {
+  const [quickFor, setQuickFor] = useState<Activity | null>(null);
+  const [quickFreq, setQuickFreq] = useState<'daily' | 'selected_days'>('daily');
+  const [quickDays, setQuickDays] = useState<string[]>(['monday', 'tuesday', 'wednesday', 'thursday', 'saturday', 'sunday']);
+  const [quickBusy, setQuickBusy] = useState(false);
   const safeActivities = activities || [];
   const safeCategories = categories || [];
   const safeClassrooms = classrooms || [];
@@ -536,6 +543,21 @@ export const ActivitiesView: React.FC<ActivitiesViewProps> = ({
                     </span>
                   </div>
                 </div>
+                {onQuickSchedule && act.schedule_count === 0 && act.is_active && act.attendance_enabled !== false && (
+                  <div className="mt-2 p-3 rounded-2xl bg-amber-50 border border-amber-200 text-[11px] text-amber-900 space-y-2" data-testid="activity-no-schedule">
+                    <div><strong>Belum punya jadwal</strong> — kegiatan ini belum akan muncul di Sesi Absensi.</div>
+                    <button
+                      type="button"
+                      onClick={() => { setQuickFor(act); setQuickFreq('daily'); }}
+                      className="w-full px-3 py-1.5 rounded-xl bg-[#1F5C45] hover:bg-[#174634] text-white font-bold cursor-pointer"
+                    >
+                      Buat Jadwal &amp; Sesi Hari Ini
+                    </button>
+                  </div>
+                )}
+                {(act.schedule_count ?? 0) > 0 && (
+                  <div className="mt-2 text-[11px] text-emerald-800">✓ {act.schedule_count} jadwal rutin aktif — sesi dibuat & dibuka otomatis.</div>
+                )}
               </div>
 
               {/* Method Allowances Toggles & Actions */}
@@ -1051,6 +1073,52 @@ export const ActivitiesView: React.FC<ActivitiesViewProps> = ({
                 className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl shadow-xs cursor-pointer active:scale-95"
               >
                 Ya, Hapus Kegiatan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {quickFor && onQuickSchedule && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" role="dialog" aria-modal="true" data-testid="quick-schedule-modal">
+          <div className="bg-white rounded-3xl w-full max-w-md p-6 space-y-4 shadow-xl">
+            <h3 className="text-lg font-black text-slate-900">Buat Jadwal: {quickFor.name}</h3>
+            <p className="text-xs text-slate-700">
+              Memakai jam standar kegiatan ini: <strong>{quickFor.default_start_time}–{quickFor.default_end_time} WIB</strong>
+              {' '}(hadir s.d. {quickFor.default_present_until}, telat s.d. {quickFor.default_late_until}).
+              Sesi dibuat otomatis tiap hari yang dipilih dan dibuka otomatis saat jam mulai. Jam bisa diubah nanti di menu Jadwal Rutin.
+            </p>
+            <div className="space-y-2 text-sm">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="radio" checked={quickFreq === 'daily'} onChange={() => setQuickFreq('daily')} /> Setiap hari
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="radio" checked={quickFreq === 'selected_days'} onChange={() => setQuickFreq('selected_days')} /> Hari tertentu
+              </label>
+              {quickFreq === 'selected_days' && (
+                <div className="grid grid-cols-4 gap-1.5 pl-6 text-xs">
+                  {[['monday', 'Senin'], ['tuesday', 'Selasa'], ['wednesday', 'Rabu'], ['thursday', 'Kamis'], ['friday', 'Jumat'], ['saturday', 'Sabtu'], ['sunday', 'Ahad']].map(([v, l]) => (
+                    <label key={v} className="flex items-center gap-1 cursor-pointer">
+                      <input type="checkbox" checked={quickDays.includes(v)}
+                        onChange={(e) => setQuickDays((prev) => e.target.checked ? [...prev, v] : prev.filter((d) => d !== v))} /> {l}
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <button type="button" onClick={() => setQuickFor(null)} className="px-4 py-2 rounded-xl border border-slate-300 text-sm font-bold text-slate-800 cursor-pointer">Batal</button>
+              <button
+                type="button"
+                disabled={quickBusy || (quickFreq === 'selected_days' && quickDays.length === 0)}
+                onClick={async () => {
+                  setQuickBusy(true);
+                  const ok = await onQuickSchedule(quickFor.id, quickFreq, quickFreq === 'selected_days' ? quickDays : []);
+                  setQuickBusy(false);
+                  if (ok) setQuickFor(null);
+                }}
+                className="px-4 py-2 rounded-xl bg-[#1F5C45] text-white text-sm font-bold cursor-pointer disabled:opacity-50"
+              >
+                {quickBusy ? 'Membuat…' : 'Buat Jadwal'}
               </button>
             </div>
           </div>

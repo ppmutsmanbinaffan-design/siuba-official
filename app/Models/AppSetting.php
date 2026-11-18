@@ -30,6 +30,7 @@ class AppSetting extends Model
         'attendance' => [
             'late_tolerance_minutes' => 15,
             'auto_close_session_minutes' => 30,
+            'auto_open_scheduled_sessions' => true,   // sesi dari Jadwal Rutin dibuka otomatis saat jam mulai
             'rfid_debounce_seconds' => 5,
             'allow_self_excusal' => true,
             'enable_kiosk_fullscreen' => false,

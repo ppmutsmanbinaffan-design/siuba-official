@@ -245,6 +245,7 @@ export interface ActivityCategory {
 
 export interface Activity {
   id: number;
+  schedule_count?: number; // jadwal rutin aktif (0 = belum muncul di Sesi Absensi)
   activity_category_id: number;
   category_code?: string;
   category_name: string;
@@ -422,6 +423,10 @@ export interface AttendanceDevice {
   status?: string;
   is_online?: boolean;
   tap_count_today?: number;
+  protocol?: 'nexabsen' | 'absensindo';
+  serial_number?: string | null;
+  mac_address?: string | null;
+  activated_at?: string | null;
   created_at?: string;
   updated_at?: string;
 }
