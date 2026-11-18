@@ -1242,3 +1242,16 @@ tombol Generate Sesi setiap hari; penjadwal hanya membuat sesi latihan ekskul.
 - Penjadwal menjalankannya **tiap jam** (menit ke-3) untuk hari ini & besok, sehingga tetap jalan walau komputer
   server baru dinyalakan siang hari. `jalankan-siuba.bat` juga menjalankannya sekali saat start.
 - Penjadwal hanya berjalan bila `pasang-penjadwal-windows.bat` sudah dipasang (sekali, Run as administrator).
+
+---
+
+# Update 36 — Program alat RFID (ESP32 / NodeMCU + RC522)
+
+- Folder baru `firmware/siuba-rfid/`: program alat lengkap + `PANDUAN.md` (kabel, pemasangan, pengaturan, arti bunyi).
+- `bin/siuba-rfid-esp32.bin` dan `bin/siuba-rfid-nodemcu.bin` siap dipasang dari browser (esptool-js) tanpa Arduino IDE;
+  diuji kompilasi dengan core ESP32 2.0.17 dan ESP8266 3.1.2.
+- Pengaturan Wi-Fi, alamat server, kode alat, dan token diisi lewat HP (portal Wi-Fi "SIUBA-RFID-xxxx").
+- Antrean offline di alat (hingga 800 tap) dengan jam tap asli; jam alat disetel dari header `X-Server-Time` server.
+- Ping tiap 60 detik ke `/api/v1/iot/ping` (status "terakhir terlihat" di Device Management).
+- Device Management: "Header Config Generator" diganti **Isian Pengaturan Alat RFID** sesuai program baru.
+- Penting: `NEXABSEN_GLOBAL_KEY` di `.env` wajib terisi walaupun alat memakai token sendiri.
