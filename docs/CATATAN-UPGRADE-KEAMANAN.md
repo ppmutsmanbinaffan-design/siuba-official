@@ -1352,3 +1352,17 @@ Semua 45 menu dibuka otomatis (tanpa galat halaman / API). Tiga sambungan yang p
 
 Catatan: jadwal latihan ekskul di Presensi Pelatih hanya untuk kehadiran **pelatih**; kehadiran **santri** ekskul tetap lewat
 kegiatan (peserta "Anggota Ekskul") + jadwalnya.
+
+---
+
+# Update 42 — .htaccess untuk hosting online
+
+- `public/.htaccess`: aturan Laravel standar (semua alamat → index.php, header Authorization diteruskan untuk token Bearer),
+  paksa HTTPS di domain publik **kecuali** alamat mesin RFID (`/tap.php`, `/api/tap.php`, `/api/device/...`, `/api/v1/iot/...`)
+  karena firmware mesin hanya HTTP; tidak aktif di IP LAN/localhost. Header keamanan dasar, cache panjang untuk berkas
+  `index-*.js/css` ber-hash, `app.html`/`sw.js` selalu dicek ulang.
+- `.htaccess` di folder utama: bila seluruh aplikasi terpaksa diunggah ke `public_html`, semua permintaan dialihkan ke `public/`
+  sehingga `.env`, database, `vendor`, `storage`, log tidak bisa dibuka; lapis kedua menolak file rahasia langsung.
+- Diuji di Apache 2.4 + PHP 8.3 untuk kedua cara (Document Root = `public/` dan aplikasi utuh di `public_html`): login, token
+  Bearer, mesin RFID lewat HTTP, redirect HTTPS dengan query, dan file rahasia (`.env`, `.git`, `vendor`, log) tidak terbaca.
+- Di komputer pesantren (`jalankan-siuba.bat`) file ini tidak dipakai.

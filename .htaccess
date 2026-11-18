@@ -1,0 +1,19 @@
+# SIUBA — pengaman bila SELURUH folder aplikasi terpaksa diunggah ke public_html
+# (hosting yang tidak bisa mengarahkan Document Root ke folder public/).
+# Semua permintaan dialihkan ke public/, sehingga .env, database, vendor, storage, dll. tidak bisa dibuka dari internet.
+
+Options -Indexes
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+    RewriteCond %{REQUEST_URI} !^/public/
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
+
+# Lapisan kedua: tolak langsung file rahasia bila mod_rewrite tidak aktif
+<FilesMatch "(?i)^(\.env.*|composer\.(json|lock)|package(-lock)?\.json|artisan|.*\.(sql|sqlite|log|bat|ps1|md|bundle|zip))$">
+    Require all denied
+</FilesMatch>
