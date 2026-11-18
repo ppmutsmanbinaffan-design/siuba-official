@@ -271,6 +271,11 @@ class SpaTransformer
             'last_ping_at' => $d->last_seen_at?->toIso8601String(),
             'current_session_id' => $d->current_session_id,
             'has_device_token' => (bool) $d->api_token_hash,
+            'protocol' => $d->protocol ?? 'nexabsen',
+            'serial_number' => $d->serial_number,
+            'mac_address' => $d->mac_address,
+            'firmware_version' => $d->firmware_version,
+            'activated_at' => $d->activated_at?->toIso8601String(),
             'created_at' => $d->created_at?->toIso8601String(),
             'updated_at' => $d->updated_at?->toIso8601String(),
         ];

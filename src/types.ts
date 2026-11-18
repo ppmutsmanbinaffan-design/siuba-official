@@ -422,6 +422,10 @@ export interface AttendanceDevice {
   status?: string;
   is_online?: boolean;
   tap_count_today?: number;
+  protocol?: 'nexabsen' | 'absensindo';
+  serial_number?: string | null;
+  mac_address?: string | null;
+  activated_at?: string | null;
   created_at?: string;
   updated_at?: string;
 }

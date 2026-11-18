@@ -26,6 +26,11 @@ Route::middleware(['iot.key', 'throttle:iot'])->group(function () {
     Route::match(['get', 'post'], '/api/tap.php', [\App\Http\Controllers\Api\IotDeviceApiController::class, 'handleRfidTap']);
 });
 
+// Mesin RFID Absensindo (aktivasi Serial Number + token Bearer): {Server URL}/api/device/...
+Route::any('/api/device/{action?}', [\App\Http\Controllers\Api\AbsensindoDeviceApiController::class, 'handle'])
+    ->where('action', '.*')
+    ->middleware('throttle:iot');
+
 Route::get('/', $serveLanding);
 Route::get('/beranda', $serveLanding);
 Route::get('/landing', $serveLanding);

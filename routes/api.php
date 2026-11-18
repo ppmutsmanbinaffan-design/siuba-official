@@ -492,6 +492,7 @@ Route::prefix('v1')->group(function () {
         Route::post('/', [DeviceManagementApiController::class, 'store'])->middleware('permission:devices.create|devices.manage');
         Route::patch('/{device}', [DeviceManagementApiController::class, 'update'])->middleware('permission:devices.manage|devices.update');
         Route::post('/{device}/token', [DeviceManagementApiController::class, 'rotateToken'])->middleware('permission:devices.manage|devices.update');
+        Route::post('/{device}/reset-pairing', [DeviceManagementApiController::class, 'resetPairing'])->middleware('permission:devices.manage|devices.update');
     });
 
     // Registrasi kartu RFID (dipakai halaman /registrasi-rfid) - wajib login admin

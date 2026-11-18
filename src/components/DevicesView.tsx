@@ -33,6 +33,7 @@ import {
   User 
 } from '../types';
 import { RfidAttendanceService } from '../services/rfidAttendanceService';
+import { apiClient } from '../services/apiClient';
 
 interface Props {
   devices?: AttendanceDevice[];
@@ -255,6 +256,20 @@ export const DevicesView: React.FC<Props> = ({
     const host = window.location.hostname;
     const isLocal = host === 'localhost' || host === '127.0.0.1';
     const server = isLocal ? 'http://IP-KOMPUTER-SERVER:8000   (lihat ipconfig di komputer server)' : `http://${host}:8000`;
+    if (device.protocol === 'absensindo') {
+      return `ISIAN SETUP MESIN ABSENSINDO
+(Tahan tombol mesin ±5 detik → sambungkan HP ke Wi-Fi "ABSENSI-SETUP-…/SETUP-…" dengan password di LCD
+ → buka IP di LCD, umumnya 192.168.10.1 → login dengan password di LCD)
+
+1. Server URL : ${isLocal ? 'http://IP-KOMPUTER-SERVER:8000' : `http://${host}:8000`}   (TANPA /api di belakang)
+2. Zona waktu : WIB
+3. WiFi       : Wi-Fi pesantren 2,4 GHz yang SAMA dengan komputer server dan TERSAMBUNG INTERNET (untuk jam mesin)
+4. Teks LCD   : bebas, maks. 16 huruf per baris
+
+Di SIUBA: Kode Perangkat = Serial Number mesin (${device.serial_number || device.device_code}).
+Mesin mengaktifkan diri otomatis (token dibuat server). Ganti unit / MAC MISMATCH / TOKEN INVALID:
+klik "Reset Pasangan Mesin" lalu restart mesin.`;
+    }
     const secret = device.plain_secret_preview || '(token yang tampil saat alat dibuat — bila lupa, klik Rotate Token)';
     return `ISIAN MODE PENGATURAN ALAT RFID SIUBA
 (Sambungkan HP ke Wi-Fi "SIUBA-RFID-xxxx" dari alat, halaman pengaturan terbuka otomatis / buka 192.168.4.1)
@@ -423,10 +438,34 @@ Catatan:
                         {d.device_code}
                       </span>
                       <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200">
-                        {d.device_type === 'rfid_reader' ? 'ESP32 + RC522' : d.device_type.toUpperCase()}
+                        {d.protocol === 'absensindo' ? 'Absensindo' : d.device_type === 'rfid_reader' ? 'ESP32 + RC522' : d.device_type.toUpperCase()}
                       </span>
                     </div>
                     <h3 className="text-base font-black text-slate-900 mt-2">{d.device_name}</h3>
+                    {d.protocol === 'absensindo' && (
+                      <div className="mt-1.5 text-[11px] text-slate-700 space-y-0.5" data-testid="absensindo-info">
+                        <div>SN: <span className="font-mono font-bold">{d.serial_number || d.device_code}</span></div>
+                        <div>MAC: <span className="font-mono">{d.mac_address || 'belum aktivasi'}</span>{d.firmware_version ? <> · FW <span className="font-mono">{d.firmware_version}</span></> : null}</div>
+                        {d.mac_address && (
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              if (!window.confirm(`Reset pasangan mesin ${d.device_code}? Mesin harus di-restart agar aktivasi ulang.`)) return;
+                              try {
+                                const res: any = await apiClient.post(`/devices/${d.id}/reset-pairing`, {});
+                                onUpdateDevice({ ...d, ...(res?.data || {}), mac_address: null, has_device_token: false } as any);
+                                onShowToast(res?.message || 'Pasangan mesin direset.', 'success');
+                              } catch (err: any) {
+                                onShowToast(err?.message || 'Gagal mereset pasangan mesin.', 'error');
+                              }
+                            }}
+                            className="mt-1 px-2 py-0.5 rounded-lg border border-amber-300 text-amber-900 bg-amber-50 hover:bg-amber-100 font-bold cursor-pointer"
+                          >
+                            Reset Pasangan Mesin
+                          </button>
+                        )}
+                      </div>
+                    )}
                     <p className="text-xs text-slate-500 flex items-center gap-1.5 mt-0.5">
                       <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                       {d.location}
@@ -523,14 +562,16 @@ Catatan:
                     <span>{d.current_session_id ? 'Ganti Sesi' : 'Tautkan Sesi'}</span>
                   </button>
 
-                  <button
-                    onClick={() => handleTriggerSecretRotation(d)}
-                    className="px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold text-xs rounded-xl border border-amber-200 flex items-center gap-1.5 transition-all cursor-pointer"
-                    title="Regenerasi Secret Key Token"
-                  >
-                    <Key className="w-3.5 h-3.5 text-amber-700" />
-                    <span>Rotate Token</span>
-                  </button>
+                  {d.protocol !== 'absensindo' && (
+                    <button
+                      onClick={() => handleTriggerSecretRotation(d)}
+                      className="px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold text-xs rounded-xl border border-amber-200 flex items-center gap-1.5 transition-all cursor-pointer"
+                      title="Regenerasi Secret Key Token"
+                    >
+                      <Key className="w-3.5 h-3.5 text-amber-700" />
+                      <span>Rotate Token</span>
+                    </button>
+                  )}
 
                   <button
                     onClick={() => {

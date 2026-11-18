@@ -1275,3 +1275,27 @@ Pengisian portal NEXABSEN-CONFIG:
 - ID Alat: biarkan bawaan (NX-…) atau beri nama, mis. `GERBANG-PUTRA`
 - UID Kartu Master Admin: UID kartu teknisi Anda; samakan dengan `NEXABSEN_MASTER_ADMIN_UID` di `.env` (opsional)
 Mesin baru tampil di Device Management sebagai **nonaktif** setelah tap pertama → klik Aktifkan.
+
+---
+
+# Update 38 — Mesin RFID Absensindo
+
+Mesin Absensindo (ESP32 Wemos D1 R32 + RC522) memakai protokol sendiri: aktivasi dengan Serial Number + MAC
+menghasilkan token Bearer, lalu cek/heartbeat/tap ke `{Server URL}/api/device/...`, balasan
+`{success, code, message, data.reason}`. SIUBA kini melayani protokol ini (`AbsensindoDeviceApiController`),
+memakai aturan tap SIUBA yang sama (santri & SDM, jam tap offline, kartu baru → Registrasi Kartu RFID).
+
+Sumber: dokumen panduan pabrik + bagian aplikasi Absensindo yang tidak diacak (controller, validasi, middleware,
+migrasi). Daftar rute pabrik diacak dan tidak dibuka; karena itu fungsi dikenali dari isi permintaan, dan jalur yang
+dipakai mesin dicatat di log perangkat saat aktivasi.
+
+Pemasangan:
+1. Device Management → Tambah Perangkat, **Kode Perangkat = Serial Number** mesin (tampil di LCD). Bila lupa,
+   mesin yang meminta aktivasi otomatis tercatat NONAKTIF → klik Aktifkan → restart mesin.
+2. Setup mesin (tahan tombol ±5 detik): Server URL `http://IP-SERVER:8000` **tanpa /api**, zona WIB, Wi-Fi 2,4 GHz
+   yang sama dengan server dan **tersambung internet** (mesin menyetel jam dari internet).
+3. Mesin mengaktifkan diri; Device Management menampilkan SN, MAC, versi firmware.
+   Ganti unit / MAC MISMATCH / TOKEN INVALID → **Reset Pasangan Mesin**, lalu restart mesin.
+
+Catatan: dokumen pabrik meminta HTTPS. Bila mesin menolak `http://`, gunakan HTTPS LAN (pasang-https-lan.bat,
+`https://IP-SERVER:8443`).

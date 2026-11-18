@@ -153,6 +153,20 @@ class DeviceManagementApiController extends Controller
         return response()->json(['success' => true, 'message' => "Perangkat {$device->device_code} berhasil didaftarkan.", 'data' => SpaTransformer::device($device)], 201);
     }
 
+    /**
+     * Mesin Absensindo: lepas pasangan unit (MAC) dan cabut tokennya. Mesin akan meminta aktivasi ulang saat restart.
+     * Dipakai bila unit diganti/diperbaiki atau muncul "MAC MISMATCH" / "TOKEN INVALID".
+     */
+    public function resetPairing(Request $request, AttendanceDevice $device): JsonResponse
+    {
+        $device->forceFill(['mac_address' => null, 'api_token_hash' => null, 'activated_at' => null])->save();
+        \App\Models\AttendanceDeviceLog::record($device, $device->device_code, 'PAIRING_RESET', 'warning',
+            'Pasangan mesin direset oleh ' . ($request->user()?->name ?? 'admin') . '; mesin perlu aktivasi ulang (restart).', [], $request->ip());
+
+        return response()->json(['success' => true, 'message' => "Pasangan mesin {$device->device_code} direset. Restart mesin agar aktivasi ulang.",
+            'data' => \App\Http\Transformers\SpaTransformer::device($device->fresh())]);
+    }
+
     /** Ganti token alat (token lama langsung tidak berlaku). */
     public function rotateToken(Request $request, AttendanceDevice $device): JsonResponse
     {
