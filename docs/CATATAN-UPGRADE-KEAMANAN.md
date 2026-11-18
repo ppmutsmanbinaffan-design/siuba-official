@@ -1303,3 +1303,16 @@ Bila token tidak dikenal (`invalid_token`), mesin menghapus tokennya dan aktivas
 
 Catatan: dokumen pabrik meminta HTTPS. Bila mesin menolak `http://`, gunakan HTTPS LAN (pasang-https-lan.bat,
 `https://IP-SERVER:8443`).
+
+---
+
+# Update 39 — Satu kartu, nomor sama di semua mesin
+
+Mesin Absensindo menulis UID kartu sebagai angka **desimal dengan urutan byte terbalik**; Nexabsen menulis
+**heksadesimal**. Contoh kartu yang sama: Nexabsen `AA38A284`, Absensindo `2225223850`
+(= 0x84A238AA → dibalik per byte = AA38A284).
+- `Student::normalizeRfidUid` kini mengubah UID desimal 9–17 digit (selain 14) ke bentuk baku heksadesimal.
+  Berlaku di semua tempat: tap kedua mesin, Registrasi Kartu RFID, formulir & impor santri/SDM.
+  UID heksadesimal 4 byte (8 karakter) dan 7 byte (14 karakter) tidak berubah.
+- Migrasi mengubah UID desimal yang sudah tersimpan; bila bentuk bakunya sudah dipakai kartu lain, dilewati
+  dan dicatat di `storage/logs/laravel.log`.

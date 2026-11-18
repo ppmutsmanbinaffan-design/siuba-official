@@ -41,11 +41,8 @@ class StudentIdentityResolver
             return null;
         }
 
-        $cleaned = preg_replace('/[^A-Za-z0-9]/', '', $rawUid);
-        if (empty($cleaned)) {
-            return null;
-        }
+        $normalized = \App\Models\Student::normalizeRfidUid($rawUid);
 
-        return strtoupper($cleaned);
+        return $normalized === '' ? null : $normalized;
     }
 }

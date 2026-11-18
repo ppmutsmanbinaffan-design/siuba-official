@@ -72,8 +72,37 @@ class Student extends Model
         }
 
         // Remove spaces, colons, dashes and convert to uppercase
-        $cleaned = preg_replace('/[^A-Za-z0-9]/', '', $rawUid);
-        return strtoupper($cleaned);
+        $cleaned = strtoupper(preg_replace('/[^A-Za-z0-9]/', '', $rawUid));
+
+        return self::decimalUidToHex($cleaned) ?? $cleaned;
+    }
+
+    /**
+     * Sebagian mesin (mis. Absensindo) menulis UID kartu sebagai angka DESIMAL dengan urutan byte terbalik
+     * (little-endian), sedangkan Nexabsen/RC522 menulis heksadesimal sesuai urutan baca.
+     * Contoh: kartu yang sama → Nexabsen "AA38A284", Absensindo "2225223850" (= 0x84A238AA, byte dibalik = AA38A284).
+     * Bentuk baku SIUBA = heksadesimal urutan baca. Hanya angka 9–17 digit (selain 14) yang dianggap desimal:
+     * UID 4 byte heksadesimal selalu 8 karakter dan 7 byte selalu 14 karakter, jadi tidak tertukar.
+     */
+    public static function decimalUidToHex(string $digits): ?string
+    {
+        $len = strlen($digits);
+        if (!ctype_digit($digits) || $len < 9 || $len > 17 || $len === 14) {
+            return null;
+        }
+        $n = (int) ltrim($digits, '0');
+        if ($n <= 0 || (string) $n !== (ltrim($digits, '0') ?: '0')) {
+            return null; // melampaui batas bilangan bulat
+        }
+        if ($n <= 0xFFFFFFFF) {
+            $hex = str_pad(strtoupper(dechex($n)), 8, '0', STR_PAD_LEFT);
+        } elseif ($n < (1 << 56)) {
+            $hex = str_pad(strtoupper(dechex($n)), 14, '0', STR_PAD_LEFT);
+        } else {
+            return null;
+        }
+
+        return implode('', array_reverse(str_split($hex, 2)));
     }
 
     public function classroom(): BelongsTo
