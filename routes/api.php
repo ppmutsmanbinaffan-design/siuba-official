@@ -224,6 +224,18 @@ Route::prefix('v1')->group(function () {
         Route::prefix('academic')->group(function () {
             $kbmView = 'permission:kbm.master|kbm.timetable|kbm.monitoring|kbm.teacher_dashboard|kbm.reports';
             Route::get('/master', [AcademicApiController::class, 'master'])->middleware($kbmView);
+            Route::get('/periods', [\App\Http\Controllers\Api\AcademicPeriodApiController::class, 'index'])->middleware($kbmView);
+            // Tahun ajaran & semester (tahap 27)
+            Route::middleware('permission:kbm.master')->controller(\App\Http\Controllers\Api\AcademicPeriodApiController::class)->group(function () {
+                Route::post('/years', 'storeYear');
+                Route::match(['put', 'patch'], '/years/{year}', 'updateYear');
+                Route::post('/years/{year}/activate', 'activate');
+                Route::delete('/years/{year}', 'destroyYear');
+                Route::post('/semesters', 'storeSemester');
+                Route::match(['put', 'patch'], '/semesters/{semester}', 'updateSemester');
+                Route::post('/semesters/{semester}/activate', 'activateSemester');
+                Route::delete('/semesters/{semester}', 'destroySemester');
+            });
             Route::middleware('permission:kbm.master')->group(function () {
                 Route::post('/subjects', [AcademicApiController::class, 'storeSubject']);
                 Route::match(['put', 'patch'], '/subjects/{subject}', [AcademicApiController::class, 'updateSubject']);

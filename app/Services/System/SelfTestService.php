@@ -126,7 +126,7 @@ class SelfTestService
         $safe(function () use ($add, $g) {
             $year = AcademicYear::where('is_active', true)->first();
             $add($g, 'academic_year', 'Tahun ajaran aktif', $year ? 'pass' : 'fail',
-                $year ? "Tahun ajaran aktif: {$year->name}." : 'Belum ada tahun ajaran yang aktif.', $year ? null : 'Atur di Master Akademik.');
+                $year ? "Tahun ajaran aktif: {$year->name}." : 'Belum ada tahun ajaran yang aktif.', $year ? null : 'Buka Master Akademik → tab Tahun Ajaran, lalu tambah dan aktifkan tahun ajaran.');
         }, $g, 'academic_year', 'Tahun ajaran aktif');
         $safe(function () use ($add, $g) {
             $active = Student::where('is_active', true)->count();

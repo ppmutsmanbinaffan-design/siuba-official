@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { todayLocalDate } from '../utils/today';
+import { AcademicPeriodTab } from '../features/academic/AcademicPeriodTab';
 import { 
   AcademicCalendarEvent, 
   AcademicYear, 
@@ -23,7 +24,8 @@ import {
   Edit2,
   Phone,
   X,
-  CalendarDays} from 'lucide-react';
+  CalendarDays,
+  CalendarRange} from 'lucide-react';
 
 interface Props {
   academicYears?: AcademicYear[];
@@ -44,6 +46,7 @@ interface Props {
   onDeleteAssignment?: (id: number) => void;
   onAddCalendarEvent: (event: AcademicCalendarEvent) => void;
   onDeleteCalendarEvent?: (id: number) => void;
+  onAcademicPeriodsChanged?: (years: AcademicYear[], semesters: Semester[]) => void;
   onShowToast: (msg: string, type: 'success' | 'error' | 'info') => void;
 }
 
@@ -66,6 +69,7 @@ export const AcademicMasterView: React.FC<Props> = ({
   onDeleteAssignment,
   onAddCalendarEvent,
   onDeleteCalendarEvent,
+  onAcademicPeriodsChanged,
   onShowToast,
 }) => {
   const safeSubjects = subjects || [];
@@ -75,7 +79,9 @@ export const AcademicMasterView: React.FC<Props> = ({
   const safeCalendarEvents = calendarEvents || [];
   const safeClassrooms = classrooms || [];
 
-  const [activeTab, setActiveTab] = useState<'subjects' | 'teachers' | 'assignments' | 'calendar'>('subjects');
+  const [activeTab, setActiveTab] = useState<'periods' | 'subjects' | 'teachers' | 'assignments' | 'calendar'>(
+    () => (academicYears.some((y) => y.is_active) ? 'subjects' : 'periods'),
+  );
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>('all');
 
@@ -298,12 +304,24 @@ export const AcademicMasterView: React.FC<Props> = ({
             Master Data Akademik & Kurikulum KBM
           </h1>
           <p className="text-emerald-100/90 text-xs sm:text-sm mt-1 max-w-2xl leading-relaxed">
-            Kelola data pokok mata pelajaran, profil dewan asatidz/guru, plotting penugasan mengajar per kelas, serta kalender akademik pondok.
+            Kelola tahun ajaran & semester aktif, data pokok mata pelajaran, profil dewan asatidz/guru, plotting penugasan mengajar per kelas, serta kalender akademik pondok.
           </p>
         </div>
 
         {/* Tab Navigation Pill in Header */}
         <div className="flex flex-wrap bg-black/30 p-1.5 rounded-2xl border border-white/20 text-xs font-bold gap-1 backdrop-blur-xs shadow-inner self-start lg:self-auto">
+          <button
+            onClick={() => {
+              setActiveTab('periods');
+              setSearchTerm('');
+            }}
+            className={`px-3 py-2 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer ${
+              activeTab === 'periods' ? 'bg-white text-[#12372A] font-black shadow-xs' : 'text-emerald-100 hover:text-white'
+            }`}
+          >
+            <CalendarRange className="w-3.5 h-3.5" />
+            <span>Tahun Ajaran</span>
+          </button>
           <button
             onClick={() => {
               setActiveTab('subjects');
@@ -401,6 +419,15 @@ export const AcademicMasterView: React.FC<Props> = ({
       {/* ========================================================================= */}
       {/* TAB 1: MATA PELAJARAN                                                     */}
       {/* ========================================================================= */}
+      {activeTab === 'periods' && (
+        <AcademicPeriodTab
+          academicYears={academicYears}
+          semesters={semesters}
+          onChanged={(y, sm) => onAcademicPeriodsChanged?.(y, sm)}
+          onShowToast={onShowToast}
+        />
+      )}
+
       {activeTab === 'subjects' && (
         <div className="space-y-4">
           <div className="bg-white rounded-3xl border border-slate-200 p-4 shadow-sm flex flex-col md:flex-row items-center justify-between gap-3">

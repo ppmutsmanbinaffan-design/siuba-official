@@ -1089,3 +1089,32 @@ tersembunyi yang menyimpan data hanya di browser.
 ## Langkah setelah update
 Tidak ada migrasi baru. **Penting:** hapus semua berkas di `FILE-YANG-HARUS-DIHAPUS.txt` (cukup banyak kali ini).
 Jalankan `jalankan-siuba.bat`, lalu Ctrl+F5.
+
+---
+
+# Update 31 — Tahap 27: Tahun Ajaran & Semester
+
+Sebelumnya tidak ada menu untuk membuat atau mengganti tahun ajaran; sistem hanya membuatnya diam-diam saat
+data KBM pertama disimpan, dan Uji Kesiapan Sistem menyarankan menu yang tidak ada.
+
+## Yang baru
+- **Master Akademik → tab Tahun Ajaran** (tab ini terbuka otomatis bila belum ada tahun ajaran aktif):
+  - Tambah tahun ajaran (format `2026/2027`); Semester Ganjil (s.d. 31 Des) dan Genap (mulai 1 Jan) dibuat otomatis.
+  - **Aktifkan** tahun ajaran dan **Jadikan semester aktif** — hanya satu tahun ajaran dan satu semester yang aktif.
+    Saat tahun ajaran diaktifkan, semester yang memuat tanggal hari ini ikut diaktifkan.
+  - Ubah tanggal tahun ajaran/semester, tambah semester yang hilang.
+  - Hapus hanya untuk tahun ajaran/semester yang **tidak aktif dan belum dipakai** (penugasan, jadwal, agenda
+    kalender). Ini penting karena di database penghapusan tahun ajaran ikut menghapus jadwal & penugasannya.
+- Validasi: nama dua tahun berurutan, tanggal tidak bertabrakan dengan tahun ajaran lain, semester harus di
+  dalam rentang tahun ajarannya, tidak boleh dua Ganjil/Genap di tahun yang sama.
+- Setiap perubahan dicatat di Log Audit (`academic.year.*`, `academic.semester.*`).
+- Uji Kesiapan Sistem kini menunjuk ke tab Tahun Ajaran.
+
+## API baru (izin Master KBM)
+`GET /academic/periods`, `POST /academic/years`, `PATCH /academic/years/{id}`, `POST /academic/years/{id}/activate`,
+`DELETE /academic/years/{id}`, `POST /academic/semesters`, `PATCH /academic/semesters/{id}`,
+`POST /academic/semesters/{id}/activate`, `DELETE /academic/semesters/{id}`.
+
+## Langkah setelah update
+Tidak ada migrasi baru. Jalankan `jalankan-siuba.bat`, lalu Ctrl+F5. Buka **Master Akademik → Tahun Ajaran**,
+tambah dan aktifkan tahun ajaran 2026/2027, lalu jalankan ulang Uji Kesiapan Sistem.

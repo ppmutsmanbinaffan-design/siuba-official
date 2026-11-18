@@ -2103,6 +2103,9 @@ export function App() {
 
           {activeTab === 'academic-master' && (
             <AcademicMasterView
+              academicYears={academicYears}
+              semesters={semesters}
+              onAcademicPeriodsChanged={(y, sm) => { setAcademicYears(y); setSemesters(sm); }}
               subjects={subjects}
               teachers={teachers}
               teachingAssignments={teachingAssignments}
