@@ -1,481 +1,353 @@
-import React, { useState } from 'react';
-import { 
-  HardDrive, 
-  Download, 
-  Trash2, 
-  CheckCircle2, 
-  AlertTriangle, 
-  FileText, 
-  ShieldCheck, 
-  Clock, 
-  Database, 
-  Plus, 
-  RefreshCw,
-  Search,
-  Eye,
-  X,
-  Info
-} from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { HardDrive, Download, Trash2, RefreshCw, Plus, AlertTriangle, Info, RotateCcw, CheckCircle2, XCircle, ShieldCheck } from 'lucide-react';
 import { BackupRecord } from '../types';
-import { MaintenanceService } from '../services/maintenanceService';
 import { User } from '../../../types';
+import { apiClient } from '../../../services/apiClient';
+
+/**
+ * Pusat Backup: backup SUNGGUHAN database server (semua tabel) ke storage/app/backups.
+ * Versi sebelumnya hanya menyimpan salinan data browser ke localStorage — tidak bisa dipakai memulihkan server.
+ */
+interface ServerBackup {
+  id: number;
+  backup_id: string;
+  filename: string;
+  size: number;
+  status: string;
+  notes: string | null;
+  created_at: string;
+  created_by: string;
+  file_exists: boolean;
+  restorable: boolean;
+  checksum?: string | null;
+}
+
+interface VerifyResult {
+  backup_id: string;
+  ok: boolean;
+  checksum_ok: boolean;
+  complete: boolean;
+  rows: number;
+  tables: number;
+  counts: Record<string, number>;
+  problems: string[];
+  warnings: string[];
+}
 
 interface BackupCenterTabProps {
   currentUser: User;
-  fullDataset: Record<string, any>;
-  backups: BackupRecord[];
-  onRefreshBackups: () => void;
+  fullDataset?: Record<string, any>;
+  backups?: BackupRecord[];
+  onRefreshBackups?: () => void;
   onShowToast: (msg: string, type: 'success' | 'error' | 'info') => void;
+  /** Tampilan ringkas (Pusat Sinkronisasi): tanpa hapus & pulihkan — kelola penuh di Maintenance Hub */
+  compact?: boolean;
 }
 
-export const BackupCenterTab: React.FC<BackupCenterTabProps> = ({
-  currentUser,
-  fullDataset,
-  backups,
-  onRefreshBackups,
-  onShowToast
-}) => {
-  const [isCreating, setIsCreating] = useState<boolean>(false);
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const [selectedBackup, setSelectedBackup] = useState<BackupRecord | null>(null);
-  const [backupNotes, setBackupNotes] = useState<string>('');
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState<boolean>(false);
+const fmtSize = (b: number) => (b >= 1048576 ? `${(b / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1024))} KB`);
+const fmtDate = (iso?: string | null) =>
+  iso ? new Date(iso).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }) : '-';
 
-  const canCreate = MaintenanceService.checkPermission(currentUser, 'backup');
+export const BackupCenterTab: React.FC<BackupCenterTabProps> = ({ currentUser, onShowToast, compact = false }) => {
+  const [verifying, setVerifying] = useState<string | null>(null);
+  const [verifyResult, setVerifyResult] = useState<VerifyResult | null>(null);
+  const [forbidden, setForbidden] = useState(false);
+  const [items, setItems] = useState<ServerBackup[]>([]);
+  const [lastBackupAt, setLastBackupAt] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [notes, setNotes] = useState('');
+  const [restoreTarget, setRestoreTarget] = useState<ServerBackup | null>(null);
+  const [confirmText, setConfirmText] = useState('');
+  const [restoring, setRestoring] = useState(false);
 
-  const handleCreateBackup = () => {
-    setIsCreating(true);
-    setTimeout(() => {
-      const res = MaintenanceService.createBackup(
-        fullDataset,
-        currentUser,
-        'MANUAL',
-        backupNotes.trim() || 'Backup manual database SIUBA'
-      );
-      setIsCreating(false);
-      setIsCreateModalOpen(false);
-      setBackupNotes('');
+  const isSuperAdmin =
+    (currentUser as any)?.role === 'super-admin' || (currentUser as any)?.role === 'super_admin' ||
+    ((currentUser as any)?.roles || []).includes('super-admin');
 
-      if (res.success && res.backup) {
-        onRefreshBackups();
-        onShowToast(`Backup ${res.backup.id} berhasil dibuat dan diverifikasi (SHA-256).`, 'success');
-      } else {
-        onShowToast(res.error || 'Gagal membuat backup.', 'error');
-      }
-    }, 600);
+  const errMsg = (err: any, fallback: string) => {
+    const fieldMsg = err?.fieldErrors ? (Object.values(err.fieldErrors).flat()[0] as string | undefined) : undefined;
+    return fieldMsg || err?.message || fallback;
   };
 
-  const handleDownloadBackup = (backup: BackupRecord) => {
+  const load = async () => {
+    setLoading(true);
     try {
-      const payload = backup.raw_payload_json || JSON.stringify(backup, null, 2);
-      const blob = new Blob([payload], { type: 'application/json' });
+      const res: any = await apiClient.get('/maintenance/backups');
+      setItems(res?.data || []);
+      setLastBackupAt(res?.meta?.last_backup_at || null);
+      setForbidden(false);
+    } catch (err: any) {
+      if (err?.status === 403) {
+        setForbidden(true);
+        return;
+      }
+      onShowToast(errMsg(err, 'Gagal memuat daftar backup.'), 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void load();
+  }, []);
+
+  const handleCreate = async () => {
+    setCreating(true);
+    try {
+      const res: any = await apiClient.post('/maintenance/backups', { notes: notes.trim() || undefined });
+      onShowToast(res?.message || 'Backup berhasil dibuat.', 'success');
+      setNotes('');
+      await load();
+    } catch (err: any) {
+      onShowToast(errMsg(err, 'Backup gagal.'), 'error');
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const handleDownload = async (b: ServerBackup) => {
+    try {
+      const res = await fetch(`/api/v1/maintenance/backups/${encodeURIComponent(b.backup_id)}/download`, {
+        headers: { Authorization: `Bearer ${apiClient.getToken() || ''}`, Accept: 'application/gzip' },
+      });
+      if (!res.ok) throw new Error(`Unduhan gagal (HTTP ${res.status}).`);
+      const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${backup.id}.json`;
+      a.download = b.filename;
       document.body.appendChild(a);
       a.click();
-      document.body.removeChild(a);
+      a.remove();
       URL.revokeObjectURL(url);
-      onShowToast(`File ${backup.id}.json berhasil diunduh.`, 'success');
-    } catch (e: any) {
-      onShowToast(`Gagal mengunduh backup: ${e.message}`, 'error');
+    } catch (err: any) {
+      onShowToast(errMsg(err, 'Gagal mengunduh backup.'), 'error');
     }
   };
 
-  const handleDeleteBackup = (backupId: string) => {
-    if (window.confirm(`Hapus backup ${backupId} dari penyimpanan lokal?`)) {
-      MaintenanceService.deleteBackup(backupId, currentUser);
-      onRefreshBackups();
-      if (selectedBackup?.id === backupId) setSelectedBackup(null);
-      onShowToast(`Backup ${backupId} telah dihapus.`, 'info');
+  // Uji pulih: baca seluruh isi berkas di server tanpa mengubah database
+  const handleVerify = async (b: ServerBackup) => {
+    setVerifying(b.backup_id);
+    try {
+      const res: any = await apiClient.post(`/maintenance/backups/${encodeURIComponent(b.backup_id)}/verify`, {});
+      setVerifyResult(res?.data || null);
+      onShowToast(res?.message || 'Uji pulih selesai.', res?.data?.ok ? 'success' : 'error');
+      await load();
+    } catch (err: any) {
+      onShowToast(errMsg(err, 'Uji pulih gagal dijalankan.'), 'error');
+    } finally {
+      setVerifying(null);
     }
   };
 
-  const filteredBackups = backups.filter(b => 
-    b.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    b.created_by_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (b.notes && b.notes.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  const handleDelete = async (b: ServerBackup) => {
+    if (!confirm(`Hapus backup ${b.backup_id}? Berkas di server ikut terhapus.`)) return;
+    try {
+      const res: any = await apiClient.delete(`/maintenance/backups/${encodeURIComponent(b.backup_id)}`);
+      onShowToast(res?.message || 'Backup dihapus.', 'success');
+      await load();
+    } catch (err: any) {
+      onShowToast(errMsg(err, 'Gagal menghapus backup.'), 'error');
+    }
+  };
+
+  const handleRestore = async () => {
+    if (!restoreTarget) return;
+    setRestoring(true);
+    try {
+      const res: any = await apiClient.post(`/maintenance/backups/${encodeURIComponent(restoreTarget.backup_id)}/restore`, {
+        confirmation: confirmText.trim(),
+        reason: 'Pemulihan dari Pusat Backup',
+      });
+      onShowToast(res?.message || 'Database dipulihkan.', 'success');
+      setRestoreTarget(null);
+      setConfirmText('');
+      await load();
+      setTimeout(() => window.location.reload(), 1500);
+    } catch (err: any) {
+      onShowToast(errMsg(err, 'Pemulihan gagal.'), 'error');
+    } finally {
+      setRestoring(false);
+    }
+  };
+
+  const ageHours = lastBackupAt ? (Date.now() - new Date(lastBackupAt).getTime()) / 3600000 : Infinity;
+  const expected = restoreTarget ? `PULIHKAN ${restoreTarget.backup_id}` : '';
 
   return (
-    <div id="maintenance-backup-center-tab" className="space-y-6">
-      {/* Top Banner Overview */}
-      <div className="bg-white dark:bg-zinc-900 border border-slate-200/90 dark:border-zinc-800 rounded-3xl p-5 sm:p-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-start gap-3.5">
-          <div className="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 flex items-center justify-center flex-shrink-0 border border-emerald-100 dark:border-emerald-500/20 shadow-2xs">
-            <HardDrive className="w-6 h-6" />
-          </div>
-          <div>
-            <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
-              Pusat Repositori & Snapshot Backup Database
-            </h2>
-            <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
-              Kelola snapshot terenkripsi dan verifikasi checksum SHA-256 sebelum pemeliharaan sistem.
-            </p>
-          </div>
+    <div className="space-y-5">
+      {forbidden ? (
+        <div id="backup-forbidden" className="p-4 rounded-2xl border bg-slate-50 border-slate-200 text-slate-700 text-xs flex items-start gap-3">
+          <Info className="w-5 h-5 shrink-0 mt-0.5 text-slate-500" />
+          <span>Daftar & pembuatan backup database hanya untuk Admin / Super Admin (izin Backup atau Pemeliharaan Sistem). Hubungi admin bila perlu backup.</span>
         </div>
-
-        <div className="flex items-center gap-2.5">
-          <button
-            onClick={() => setIsCreateModalOpen(true)}
-            disabled={!canCreate || isCreating}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-[#1F5C45] hover:bg-[#12372A] text-white text-xs font-bold shadow-xs transition-all cursor-pointer min-h-[40px] active:scale-95 disabled:opacity-50"
-          >
-            {isCreating ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-            <span>Buat Backup Baru</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Backup Statistics Bar Bento */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-xs">
-        <div className="bg-white dark:bg-zinc-900 border border-slate-200/90 dark:border-zinc-800 rounded-3xl p-5 shadow-sm hover:shadow-md transition group">
-          <span className="text-slate-500 dark:text-zinc-400 text-[11px] font-bold uppercase tracking-wider">Total Backup</span>
-          <div className="text-xl font-black text-slate-900 dark:text-white mt-1 font-mono">{backups.length} Snapshot</div>
-          <div className="text-[11px] text-slate-500 dark:text-zinc-400 mt-0.5">Tersimpan di Penyimpanan Lokal</div>
-        </div>
-        <div className="bg-white dark:bg-zinc-900 border border-slate-200/90 dark:border-zinc-800 rounded-3xl p-5 shadow-sm hover:shadow-md transition group">
-          <span className="text-slate-500 dark:text-zinc-400 text-[11px] font-bold uppercase tracking-wider">Status Verifikasi</span>
-          <div className="text-xl font-black text-emerald-700 dark:text-emerald-400 mt-1 flex items-center gap-1.5 font-mono">
-            <ShieldCheck className="w-5 h-5 text-emerald-600" />
-            <span>100% SHA-256</span>
-          </div>
-          <div className="text-[11px] text-emerald-700 dark:text-emerald-400 font-bold flex items-center gap-1 mt-0.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-            Integritas Valid & Siap Restore
-          </div>
-        </div>
-        <div className="bg-white dark:bg-zinc-900 border border-slate-200/90 dark:border-zinc-800 rounded-3xl p-5 shadow-sm hover:shadow-md transition group">
-          <span className="text-slate-500 dark:text-zinc-400 text-[11px] font-bold uppercase tracking-wider">Format Penyimpanan</span>
-          <div className="text-xl font-black text-slate-900 dark:text-white mt-1 font-mono truncate">JSON Encrypted</div>
-          <div className="text-[11px] text-slate-500 dark:text-zinc-400 mt-0.5 font-mono">UTF-8 Full Snapshot</div>
-        </div>
-        <div className="bg-white dark:bg-zinc-900 border border-slate-200/90 dark:border-zinc-800 rounded-3xl p-5 shadow-sm hover:shadow-md transition group">
-          <span className="text-slate-500 dark:text-zinc-400 text-[11px] font-bold uppercase tracking-wider">Maksimum Retensi</span>
-          <div className="text-xl font-black text-slate-900 dark:text-white mt-1 font-mono">20 Snapshot</div>
-          <div className="text-[11px] text-slate-500 dark:text-zinc-400 mt-0.5">Auto Rotate FIFO Safe</div>
-        </div>
-      </div>
-
-      {/* Filter and Search Bar */}
-      <div className="bg-white dark:bg-zinc-900 border border-slate-200/90 dark:border-zinc-800 rounded-3xl p-4 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
-        <div className="relative w-full sm:w-80">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Cari ID backup, catatan, aktor..."
-            className="w-full bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700/80 rounded-2xl pl-10 pr-4 py-2.5 text-xs text-slate-900 dark:text-zinc-200 placeholder-slate-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white shadow-2xs"
-          />
-        </div>
-
-        <div className="text-xs font-mono font-bold text-slate-500 dark:text-zinc-400 bg-slate-100 dark:bg-zinc-800 px-3.5 py-2 rounded-xl">
-          Menampilkan <span className="text-slate-900 dark:text-white font-black">{filteredBackups.length}</span> dari {backups.length} backup
-        </div>
-      </div>
-
-      {/* Backups List (Desktop Table + Mobile Cards) */}
-      {filteredBackups.length === 0 ? (
-        <div className="bg-white dark:bg-zinc-900 border border-slate-200/90 dark:border-zinc-800 rounded-3xl p-10 text-center space-y-3 shadow-sm">
-          <div className="w-14 h-14 rounded-3xl bg-slate-100 dark:bg-zinc-800 flex items-center justify-center mx-auto text-slate-400">
-            <HardDrive className="w-7 h-7" />
-          </div>
-          <h3 className="text-sm font-black text-slate-700 dark:text-zinc-300">Belum Ada File Backup</h3>
-          <p className="text-xs text-slate-500 max-w-sm mx-auto">
-            Buat backup pertama Anda sekarang sebelum melakukan perubahan atau reset data sistem.
+      ) : (<>
+      <div className={`p-4 rounded-2xl border flex items-start gap-3 ${ageHours <= 26 ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : 'bg-amber-50 border-amber-200 text-amber-900'}`}>
+        {ageHours <= 26 ? <CheckCircle2 className="w-5 h-5 mt-0.5 shrink-0" /> : <AlertTriangle className="w-5 h-5 mt-0.5 shrink-0" />}
+        <div className="text-xs leading-relaxed">
+          <p className="font-black text-sm">
+            {lastBackupAt ? `Backup terakhir: ${fmtDate(lastBackupAt)}` : 'Belum ada backup database.'}
           </p>
-          <button
-            onClick={() => setIsCreateModalOpen(true)}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-[#1F5C45] hover:bg-[#12372A] text-white text-xs font-bold transition-all cursor-pointer min-h-[40px] shadow-xs active:scale-95"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Buat Backup Baru</span>
-          </button>
+          <p className="mt-0.5">
+            Backup berisi <b>seluruh data</b> (santri, absensi, SDM, KBM, pengaturan, dll.) dan disimpan di folder
+            <code className="mx-1 px-1 bg-white/70 rounded">storage/app/backups</code> pada komputer server (14 backup terakhir disimpan).
+            Backup otomatis dibuat tiap malam pukul 01:30 (bila penjadwal Windows terpasang) dan saat <b>jalankan-siuba.bat</b> dijalankan bila backup terakhir lebih dari 20 jam lalu.
+            Unduh backup secara berkala dan simpan di flashdisk/Google Drive agar aman bila komputer server rusak.
+          </p>
         </div>
-      ) : (
-        <div className="space-y-3">
-          {/* Desktop Table View (Hidden on mobile < 768px) */}
-          <div className="hidden md:block bg-white dark:bg-zinc-900 border border-slate-200/90 dark:border-zinc-800 rounded-3xl overflow-hidden shadow-sm">
-            <table className="w-full text-left text-xs text-slate-700 dark:text-zinc-300">
-              <thead className="bg-slate-50 dark:bg-zinc-900/90 text-slate-600 dark:text-zinc-400 uppercase text-[10px] tracking-wider border-b border-slate-200 dark:border-zinc-800 font-black">
-                <tr>
-                  <th className="px-5 py-3.5">ID Backup & Checksum</th>
-                  <th className="px-4 py-3.5">Waktu Pembuatan</th>
-                  <th className="px-4 py-3.5">Ukuran / Baris Data</th>
-                  <th className="px-4 py-3.5">Tipe & Catatan</th>
-                  <th className="px-4 py-3.5">Dibuat Oleh</th>
-                  <th className="px-4 py-3.5 text-center">Status</th>
-                  <th className="px-5 py-3.5 text-right">Aksi</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-zinc-800/60">
-                {filteredBackups.map((b) => (
-                  <tr key={b.id} className="hover:bg-slate-50/80 dark:hover:bg-zinc-900/40 transition-colors">
-                    <td className="px-5 py-4 font-mono">
-                      <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-                        <HardDrive className="w-3.5 h-3.5 text-[#1F5C45] dark:text-[#2F7D5A] flex-shrink-0" />
-                        <span>{b.id}</span>
-                      </div>
-                      <div className="text-[10px] text-slate-400 dark:text-zinc-500 truncate max-w-xs mt-0.5 font-mono" title={b.checksum_sha256}>
-                        {b.checksum_sha256}
-                      </div>
-                    </td>
-                    <td className="px-4 py-4 text-slate-600 dark:text-zinc-300 font-sans">
-                      <div className="font-semibold text-slate-900 dark:text-white">{new Date(b.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
-                      <div className="text-[11px] text-slate-400 dark:text-zinc-500 font-mono">{new Date(b.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</div>
-                    </td>
-                    <td className="px-4 py-4 font-mono">
-                      <div className="font-bold text-slate-900 dark:text-white">{b.size_human}</div>
-                      <div className="text-[11px] text-slate-500 dark:text-zinc-400 font-sans">{b.total_records_count.toLocaleString()} baris ({b.tables_backed_up.length} tabel)</div>
-                    </td>
-                    <td className="px-4 py-4 max-w-xs font-sans">
-                      <span className={`inline-block px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider mb-1 ${
-                        b.backup_type === 'AUTO_BEFORE_RESET'
-                          ? 'bg-rose-50 dark:bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-500/30'
-                          : 'bg-emerald-50 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30'
-                      }`}>
-                        {b.backup_type === 'AUTO_BEFORE_RESET' ? 'Auto Pre-Reset' : 'Manual'}
-                      </span>
-                      <p className="text-[11px] text-slate-500 dark:text-zinc-400 truncate" title={b.notes || ''}>
-                        {b.notes || '-'}
-                      </p>
-                    </td>
-                    <td className="px-4 py-4 font-sans">
-                      <div className="font-bold text-slate-800 dark:text-zinc-200">{b.created_by_name}</div>
-                      <div className="text-[10px] text-slate-400 dark:text-zinc-500 uppercase font-mono">{b.created_by_role}</div>
-                    </td>
-                    <td className="px-4 py-4 text-center">
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black bg-emerald-50 dark:bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                        <span>VERIFIED</span>
-                      </span>
-                    </td>
-                    <td className="px-5 py-4 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <button
-                          onClick={() => setSelectedBackup(b)}
-                          title="Lihat Detail Snapshot"
-                          className="p-2 hover:bg-slate-100 dark:hover:bg-zinc-800 text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white rounded-xl transition-colors cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center active:scale-95"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDownloadBackup(b)}
-                          title="Unduh File JSON"
-                          className="p-2 hover:bg-emerald-50 text-emerald-700 dark:text-emerald-400 rounded-xl transition-colors cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center active:scale-95"
-                        >
-                          <Download className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteBackup(b.id)}
-                          title="Hapus Backup"
-                          className="p-2 hover:bg-rose-50 dark:hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 rounded-xl transition-colors cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center active:scale-95"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+      </div>
 
-          {/* Mobile Cards View (Visible on screens < 768px) */}
-          <div className="grid grid-cols-1 gap-3 md:hidden">
-            {filteredBackups.map((b) => (
-              <div
-                key={b.id}
-                className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800/80 rounded-2xl p-4 space-y-3 shadow-sm"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="font-mono text-xs font-bold text-zinc-900 dark:text-white flex items-center gap-1.5">
-                    <HardDrive className="w-4 h-4 text-[#1F5C45] dark:text-[#2F7D5A] flex-shrink-0" />
-                    <span className="truncate">{b.id}</span>
-                  </div>
-                  <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30 flex-shrink-0">
-                    VERIFIED
-                  </span>
-                </div>
+      <div className="bg-white p-4 rounded-2xl border border-zinc-200 shadow-sm flex flex-col sm:flex-row gap-2">
+        <input
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          placeholder="Catatan backup (opsional), mis. Sebelum kenaikan kelas"
+          className="flex-1 bg-zinc-50 border border-zinc-300 rounded-xl px-3 py-2 text-xs"
+        />
+        <button
+          onClick={handleCreate}
+          disabled={creating}
+          className="px-4 py-2 bg-[#1F5C45] hover:bg-[#12372A] disabled:opacity-60 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer"
+        >
+          {creating ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+          {creating ? 'Membuat backup…' : 'Buat Backup Sekarang'}
+        </button>
+        <button onClick={load} className="px-3 py-2 border border-zinc-300 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer" title="Muat ulang">
+          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+        </button>
+      </div>
 
-                <div className="grid grid-cols-2 gap-2 text-[11px] bg-zinc-50 dark:bg-zinc-900/60 p-3 rounded-xl">
-                  <div>
-                    <span className="text-zinc-400 dark:text-zinc-500">Ukuran:</span>
-                    <div className="font-bold text-zinc-800 dark:text-zinc-200">{b.size_human} ({b.total_records_count} baris)</div>
+      <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-x-auto">
+        <table className="w-full text-xs">
+          <thead className="bg-zinc-50 text-zinc-600 text-[11px] uppercase">
+            <tr>
+              <th className="text-left py-2.5 px-3">Backup</th>
+              <th className="text-left py-2.5 px-3">Dibuat</th>
+              <th className="text-left py-2.5 px-3">Isi / Catatan</th>
+              <th className="text-right py-2.5 px-3">Ukuran</th>
+              <th className="text-center py-2.5 px-3">Aksi</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-zinc-100">
+            {items.length === 0 && (
+              <tr><td colSpan={5} className="py-8 text-center text-zinc-400">{loading ? 'Memuat…' : 'Belum ada backup.'}</td></tr>
+            )}
+            {items.map((b) => (
+              <tr key={b.id}>
+                <td className="py-2.5 px-3">
+                  <div className="font-mono font-bold text-zinc-900 flex items-center gap-1.5">
+                    <HardDrive className="w-3.5 h-3.5 text-zinc-400" /> {b.backup_id}
                   </div>
-                  <div>
-                    <span className="text-zinc-400 dark:text-zinc-500">Waktu:</span>
-                    <div className="font-bold text-zinc-800 dark:text-zinc-200">
-                      {new Date(b.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}, {new Date(b.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
-                    </div>
+                  <div className="mt-0.5">
+                    {b.status === 'verified' && b.file_exists ? (
+                      <span className="text-emerald-700 font-bold">Terverifikasi</span>
+                    ) : b.status === 'failed' ? (
+                      <span className="text-rose-700 font-bold flex items-center gap-1"><XCircle className="w-3 h-3" /> Gagal</span>
+                    ) : !b.file_exists ? (
+                      <span className="text-amber-700 font-bold">Berkas hilang</span>
+                    ) : (
+                      <span className="text-zinc-500">{b.status}</span>
+                    )}
                   </div>
-                  <div className="col-span-2">
-                    <span className="text-zinc-400 dark:text-zinc-500">Aktor:</span>
-                    <span className="text-zinc-800 dark:text-zinc-200 ml-1 font-medium">{b.created_by_name} ({b.created_by_role})</span>
+                </td>
+                <td className="py-2.5 px-3 text-zinc-700">
+                  {fmtDate(b.created_at)}
+                  <div className="text-[11px] text-zinc-400">{b.created_by}</div>
+                </td>
+                <td className="py-2.5 px-3 text-zinc-600 max-w-xs">{b.notes || '-'}</td>
+                <td className="py-2.5 px-3 text-right font-mono">{b.size ? fmtSize(b.size) : '-'}</td>
+                <td className="py-2.5 px-3">
+                  <div className="flex items-center justify-center gap-1.5">
+                    {b.file_exists && (
+                      <button onClick={() => handleDownload(b)} title="Unduh" className="p-1.5 rounded-lg border border-zinc-200 hover:bg-zinc-50 cursor-pointer">
+                        <Download className="w-4 h-4 text-zinc-700" />
+                      </button>
+                    )}
+                    {b.file_exists && b.restorable && (
+                      <button onClick={() => handleVerify(b)} disabled={verifying !== null} title="Uji pulih: periksa berkas bisa dibaca utuh & checksum cocok" className="p-1.5 rounded-lg border border-emerald-200 hover:bg-emerald-50 cursor-pointer disabled:opacity-50">
+                        {verifying === b.backup_id ? <RefreshCw className="w-4 h-4 text-emerald-700 animate-spin" /> : <ShieldCheck className="w-4 h-4 text-emerald-700" />}
+                      </button>
+                    )}
+                    {!compact && isSuperAdmin && b.status === 'verified' && b.file_exists && b.restorable && (
+                      <button onClick={() => { setRestoreTarget(b); setConfirmText(''); }} title="Pulihkan database dari backup ini" className="p-1.5 rounded-lg border border-amber-200 hover:bg-amber-50 cursor-pointer">
+                        <RotateCcw className="w-4 h-4 text-amber-700" />
+                      </button>
+                    )}
+                    {!compact && (
+                      <button onClick={() => handleDelete(b)} title="Hapus" className="p-1.5 rounded-lg border border-rose-200 hover:bg-rose-50 cursor-pointer">
+                        <Trash2 className="w-4 h-4 text-rose-700" />
+                      </button>
+                    )}
                   </div>
-                </div>
-
-                {b.notes && (
-                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400 italic">
-                    "{b.notes}"
-                  </p>
-                )}
-
-                <div className="flex items-center justify-end gap-2 pt-2 border-t border-zinc-100 dark:border-zinc-800">
-                  <button
-                    onClick={() => setSelectedBackup(b)}
-                    className="flex-1 py-2.5 px-3 rounded-xl bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 text-xs font-bold flex items-center justify-center gap-1.5 min-h-[44px]"
-                  >
-                    <Eye className="w-3.5 h-3.5" />
-                    <span>Detail</span>
-                  </button>
-                  <button
-                    onClick={() => handleDownloadBackup(b)}
-                    className="flex-1 py-2.5 px-3 rounded-xl bg-[#1F5C45]/10 hover:bg-[#1F5C45]/20 text-[#1F5C45] dark:text-[#2F7D5A] text-xs font-bold flex items-center justify-center gap-1.5 min-h-[44px]"
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                    <span>Unduh JSON</span>
-                  </button>
-                  <button
-                    onClick={() => handleDeleteBackup(b.id)}
-                    className="p-2.5 rounded-xl bg-rose-50 dark:bg-rose-500/10 hover:bg-rose-100 dark:hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 min-h-[44px] min-w-[44px] flex items-center justify-center"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
+                </td>
+              </tr>
             ))}
-          </div>
+          </tbody>
+        </table>
+      </div>
+
+      {verifyResult && (
+        <div id="backup-verify-result" className={`p-4 rounded-2xl border text-xs space-y-1.5 ${verifyResult.ok ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : 'bg-rose-50 border-rose-200 text-rose-900'}`}>
+          <p className="font-black text-sm flex items-center gap-1.5">
+            {verifyResult.ok ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
+            Uji pulih {verifyResult.backup_id}: {verifyResult.ok ? 'LAYAK DIPULIHKAN' : 'TIDAK LAYAK DIPULIHKAN'}
+          </p>
+          <p>
+            Checksum {verifyResult.checksum_ok ? 'cocok' : 'TIDAK cocok'} &bull; isi {verifyResult.complete ? 'utuh' : 'TIDAK utuh'} &bull;{' '}
+            {verifyResult.rows.toLocaleString('id-ID')} baris dari {verifyResult.tables} tabel
+          </p>
+          {Object.keys(verifyResult.counts || {}).length > 0 && (
+            <p className="text-[11px] opacity-80">
+              Terbanyak: {Object.entries(verifyResult.counts).map(([t, n]) => `${t} ${n.toLocaleString('id-ID')}`).join(' · ')}
+            </p>
+          )}
+          {verifyResult.problems.map((m) => <p key={m} className="font-semibold">• {m}</p>)}
+          {verifyResult.warnings.map((m) => <p key={m} className="text-amber-800">• {m}</p>)}
         </div>
       )}
 
-      {/* Modal Create Backup */}
-      {isCreateModalOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700/80 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-5 text-zinc-900 dark:text-zinc-100">
-            <div className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800 pb-3">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-[#1F5C45]/10 text-[#1F5C45] dark:text-[#2F7D5A] flex items-center justify-center">
-                  <HardDrive className="w-4 h-4" />
-                </div>
-                <h3 className="text-sm font-bold text-zinc-900 dark:text-white">Buat Snapshot Backup Baru</h3>
-              </div>
-              <button
-                onClick={() => setIsCreateModalOpen(false)}
-                className="text-zinc-400 hover:text-zinc-600 dark:hover:text-white p-1 rounded-lg min-h-[44px] min-w-[44px] flex items-center justify-center"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
+      <div className="p-3 rounded-2xl bg-zinc-50 border border-zinc-200 text-[11px] text-zinc-600 flex items-start gap-2">
+        <Info className="w-4 h-4 shrink-0 mt-0.5" />
+        <span>
+          Tombol <ShieldCheck className="inline w-3 h-3" /> menguji apakah backup bisa dipulihkan (berkas dibaca utuh di server, database tidak diubah).{' '}
+          {compact
+            ? 'Hapus & pulihkan backup dilakukan di Maintenance Hub → Pusat Backup (pemulihan khusus Super Admin).'
+            : <>Pemulihan (tombol <RotateCcw className="inline w-3 h-3" />) hanya untuk Super Admin. Sebelum memulihkan, sistem otomatis membuat
+              backup pengaman dari data saat ini, dan bila pemulihan gagal di tengah jalan seluruh perubahan dibatalkan.</>}{' '}
+          Backup juga bisa dibuat lewat terminal: <code className="px-1 bg-white rounded">php artisan system:backup</code>.
+        </span>
+      </div>
+      </>)}
 
-            <div className="space-y-3 text-xs">
-              <p className="text-zinc-600 dark:text-zinc-300 leading-relaxed">
-                Snapshot ini akan merangkum seluruh tabel master santri, SDM, kelas, presensi, kartu santri studio, dan konfigurasi sistem dengan verifikasi SHA-256.
-              </p>
+      {restoreTarget && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-xl">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="w-6 h-6 text-rose-600 shrink-0" />
               <div>
-                <label className="font-bold text-zinc-700 dark:text-zinc-300 block mb-1">Catatan Backup (Opsional):</label>
-                <input
-                  type="text"
-                  value={backupNotes}
-                  onChange={(e) => setBackupNotes(e.target.value)}
-                  placeholder="Contoh: Backup rutin sebelum semester genap..."
-                  className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 rounded-xl p-2.5 text-xs text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-[#1F5C45]/40 focus:border-[#1F5C45]"
-                />
+                <h3 className="font-black text-zinc-900">Pulihkan database?</h3>
+                <p className="text-xs text-zinc-600 mt-1 leading-relaxed">
+                  Seluruh data saat ini akan <b>diganti</b> dengan isi backup <b>{restoreTarget.backup_id}</b> ({fmtDate(restoreTarget.created_at)}).
+                  Data yang dimasukkan setelah tanggal itu akan hilang (tetapi tersimpan di backup pengaman yang dibuat otomatis).
+                </p>
               </div>
             </div>
-
-            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-zinc-100 dark:border-zinc-800">
-              <button
-                onClick={() => setIsCreateModalOpen(false)}
-                className="px-4 py-2 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 text-xs font-bold hover:bg-zinc-200 dark:hover:bg-zinc-700 min-h-[44px]"
-              >
-                Batal
-              </button>
-              <button
-                onClick={handleCreateBackup}
-                disabled={isCreating}
-                className="flex items-center gap-2 px-5 py-2 rounded-xl bg-[#1F5C45] hover:bg-[#12372A] text-white text-xs font-bold min-h-[44px] shadow-sm transition-all"
-              >
-                {isCreating ? <RefreshCw className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
-                <span>{isCreating ? 'Membuat & Verifikasi...' : 'Eksekusi Backup'}</span>
-              </button>
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-zinc-700">
+                Ketik <code className="px-1 bg-zinc-100 rounded select-all">{expected}</code> untuk melanjutkan
+              </label>
+              <input value={confirmText} onChange={(e) => setConfirmText(e.target.value)} className="w-full border border-zinc-300 rounded-xl px-3 py-2 text-xs font-mono" />
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal Detail Backup */}
-      {selectedBackup && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700/80 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4 text-zinc-900 dark:text-zinc-100 text-xs">
-            <div className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800 pb-3">
-              <div className="flex items-center gap-2">
-                <HardDrive className="w-4 h-4 text-[#1F5C45] dark:text-[#2F7D5A]" />
-                <h3 className="text-sm font-bold text-zinc-900 dark:text-white truncate">Detail Snapshot: {selectedBackup.id}</h3>
-              </div>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setRestoreTarget(null)} disabled={restoring} className="px-4 py-2 rounded-xl border border-zinc-300 text-xs font-bold cursor-pointer">Batal</button>
               <button
-                onClick={() => setSelectedBackup(null)}
-                className="text-zinc-400 hover:text-zinc-600 dark:hover:text-white p-1 rounded-lg min-h-[44px] min-w-[44px] flex items-center justify-center"
+                onClick={handleRestore}
+                disabled={restoring || confirmText.trim() !== expected}
+                className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white text-xs font-bold cursor-pointer flex items-center gap-1.5"
               >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="space-y-2.5 bg-zinc-50 dark:bg-zinc-900/80 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800">
-              <div>
-                <span className="text-zinc-400 dark:text-zinc-500 font-mono text-[10px]">CHECKSUM SHA-256</span>
-                <div className="font-mono text-xs font-bold text-[#1F5C45] dark:text-[#2F7D5A] break-all">{selectedBackup.checksum_sha256}</div>
-              </div>
-              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-zinc-200 dark:border-zinc-800">
-                <div>
-                  <span className="text-zinc-400 dark:text-zinc-500">Ukuran Payload:</span>
-                  <div className="font-bold text-zinc-900 dark:text-white">{selectedBackup.size_human} ({selectedBackup.size_bytes.toLocaleString()} bytes)</div>
-                </div>
-                <div>
-                  <span className="text-zinc-400 dark:text-zinc-500">Total Baris:</span>
-                  <div className="font-bold text-zinc-900 dark:text-white">{selectedBackup.total_records_count.toLocaleString()} baris</div>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-zinc-200 dark:border-zinc-800">
-                <div>
-                  <span className="text-zinc-400 dark:text-zinc-500">Waktu Pembuatan:</span>
-                  <div className="font-bold text-zinc-700 dark:text-zinc-200">{new Date(selectedBackup.created_at).toLocaleString('id-ID')}</div>
-                </div>
-                <div>
-                  <span className="text-zinc-400 dark:text-zinc-500">Aktor Pembuat:</span>
-                  <div className="font-bold text-zinc-700 dark:text-zinc-200">{selectedBackup.created_by_name} ({selectedBackup.created_by_role})</div>
-                </div>
-              </div>
-              <div className="pt-2 border-t border-zinc-200 dark:border-zinc-800">
-                <span className="text-zinc-400 dark:text-zinc-500">Tabel Terangkum ({selectedBackup.tables_backed_up.length}):</span>
-                <div className="flex flex-wrap gap-1.5 mt-1">
-                  {selectedBackup.tables_backed_up.map((t, idx) => (
-                    <span key={idx} className="bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 px-2 py-0.5 rounded-lg text-[10px] font-mono">
-                      {t}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-end gap-2.5 pt-2">
-              <button
-                onClick={() => setSelectedBackup(null)}
-                className="px-4 py-2 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-bold hover:bg-zinc-200 dark:hover:bg-zinc-700 min-h-[44px]"
-              >
-                Tutup
-              </button>
-              <button
-                onClick={() => {
-                  handleDownloadBackup(selectedBackup);
-                  setSelectedBackup(null);
-                }}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#1F5C45] hover:bg-[#12372A] text-white font-bold min-h-[44px] shadow-sm transition-all"
-              >
-                <Download className="w-3.5 h-3.5" />
-                <span>Unduh JSON</span>
+                {restoring && <RefreshCw className="w-4 h-4 animate-spin" />}
+                {restoring ? 'Memulihkan…' : 'Pulihkan Sekarang'}
               </button>
             </div>
           </div>

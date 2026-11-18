@@ -246,6 +246,7 @@ export interface ActivityCategory {
 export interface Activity {
   id: number;
   activity_category_id: number;
+  category_code?: string;
   category_name: string;
   code: string;
   name: string;
@@ -290,6 +291,7 @@ export interface AttendanceSessionParticipant {
   student_id: number;
   student_name: string;
   student_number: string;
+  classroom_id?: number | null;
   classroom_name: string;
   dormitory_room_name: string;
   participant_source: ParticipantType | 'manual' | 'walk_in' | string;
@@ -329,6 +331,7 @@ export interface AttendanceSession {
   routine_schedule_id?: number | null;
   academic_context?: AcademicSessionContext;
   classroom_id?: number;
+  classroom_name?: string;
   subject_id?: number;
   teacher_id?: number;
   substitute_teacher_id?: number;
@@ -413,6 +416,11 @@ export interface AttendanceDevice {
   default_activity_id?: number | null;
   current_session_id?: number | null;
   mode?: DeviceMode;
+  device_mode?: DeviceMode;
+  location_label?: string;
+  last_ping_at?: string | null;
+  status?: string;
+  is_online?: boolean;
   tap_count_today?: number;
   created_at?: string;
   updated_at?: string;
@@ -1785,6 +1793,7 @@ export interface TeachingSession {
   actual_teacher_staff_id?: number | null;
   actual_teacher_name?: string | null;
   teacher_check_in_at?: string | null;
+  teacher_check_in_method?: string | null;
   teacher_attendance_status?: StaffAttendanceStatus | 'unrecorded';
   late_minutes?: number;
   start_time?: string;
@@ -1801,6 +1810,16 @@ export interface TeachingSession {
   cancelled_at?: string | null;
   notes?: string | null;
   teaching_journal_id?: number | null;
+  /** Jurnal mengajar & presensi guru dari server (tahap 19) */
+  teacher_check_out_at?: string | null;
+  teacher_attendance_notes?: string | null;
+  teacher_has_account?: boolean;
+  topic?: string | null;
+  journal_notes?: string | null;
+  student_present_count?: number | null;
+  realization_status?: 'pending' | 'submitted' | string;
+  journal_submitted_by?: string | null;
+  journal_submitted_at?: string | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -1873,7 +1892,7 @@ export interface ExtracurricularStaffAssignment {
 }
 
 export type TrainingSessionStatus = 'scheduled' | 'open' | 'completed' | 'cancelled' | 'rescheduled' | 'substituted';
-export type TrainingRealizationStatus = 'planned' | 'ongoing' | 'realized' | 'not_realized' | 'cancelled' | 'needs_review';
+export type TrainingRealizationStatus = 'planned' | 'ongoing' | 'realized' | 'not_realized' | 'cancelled' | 'needs_review' | 'pending' | 'submitted';
 
 export interface TrainingSession {
   id: number;
@@ -2009,15 +2028,17 @@ export interface TrainingReconciliationItem {
 export interface StaffAnalyticsFilters {
   date_from: string;
   date_to: string;
-  staff_id?: number | 'ALL';
-  staff_type?: StaffType | 'ALL';
-  employment_status?: string | 'ALL';
-  attendance_status?: StaffAttendanceStatus | 'ALL';
-  classroom_id?: number | 'ALL';
-  subject_id?: number | 'ALL';
-  extracurricular_id?: number | 'ALL';
-  attendance_method?: StaffAttendanceMethod | 'ALL';
-  unit_id?: number | null | 'ALL';
+  /** Penanda versi data server agar hasil dihitung ulang setelah sinkronisasi. */
+  _server_version?: number;
+  staff_id?: number | string;
+  staff_type?: StaffType | 'ALL' | string;
+  employment_status?: string;
+  attendance_status?: StaffAttendanceStatus | 'ALL' | string;
+  classroom_id?: number | string;
+  subject_id?: number | string;
+  extracurricular_id?: number | string;
+  attendance_method?: StaffAttendanceMethod | 'ALL' | string;
+  unit_id?: number | string | null;
 }
 
 export interface StaffDailyOperationalItem {

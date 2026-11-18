@@ -1,20 +1,13 @@
 import { 
   Staff, 
-  StaffType, 
   StaffAttendanceRecord, 
-  StaffAbsenceRequest, 
-  TeachingSession, 
-  TrainingSession,
   StaffAnalyticsFilters,
   StaffDailyOperationalItem,
   StaffMonthlyRecapItem,
-  LateAnalysisItem,
-  MissingCheckoutItem,
   DailyTeachingReportItem,
   TeacherMonthlyRecapItem,
   DailyTrainingReportItem,
   TrainerMonthlyRecapItem,
-  ExtracurricularMonthlyRecapItem,
   StaffAbsenceReportItem,
   StaffCrossDomainSummaryItem,
   Staff360ProfileData,
@@ -27,6 +20,7 @@ import { TeachingSessionService } from './teachingSessionService';
 import { TrainingSessionService } from './trainingSessionService';
 import { StaffAttendanceMetricService } from './staffAttendanceMetricService';
 import { ExtracurricularStaffAssignmentService } from './extracurricularStaffAssignmentService';
+import { todayLocalDate } from '../utils/today';
 
 export class StaffReportQueryService {
   /**
@@ -67,7 +61,7 @@ export class StaffReportQueryService {
   // =========================================================================
   public static getDailyAttendanceReport(filters: StaffAnalyticsFilters, user?: User): StaffDailyOperationalItem[] {
     const staffList = this.filterStaffList(filters, user);
-    const dateStr = filters.date_from || new Date().toISOString().substring(0, 10);
+    const dateStr = filters.date_from || todayLocalDate();
     const records = StaffAttendanceService.getRecords().filter(
       r => r.attendance_date === dateStr && r.attendance_type === 'daily'
     );
@@ -219,85 +213,7 @@ export class StaffReportQueryService {
     return result;
   }
 
-  // =========================================================================
-  // REPORT 3: LATE ANALYSIS REPORT
-  // =========================================================================
-  public static getLateAnalysisReport(filters: StaffAnalyticsFilters, user?: User): LateAnalysisItem[] {
-    const staffList = this.filterStaffList(filters, user);
-    const startDate = filters.date_from;
-    const endDate = filters.date_to;
-    const records = StaffAttendanceService.getRecords().filter(r => 
-      r.attendance_type === 'daily' &&
-      r.status === 'late' &&
-      r.attendance_date >= startDate &&
-      r.attendance_date <= endDate
-    );
 
-    const result: LateAnalysisItem[] = [];
-
-    staffList.forEach(staff => {
-      const sRecords = records.filter(r => r.staff_id === staff.id);
-      if (sRecords.length === 0) return;
-
-      const lateDaysCount = sRecords.length;
-      const totalLateMinutes = sRecords.reduce((sum, r) => sum + (r.late_minutes || 0), 0);
-      const maxLateMinutes = Math.max(...sRecords.map(r => r.late_minutes || 0));
-      const averageLateMinutes = Math.round((totalLateMinutes / lateDaysCount) * 10) / 10;
-      const lastLateDate = sRecords.map(r => r.attendance_date).sort().reverse()[0] || '-';
-
-      result.push({
-        staff_id: staff.id,
-        staff_name: staff.name,
-        staff_number: staff.staff_number,
-        staff_type: staff.staff_type,
-        department: staff.department,
-        late_days_count: lateDaysCount,
-        total_late_minutes: totalLateMinutes,
-        average_late_minutes: averageLateMinutes,
-        max_late_minutes: maxLateMinutes,
-        last_late_date: lastLateDate,
-      });
-    });
-
-    return result.sort((a, b) => b.total_late_minutes - a.total_late_minutes);
-  }
-
-  // =========================================================================
-  // REPORT 4: MISSING CHECKOUT REPORT
-  // =========================================================================
-  public static getMissingCheckoutReport(filters: StaffAnalyticsFilters, user?: User): MissingCheckoutItem[] {
-    const staffList = this.filterStaffList(filters, user);
-    const staffMap = new Map<number, Staff>();
-    staffList.forEach(s => staffMap.set(s.id, s));
-
-    const startDate = filters.date_from;
-    const endDate = filters.date_to;
-    const records = StaffAttendanceService.getRecords().filter(r => 
-      r.attendance_type === 'daily' &&
-      r.attendance_date >= startDate &&
-      r.attendance_date <= endDate &&
-      r.check_in_at && 
-      !r.check_out_at &&
-      !['permission', 'sick', 'leave', 'absent'].includes(r.status) &&
-      staffMap.has(r.staff_id)
-    );
-
-    return records.map(r => {
-      const staff = staffMap.get(r.staff_id)!;
-      const schedule = StaffWorkScheduleResolver.resolveStaffSchedule(staff, r.attendance_date);
-      return {
-        record_id: r.id,
-        date: r.attendance_date,
-        staff_id: staff.id,
-        staff_name: staff.name,
-        staff_type: staff.staff_type,
-        check_in_at: r.check_in_at ? r.check_in_at.substring(11, 16) : '-',
-        expected_end: schedule?.scheduled_end_at || '16:00',
-        department: staff.department,
-        method: r.check_in_method || undefined,
-      };
-    });
-  }
 
   // =========================================================================
   // REPORT 5: DAILY TEACHING REPORT
@@ -598,86 +514,6 @@ export class StaffReportQueryService {
     });
   }
 
-  // =========================================================================
-  // REPORT 9: EXTRACURRICULAR MONTHLY REALIZATION REPORT
-  // =========================================================================
-  public static getExtracurricularMonthlyReport(filters: StaffAnalyticsFilters): ExtracurricularMonthlyRecapItem[] {
-    const startDate = filters.date_from;
-    const endDate = filters.date_to;
-    const allSessions = TrainingSessionService.getTrainingSessions().filter(s => 
-      s.session_date >= startDate && s.session_date <= endDate
-    );
-    const allRecords = StaffAttendanceService.getRecords().filter(r => 
-      r.attendance_type === 'training' &&
-      r.attendance_date >= startDate &&
-      r.attendance_date <= endDate
-    );
-
-    const recordBySession = new Map<number, StaffAttendanceRecord>();
-    allRecords.forEach(r => {
-      if (r.context_id) recordBySession.set(r.context_id, r);
-    });
-
-    const ekskulMap = new Map<number, { name: string; sessions: TrainingSession[] }>();
-    allSessions.forEach(s => {
-      if (!ekskulMap.has(s.extracurricular_id)) {
-        ekskulMap.set(s.extracurricular_id, { name: s.extracurricular_name, sessions: [] });
-      }
-      ekskulMap.get(s.extracurricular_id)!.sessions.push(s);
-    });
-
-    const result: ExtracurricularMonthlyRecapItem[] = [];
-
-    ekskulMap.forEach((val, ekskulId) => {
-      const totalSessions = val.sessions.length;
-      const cancelledSessions = val.sessions.filter(s => s.status === 'cancelled').length;
-      const eligibleSessions = totalSessions - cancelledSessions;
-      const realizedSessions = val.sessions.filter(s => s.realization_status === 'realized').length;
-
-      let trainerAttended = 0;
-      let trainerLate = 0;
-      let totalStudents = 0;
-      let sessionsWithStudents = 0;
-
-      val.sessions.forEach(s => {
-        if (s.status === 'cancelled') return;
-        const rec = recordBySession.get(s.id);
-        if (rec) {
-          if (rec.status === 'present') trainerAttended++;
-          else if (rec.status === 'late') {
-            trainerAttended++;
-            trainerLate++;
-          }
-        }
-        if (s.student_present_count) {
-          totalStudents += s.student_present_count;
-          sessionsWithStudents++;
-        }
-      });
-
-      const avgStudents = sessionsWithStudents > 0 ? Math.round(totalStudents / sessionsWithStudents) : 0;
-      const trainerRate = StaffAttendanceMetricService.calculateTrainingRate(trainerAttended, eligibleSessions);
-      const realRate = StaffAttendanceMetricService.calculateRealizationRate(realizedSessions, eligibleSessions);
-      const needsReview = val.sessions.filter(s => s.status !== 'cancelled' && s.realization_status !== 'realized').length;
-
-      result.push({
-        extracurricular_id: ekskulId,
-        extracurricular_name: val.name,
-        total_sessions: totalSessions,
-        eligible_sessions: eligibleSessions,
-        realized_sessions: realizedSessions,
-        cancelled_sessions: cancelledSessions,
-        trainer_attended_count: trainerAttended,
-        trainer_late_count: trainerLate,
-        trainer_attendance_rate: trainerRate,
-        realization_rate: realRate,
-        avg_student_attendance: avgStudents,
-        needs_review_count: needsReview,
-      });
-    });
-
-    return result;
-  }
 
   // =========================================================================
   // REPORT 10: STAFF ABSENCE REPORT (IZIN / SAKIT / CUTI / DINAS)
@@ -728,105 +564,6 @@ export class StaffReportQueryService {
     });
   }
 
-  // =========================================================================
-  // REPORT 11: CROSS-DOMAIN OPERATIONAL SUMMARY (SIDE-BY-SIDE)
-  // =========================================================================
-  public static getStaffCrossDomainSummary(filters: StaffAnalyticsFilters, user?: User): StaffCrossDomainSummaryItem[] {
-    const staffList = this.filterStaffList(filters, user);
-    const today = filters.date_from || new Date().toISOString().substring(0, 10);
-    const currentMonth = today.substring(0, 7);
-
-    const allDailyRecords = StaffAttendanceService.getRecords().filter(r => r.attendance_type === 'daily');
-    const allTeachingSessions = TeachingSessionService.getTeachingSessions();
-    const allTrainingSessions = TrainingSessionService.getTrainingSessions();
-    const activeAbsences = StaffAttendanceService.getAbsenceRequests().filter(r => 
-      r.status === 'approved' && r.start_at <= today && r.end_at >= today
-    );
-
-    return staffList.map(staff => {
-      // Daily today
-      const todayDaily = allDailyRecords.find(r => r.staff_id === staff.id && r.attendance_date === today);
-      const todayAbsence = activeAbsences.find(r => r.staff_id === staff.id);
-
-      let dailyStatusToday = 'Belum Hadir';
-      let dailyCheckIn: string | undefined;
-
-      if (todayAbsence) {
-        dailyStatusToday = `Izin: ${todayAbsence.type.toUpperCase()}`;
-      } else if (todayDaily) {
-        dailyStatusToday = todayDaily.status.toUpperCase();
-        dailyCheckIn = todayDaily.check_in_at ? todayDaily.check_in_at.substring(11, 16) : undefined;
-      }
-
-      // Teaching today
-      let teachingToday = '-';
-      if (staff.staff_type === 'teacher') {
-        const tSessions = allTeachingSessions.filter(s => 
-          s.session_date === today && 
-          (s.scheduled_teacher_staff_id === staff.id || s.actual_teacher_staff_id === staff.id) &&
-          s.status !== 'cancelled'
-        );
-        if (tSessions.length > 0) {
-          const completed = tSessions.filter(s => s.status === 'completed').length;
-          teachingToday = `${completed}/${tSessions.length} Sesi`;
-        } else {
-          teachingToday = '0 Sesi';
-        }
-      }
-
-      // Training today
-      let trainingToday = '-';
-      if (staff.staff_type === 'trainer') {
-        const trSessions = allTrainingSessions.filter(s => 
-          s.session_date === today && 
-          (s.primary_staff_id === staff.id || s.actual_primary_staff_id === staff.id) &&
-          s.status !== 'cancelled'
-        );
-        if (trSessions.length > 0) {
-          const realized = trSessions.filter(s => s.realization_status === 'realized').length;
-          trainingToday = `${realized}/${trSessions.length} Sesi`;
-        } else {
-          trainingToday = '0 Sesi';
-        }
-      }
-
-      // Monthly rates
-      const mDaily = allDailyRecords.filter(r => r.staff_id === staff.id && r.attendance_date.startsWith(currentMonth));
-      const mPresent = mDaily.filter(r => r.status === 'present' || r.status === 'late').length;
-      const mExpectedDays = 24; // Standard month working days baseline
-      const dailyRate = StaffAttendanceMetricService.calculatePresenceRate(mPresent, 0, mExpectedDays);
-
-      let teachingRate: number | null = null;
-      if (staff.staff_type === 'teacher') {
-        const mTSessions = allTeachingSessions.filter(s => s.scheduled_teacher_staff_id === staff.id && s.session_date.startsWith(currentMonth) && s.status !== 'cancelled');
-        const attended = mTSessions.filter(s => s.status === 'completed').length;
-        teachingRate = StaffAttendanceMetricService.calculateTeachingRate(attended, mTSessions.length);
-      }
-
-      let trainingRate: number | null = null;
-      if (staff.staff_type === 'trainer') {
-        const mTrSessions = allTrainingSessions.filter(s => s.primary_staff_id === staff.id && s.session_date.startsWith(currentMonth) && s.status !== 'cancelled');
-        const attended = mTrSessions.filter(s => s.realization_status === 'realized').length;
-        trainingRate = StaffAttendanceMetricService.calculateTrainingRate(attended, mTrSessions.length);
-      }
-
-      return {
-        staff_id: staff.id,
-        staff_name: staff.name,
-        staff_number: staff.staff_number,
-        staff_type: staff.staff_type,
-        department: staff.department,
-        daily_status_today: dailyStatusToday,
-        daily_check_in: dailyCheckIn,
-        teaching_today: teachingToday,
-        training_today: trainingToday,
-        current_month_daily_rate: dailyRate,
-        current_month_teaching_rate: teachingRate,
-        current_month_training_rate: trainingRate,
-        active_absence: todayAbsence ? todayAbsence.reason : null,
-      };
-    });
-  }
 
   // =========================================================================
   // REPORT 12: STAFF 360 PROFILE & HISTORY
@@ -936,95 +673,5 @@ export class StaffReportQueryService {
     };
   }
 
-  // =========================================================================
-  // EXPORT UTILITIES: CSV & CLEAN PRINTABLE BUILDER
-  // =========================================================================
-  public static exportToCsv(filename: string, headers: string[], rows: (string | number | null | undefined)[][]): void {
-    const escapeCsv = (val: any): string => {
-      if (val === null || val === undefined) return '""';
-      const str = String(val).replace(/"/g, '""');
-      return `"${str}"`;
-    };
 
-    const csvContent = [
-      headers.map(escapeCsv).join(','),
-      ...rows.map(row => row.map(escapeCsv).join(','))
-    ].join('\r\n');
-
-    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', `${filename}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  }
-
-  public static printDocument(title: string, contentHtml: string): void {
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
-      alert('Mohon izinkan pop-up untuk mencetak laporan.');
-      return;
-    }
-
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>${title} - SIUBA Pesantren</title>
-          <style>
-            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 20px; color: #18181b; font-size: 12px; }
-            .kop { border-bottom: 3px double #18181b; padding-bottom: 12px; margin-bottom: 16px; text-align: center; }
-            .kop h2 { margin: 0; font-size: 18px; text-transform: uppercase; letter-spacing: 0.5px; }
-            .kop h3 { margin: 2px 0; font-size: 14px; font-weight: normal; color: #3f3f46; }
-            .kop p { margin: 2px 0; font-size: 10px; color: #71717a; }
-            .report-title { text-align: center; margin: 16px 0; }
-            .report-title h1 { margin: 0; font-size: 16px; font-weight: bold; }
-            .report-title p { margin: 2px 0; font-size: 11px; color: #52525b; }
-            table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 11px; }
-            th, td { border: 1px solid #d4d4d8; padding: 6px 8px; text-align: left; }
-            th { background-color: #f4f4f5; font-weight: bold; text-transform: uppercase; font-size: 10px; }
-            .text-right { text-align: right; }
-            .text-center { text-align: center; }
-            .signature-box { margin-top: 40px; display: flex; justify-content: space-between; }
-            .sign-col { text-align: center; width: 200px; }
-            .sign-line { margin-top: 60px; border-bottom: 1px solid #18181b; }
-            @media print {
-              body { margin: 0; }
-              button { display: none; }
-            }
-          </style>
-        </head>
-        <body>
-          <div class="kop">
-            <h2>PONDOK PESANTREN TAHFIDZ UTSMAN BIN AFFAN</h2>
-            <h3>SISTEM INFORMASI UTSMAN BIN AFFAN (SIUBA v1.1.4 PRODUCTION)</h3>
-            <p>Sekretariat Pusat: Jl. Pesantren No. 01, Kompleks Kampus Putra & Putri | Telp: (021) 8899-7766</p>
-          </div>
-          ${contentHtml}
-          <div class="signature-box">
-            <div class="sign-col">
-              <div>Mengetahui,</div>
-              <div style="font-weight:bold; margin-top: 2px;">Kepala Bagian SDM / HRD</div>
-              <div class="sign-line"></div>
-              <div style="margin-top: 4px; font-size: 10px;">NIP. 19850612 201101 1 002</div>
-            </div>
-            <div class="sign-col">
-              <div>Dicetak Tanggal: ${new Date().toLocaleDateString('id-ID')}</div>
-              <div style="font-weight:bold; margin-top: 2px;">Petugas Administrasi SDM</div>
-              <div class="sign-line"></div>
-              <div style="margin-top: 4px; font-size: 10px;">SIUBA Automated Engine</div>
-            </div>
-          </div>
-          <script>
-            window.onload = function() {
-              window.print();
-            }
-          </script>
-        </body>
-      </html>
-    `);
-    printWindow.document.close();
-  }
 }

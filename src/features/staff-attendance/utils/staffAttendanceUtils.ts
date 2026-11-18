@@ -113,6 +113,7 @@ export function formatTeachingSessionStatus(status?: TeachingSessionStatus | str
     case 'scheduled':
       return { label: 'Terjadwal', badgeClass: 'bg-blue-500/10 text-blue-400 border-blue-500/30' };
     case 'in_progress':
+    case 'open':
       return { label: 'Berlangsung', badgeClass: 'bg-amber-500/10 text-amber-400 border-amber-500/30 animate-pulse' };
     case 'completed':
       return { label: 'Selesai', badgeClass: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' };

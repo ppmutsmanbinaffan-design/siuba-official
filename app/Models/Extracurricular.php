@@ -46,4 +46,9 @@ class Extracurricular extends Model
     {
         return $this->hasMany(ExtracurricularMember::class);
     }
+
+    public function assistantCoach(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(User::class, 'assistant_coach_id');
+    }
 }

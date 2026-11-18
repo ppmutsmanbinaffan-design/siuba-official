@@ -11,7 +11,7 @@ export interface ConfirmDialogProps {
   message: React.ReactNode;
   confirmLabel?: string;
   cancelLabel?: string;
-  variant?: 'danger' | 'warning' | 'info';
+  variant?: 'danger' | 'warning' | 'info' | 'primary';
   isLoading?: boolean;
 }
 
@@ -23,9 +23,10 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   message,
   confirmLabel = 'Konfirmasi',
   cancelLabel = 'Batal',
-  variant = 'danger',
+  variant: variantProp = 'danger',
   isLoading = false,
 }) => {
+  const variant: 'danger' | 'warning' | 'info' = variantProp === 'primary' ? 'info' : variantProp;
   const icons = {
     danger: <Trash2 className="w-5 h-5 text-rose-600" />,
     warning: <AlertTriangle className="w-5 h-5 text-amber-600" />,

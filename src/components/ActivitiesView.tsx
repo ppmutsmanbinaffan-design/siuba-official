@@ -1,27 +1,21 @@
 import React, { useState } from 'react';
+import { getInstitution } from '../services/institutionService';
 import { 
   CalendarDays, 
   Plus, 
-  Check, 
   X, 
-  Clock, 
   MapPin, 
-  ShieldCheck,
   QrCode,
   Radio,
   ClipboardCheck,
-  Sparkles,
   Users,
   Award,
   BookOpen,
-  Home,
-  GraduationCap,
   Eye,
   Settings2,
   Filter,
   Search,
   Trash2,
-  Layers,
   Activity as ActivityIcon,
   MoonStar
 } from 'lucide-react';
@@ -146,15 +140,15 @@ export const ActivitiesView: React.FC<ActivitiesViewProps> = ({
   const totalActivities = safeActivities.length;
   const prayerActivities = safeActivities.filter((a) => {
     const cat = safeCategories.find((c) => c.id === a.activity_category_id);
-    return cat?.code === 'prayer' || a.name.toLowerCase().includes('shalat') || a.name.toLowerCase().includes('sholat');
+    return cat?.code === 'IBADAH' || a.name.toLowerCase().includes('shalat') || a.name.toLowerCase().includes('sholat');
   }).length;
   const academicActivities = safeActivities.filter((a) => {
     const cat = safeCategories.find((c) => c.id === a.activity_category_id);
-    return cat?.code === 'kbm' || cat?.code === 'halaqah' || a.name.toLowerCase().includes('kbm') || a.name.toLowerCase().includes('tahfidz');
+    return cat?.code === 'AKADEMIK' || cat?.code === 'TAHFIDZ' || a.name.toLowerCase().includes('kbm') || a.name.toLowerCase().includes('tahfidz');
   }).length;
   const extraActivities = safeActivities.filter((a) => {
     const cat = safeCategories.find((c) => c.id === a.activity_category_id);
-    return cat?.code === 'extracurricular' || a.participant_type === 'extracurricular' || a.participant_type === 'custom_group';
+    return cat?.code === 'EKSTRAKURIKULER' || a.participant_type === 'extracurricular' || a.participant_type === 'custom_group';
   }).length;
 
   const filteredActivities = safeActivities.filter((a) => {
@@ -235,7 +229,7 @@ export const ActivitiesView: React.FC<ActivitiesViewProps> = ({
       code: formData.code.trim().toUpperCase(),
       name: formData.name.trim(),
       description: formData.description.trim(),
-      location: formData.location.trim() || 'Pesantren Utsman Bin Affan',
+      location: formData.location.trim() || getInstitution().name,
       participant_type: formData.participant_type,
       participant_gender: formData.participant_gender,
       classroom_id: formData.participant_type === 'classroom' ? Number(formData.classroom_id) : null,
@@ -331,7 +325,7 @@ export const ActivitiesView: React.FC<ActivitiesViewProps> = ({
             <div className="flex items-center gap-2 mb-2 flex-wrap">
               <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-white/15 text-emerald-100 border border-white/20 uppercase tracking-wider flex items-center gap-1 backdrop-blur-xs">
                 <Award className="w-3 h-3 text-[#C9A227]" />
-                SIUBA v1.1.3 PRODUCTION
+                SIUBA
               </span>
               <span className="text-[11px] text-emerald-100 font-bold bg-black/25 px-2.5 py-0.5 rounded-full border border-white/15 backdrop-blur-xs">
                 Master Jadwal & Aturan Presensi

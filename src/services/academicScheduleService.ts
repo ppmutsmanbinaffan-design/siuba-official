@@ -17,15 +17,6 @@ export class AcademicScheduleService {
     return labels[day] || day;
   }
 
-  /**
-   * Resolve DayOfWeek from JS Date object or string "YYYY-MM-DD"
-   */
-  public static resolveDayOfWeek(dateInput: Date | string): DayOfWeek {
-    const d = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
-    const dayIndex = d.getDay(); // 0 = Sunday, 1 = Monday, ...
-    const map: DayOfWeek[] = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-    return map[dayIndex];
-  }
 
   /**
    * Validate potential schedule entry against conflicts:

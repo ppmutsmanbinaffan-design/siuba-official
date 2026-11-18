@@ -4,16 +4,10 @@ import {
   CreditCard, 
   Printer, 
   Search, 
-  Filter, 
   CheckSquare, 
   Square, 
-  Layers, 
-  Sparkles, 
   Download, 
-  Eye, 
-  CheckCircle2, 
   FileText,
-  Sliders,
   ChevronDown
 } from 'lucide-react';
 import { 
@@ -24,7 +18,6 @@ import {
   StudentCardTemplate, 
   CardSide 
 } from '../../../types';
-import { CR80_SPECS } from '../../../services/studentCardTemplateService';
 import { StudentCardRenderer } from './StudentCardRenderer';
 import { exportStudentCardToCanvas, downloadCanvasAsPng } from '../utils/cardCanvasExporter';
 
@@ -280,7 +273,7 @@ export const CardBulkGenerateView: React.FC<CardBulkGenerateViewProps> = ({
                 .filter((r) => dormFilter === 'all' || r.dormitory_id === Number(dormFilter))
                 .map((r) => (
                   <option key={r.id} value={r.id} className="text-zinc-900 bg-white font-medium">
-                    {r.room_number} ({r.name})
+                    {r.name}{r.dormitory_name ? ` (${r.dormitory_name})` : ''}
                   </option>
                 ))}
             </select>

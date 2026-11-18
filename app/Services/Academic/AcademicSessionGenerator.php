@@ -112,9 +112,13 @@ class AcademicSessionGenerator
                 $endTimeStr = $period ? $period->end_time : '08:15:00';
 
                 $startAt = Carbon::parse("{$dateStr} {$startTimeStr}", 'Asia/Jakarta');
-                $presentUntil = (clone $startAt)->addMinutes(10);
-                $lateUntil = (clone $startAt)->addMinutes(20);
                 $endAt = Carbon::parse("{$dateStr} {$endTimeStr}", 'Asia/Jakarta');
+                // Toleransi terlambat dari Pengaturan Sistem → Aturan Absensi (bawaan 15 menit)
+                $presentUntil = (clone $startAt)->addMinutes(\App\Services\Attendance\SessionService::toleranceFor());
+                if ($presentUntil->gt($endAt)) {
+                    $presentUntil = clone $endAt;
+                }
+                $lateUntil = clone $endAt;
 
                 // Determine or resolve activity
                 $activityId = $schedule->activity_id;
@@ -125,7 +129,10 @@ class AcademicSessionGenerator
                         ['code' => $activityCode],
                         [
                             'name' => "KBM {$schedule->subject->name} ({$schedule->classroom->name})",
-                            'activity_category_id' => 1,
+                            // dulu di-hardcode id 1 (gagal jika kategori itu tidak ada)
+                            'activity_category_id' => \App\Models\ActivityCategory::firstOrCreate(
+                                ['code' => 'AKADEMIK'], ['name' => 'Akademik / KBM']
+                            )->id,
                             'allow_manual' => true,
                             'allow_qr' => true,
                             'allow_rfid' => false,

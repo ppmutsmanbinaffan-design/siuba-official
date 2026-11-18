@@ -1,16 +1,15 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Staff, UserRole } from '../../../types';
-import { staffApi, StaffListParams } from '../api/staffApi';
+import { staffApi } from '../api/staffApi';
 import { StaffTable } from '../components/StaffTable';
 import { StaffMobileCard } from '../components/StaffMobileCard';
 import { StaffFilters, StaffFilterValues } from '../components/StaffFilters';
-import { PageHeader } from '../../../components/layout/PageHeader';
 import { Input } from '../../../components/ui/Input';
 import { Button } from '../../../components/ui/Button';
 import { FilterDrawer } from '../../../components/ui/FilterDrawer';
 import { ConfirmDialog } from '../../../components/ui/ConfirmDialog';
 import { LoadingState, EmptyState } from '../../../components/ui/LoadingState';
-import { Plus, Search, Filter as FilterIcon, RotateCcw, AlertTriangle, Briefcase, Users, Sparkles, Upload } from 'lucide-react';
+import { Plus, Search, Filter as FilterIcon, RotateCcw, AlertTriangle, Briefcase, Users, Upload } from 'lucide-react';
 import { hasPermission } from '../../../components/auth/PermissionGuard';
 import { DataImportModal } from '../../../components/common/DataImportModal';
 

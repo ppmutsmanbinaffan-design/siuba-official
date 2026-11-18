@@ -1,10 +1,10 @@
-import { apiClient, ApiClientError } from '../../../services/apiClient';
+import { apiClient, isOfflineError, resultFromApiError } from '../../../services/apiClient';
+import { OfflineStorageService } from '../../../services/offlineStorageService';
 import { 
   Activity,
   AttendanceCorrectionResult,
   AttendanceDevice, 
   AttendanceDeviceLog, 
-  AttendanceMethod, 
   AttendanceRecord, 
   AttendanceRecordHistory, 
   AttendanceResult, 
@@ -17,22 +17,11 @@ import {
   ParticipantFilterOptions, 
   QrAttendanceResponse, 
   SessionFilterOptions, 
-  SessionStatus, 
   Student, 
   User 
 } from '../types';
-import { 
-  INITIAL_ACTIVITIES, 
-  INITIAL_DEVICES as INITIAL_ATTENDANCE_DEVICES, 
-  INITIAL_DEVICE_LOGS as INITIAL_ATTENDANCE_DEVICE_LOGS, 
-  INITIAL_RECORDS as INITIAL_ATTENDANCE_RECORDS, 
-  INITIAL_SESSIONS as INITIAL_ATTENDANCE_SESSIONS, 
-  INITIAL_SESSION_PARTICIPANTS as INITIAL_ATTENDANCE_SESSION_PARTICIPANTS, 
-  INITIAL_STUDENTS 
-} from '../../../data/initialData';
 import { AttendanceEngine } from '../../../services/attendanceEngine';
 import { QrAttendanceService } from '../../../services/qrAttendanceService';
-import { RfidAttendanceService } from '../../../services/rfidAttendanceService';
 import { isDevelopmentToolsEnabled } from '../../../utils/devTools';
 
 const SESSIONS_STORAGE_KEY = 'siuba_attendance_sessions_cache';
@@ -43,6 +32,46 @@ const DEVICES_STORAGE_KEY = 'siuba_attendance_devices_cache';
 const DEVICE_LOGS_STORAGE_KEY = 'siuba_device_logs_cache';
 
 // Helper for local state cache synchronization
+/**
+ * Absensi yang dicatat saat server tidak terjangkau dimasukkan ke antrean sinkron (dikirim otomatis ke server
+ * saat koneksi kembali). Sebelumnya hanya tersimpan di cache browser lalu tertimpa data server — hilang.
+ */
+function queueOfflineAttendance(params: {
+  sessionId: number;
+  studentId: number;
+  method: 'manual' | 'qr' | 'rfid';
+  status: string;
+  notes?: string;
+  operator?: User | null;
+}): void {
+  const students = getLocalCache<Student[]>('siuba_master_students', []);
+  const sessions = getLocalCache<AttendanceSession[]>(SESSIONS_STORAGE_KEY, []);
+  const st = students.find((x) => x.id === params.studentId);
+  const se = sessions.find((x) => x.id === params.sessionId);
+  OfflineStorageService.addPendingAttendance({
+    sessionId: params.sessionId,
+    sessionCode: (se as any)?.session_code,
+    activityName: (se as any)?.activity_name,
+    studentId: params.studentId,
+    studentNumber: (st as any)?.student_number || String(params.studentId),
+    studentName: st?.name || `Santri #${params.studentId}`,
+    classroomName: (st as any)?.classroom || (st as any)?.classroom_name,
+    method: params.method as any,
+    status: params.status as any,
+    notes: params.notes,
+    operatorId: params.operator?.id || 0,
+    operatorName: params.operator?.name || 'Operator',
+  });
+}
+
+/** Gabungkan data server ke cache lokal (per id) tanpa menghapus entri lain — agar fallback offline punya data sesi terbaru. */
+function mergeCacheById<T extends { id: number }>(key: string, items: T[], dropWhere?: (x: T) => boolean): void {
+  const current = getLocalCache<T[]>(key, []);
+  const ids = new Set(items.map((x) => x.id));
+  const kept = current.filter((x) => !ids.has(x.id) && !(dropWhere && dropWhere(x)));
+  setLocalCache(key, [...kept, ...items]);
+}
+
 function getLocalCache<T>(key: string, defaultData: T): T {
   if (typeof window === 'undefined') return defaultData;
   try {
@@ -83,15 +112,16 @@ export const attendanceApi = {
       const endpoint = `/attendance/sessions${params.toString() ? `?${params.toString()}` : ''}`;
       const res = await apiClient.request<AttendanceSession[]>(endpoint);
       if (res && res.data && Array.isArray(res.data)) {
-        setLocalCache(SESSIONS_STORAGE_KEY, res.data);
+        mergeCacheById(SESSIONS_STORAGE_KEY, res.data);
         return res.data;
       }
     } catch (err: any) {
+      if (!isOfflineError(err)) throw err;
       // Fallback to local storage cache
       console.warn('API /attendance/sessions request fallback to cache:', err.message);
     }
 
-    let sessions = getLocalCache<AttendanceSession[]>(SESSIONS_STORAGE_KEY, INITIAL_ATTENDANCE_SESSIONS);
+    let sessions = getLocalCache<AttendanceSession[]>(SESSIONS_STORAGE_KEY, []);
 
     if (filters.date) {
       sessions = sessions.filter((s) => s.session_date === filters.date);
@@ -120,12 +150,16 @@ export const attendanceApi = {
   async getSessionById(sessionId: number): Promise<AttendanceSession | null> {
     try {
       const res = await apiClient.request<AttendanceSession>(`/attendance/sessions/${sessionId}`);
-      if (res && res.data) return res.data;
+      if (res && res.data) {
+        mergeCacheById(SESSIONS_STORAGE_KEY, [res.data]);
+        return res.data;
+      }
     } catch (err: any) {
+      if (!isOfflineError(err)) throw err;
       console.warn(`API /attendance/sessions/${sessionId} failed:`, err.message);
     }
 
-    const sessions = getLocalCache<AttendanceSession[]>(SESSIONS_STORAGE_KEY, INITIAL_ATTENDANCE_SESSIONS);
+    const sessions = getLocalCache<AttendanceSession[]>(SESSIONS_STORAGE_KEY, []);
     return sessions.find((s) => s.id === sessionId) || null;
   },
 
@@ -145,16 +179,17 @@ export const attendanceApi = {
       const endpoint = `/attendance/sessions/${sessionId}/participants${params.toString() ? `?${params.toString()}` : ''}`;
       const res = await apiClient.request<AttendanceSessionParticipant[]>(endpoint);
       if (res && res.data && Array.isArray(res.data)) {
+        if (!filters.search && (!filters.classroomId || filters.classroomId === 'all')) {
+          mergeCacheById(PARTICIPANTS_STORAGE_KEY, res.data as any, (p: any) => p.attendance_session_id === sessionId);
+        }
         return res.data;
       }
     } catch (err: any) {
+      if (!isOfflineError(err)) throw err;
       console.warn(`API /attendance/sessions/${sessionId}/participants failed:`, err.message);
     }
 
-    const allParticipants = getLocalCache<AttendanceSessionParticipant[]>(
-      PARTICIPANTS_STORAGE_KEY,
-      INITIAL_ATTENDANCE_SESSION_PARTICIPANTS
-    );
+    const allParticipants = getLocalCache<AttendanceSessionParticipant[]>(PARTICIPANTS_STORAGE_KEY, []);
 
     let list = allParticipants.filter((p) => p.attendance_session_id === sessionId);
 
@@ -177,33 +212,33 @@ export const attendanceApi = {
     try {
       const res = await apiClient.request<AttendanceRecord[]>(`/attendance/sessions/${sessionId}/records`);
       if (res && res.data && Array.isArray(res.data)) {
+        mergeCacheById(RECORDS_STORAGE_KEY, res.data as any, (r: any) => r.attendance_session_id === sessionId);
         return res.data;
       }
     } catch (err: any) {
+      if (!isOfflineError(err)) throw err;
       console.warn(`API /attendance/sessions/${sessionId}/records failed:`, err.message);
     }
 
-    const allRecords = getLocalCache<AttendanceRecord[]>(RECORDS_STORAGE_KEY, INITIAL_ATTENDANCE_RECORDS);
+    const allRecords = getLocalCache<AttendanceRecord[]>(RECORDS_STORAGE_KEY, []);
     return allRecords.filter((r) => r.attendance_session_id === sessionId);
   },
 
   /**
    * Fetch today's summary KPI across sessions
    */
-  async getTodayKpi(date: string = '2026-08-23'): Promise<AttendanceTodayKpi> {
+  async getTodayKpi(date: string = new Date().toLocaleDateString('sv-SE')): Promise<AttendanceTodayKpi> {
     try {
       const res = await apiClient.request<AttendanceTodayKpi>(`/attendance/kpi?date=${date}`);
       if (res && res.data) return res.data;
-    } catch {
+    } catch (err: any) {
+      if (!isOfflineError(err)) throw err;
       // fallback
     }
 
     const sessions = (await this.getSessions({ date })).filter((s) => s.session_date === date);
-    const allParticipants = getLocalCache<AttendanceSessionParticipant[]>(
-      PARTICIPANTS_STORAGE_KEY,
-      INITIAL_ATTENDANCE_SESSION_PARTICIPANTS
-    );
-    const allRecords = getLocalCache<AttendanceRecord[]>(RECORDS_STORAGE_KEY, INITIAL_ATTENDANCE_RECORDS);
+    const allParticipants = getLocalCache<AttendanceSessionParticipant[]>(PARTICIPANTS_STORAGE_KEY, []);
+    const allRecords = getLocalCache<AttendanceRecord[]>(RECORDS_STORAGE_KEY, []);
 
     const sessionIds = new Set(sessions.map((s) => s.id));
     const todayParticipants = allParticipants.filter((p) => sessionIds.has(p.attendance_session_id));
@@ -254,10 +289,12 @@ export const attendanceApi = {
         return res.data;
       }
     } catch (err: any) {
+      if (!isOfflineError(err)) throw err;
+      throw new Error('Server tidak terjangkau: membuka sesi membutuhkan koneksi ke server. Absensi santri tetap bisa dicatat offline.');
       console.warn(`API /attendance/sessions/${sessionId}/open failed:`, err.message);
     }
 
-    const sessions = getLocalCache<AttendanceSession[]>(SESSIONS_STORAGE_KEY, INITIAL_ATTENDANCE_SESSIONS);
+    const sessions = getLocalCache<AttendanceSession[]>(SESSIONS_STORAGE_KEY, []);
     const index = sessions.findIndex((s) => s.id === sessionId);
     if (index === -1) throw new Error('Sesi tidak ditemukan.');
 
@@ -284,10 +321,12 @@ export const attendanceApi = {
       });
       if (res && res.data) return res.data;
     } catch (err: any) {
+      if (!isOfflineError(err)) throw err;
+      throw new Error('Server tidak terjangkau: menutup sesi membutuhkan koneksi ke server. Absensi santri tetap bisa dicatat offline.');
       console.warn(`API /attendance/sessions/${sessionId}/close failed:`, err.message);
     }
 
-    const sessions = getLocalCache<AttendanceSession[]>(SESSIONS_STORAGE_KEY, INITIAL_ATTENDANCE_SESSIONS);
+    const sessions = getLocalCache<AttendanceSession[]>(SESSIONS_STORAGE_KEY, []);
     const index = sessions.findIndex((s) => s.id === sessionId);
     if (index === -1) throw new Error('Sesi tidak ditemukan.');
 
@@ -318,10 +357,12 @@ export const attendanceApi = {
       });
       if (res && res.data) return res.data;
     } catch (err: any) {
+      if (!isOfflineError(err)) throw err;
+      throw new Error('Server tidak terjangkau: membatalkan sesi membutuhkan koneksi ke server. Absensi santri tetap bisa dicatat offline.');
       console.warn(`API /attendance/sessions/${sessionId}/cancel failed:`, err.message);
     }
 
-    const sessions = getLocalCache<AttendanceSession[]>(SESSIONS_STORAGE_KEY, INITIAL_ATTENDANCE_SESSIONS);
+    const sessions = getLocalCache<AttendanceSession[]>(SESSIONS_STORAGE_KEY, []);
     const index = sessions.findIndex((s) => s.id === sessionId);
     if (index === -1) throw new Error('Sesi tidak ditemukan.');
 
@@ -363,34 +404,27 @@ export const attendanceApi = {
       });
       if (res && res.data) return res.data;
     } catch (err: any) {
-      if (err instanceof ApiClientError && err.status === 422) {
-        return {
-          success: false,
-          code: 'ALREADY_RECORDED',
-          message: err.message || 'Santri sudah memiliki absensi pada sesi ini.',
-        };
-      }
+      if (!isOfflineError(err)) return resultFromApiError(err);
     }
 
     // Engine simulation fallback
-    const sessions = getLocalCache<AttendanceSession[]>(SESSIONS_STORAGE_KEY, INITIAL_ATTENDANCE_SESSIONS);
+    const sessions = getLocalCache<AttendanceSession[]>(SESSIONS_STORAGE_KEY, []);
     const session = sessions.find((s) => s.id === sessionId);
-    if (!session) {
-      return { success: false, code: 'SESSION_NOT_OPEN', message: 'Sesi absensi tidak ditemukan.' };
-    }
-
-    const students = getLocalCache<Student[]>('siuba_students_cache', INITIAL_STUDENTS);
+    const students = getLocalCache<Student[]>('siuba_master_students', []);
     const student = students.find((s) => s.id === studentId);
-    if (!student) {
-      return { success: false, code: 'STUDENT_NOT_FOUND', message: 'Data santri tidak ditemukan.' };
+    if (!session || !student) {
+      // Data sesi/santri belum ada di cache perangkat ini: tetap simpan ke antrean, server yang memvalidasi saat sinkron.
+      queueOfflineAttendance({ sessionId, studentId, method: 'manual', status, notes, operator });
+      return {
+        success: true,
+        code: 'SUCCESS',
+        message: 'Server tidak terjangkau. Absensi disimpan di antrean offline dan akan dikirim otomatis saat koneksi kembali.',
+      } as AttendanceResult;
     }
 
-    const participants = getLocalCache<AttendanceSessionParticipant[]>(
-      PARTICIPANTS_STORAGE_KEY,
-      INITIAL_ATTENDANCE_SESSION_PARTICIPANTS
-    );
-    const records = getLocalCache<AttendanceRecord[]>(RECORDS_STORAGE_KEY, INITIAL_ATTENDANCE_RECORDS);
-    const activities = getLocalCache<Activity[]>('siuba_master_activities', INITIAL_ACTIVITIES);
+    const participants = getLocalCache<AttendanceSessionParticipant[]>(PARTICIPANTS_STORAGE_KEY, []);
+    const records = getLocalCache<AttendanceRecord[]>(RECORDS_STORAGE_KEY, []);
+    const activities = getLocalCache<Activity[]>('siuba_master_activities', []);
     const activity = activities.find((a) => a.id === session.activity_id) || activities[0] || ({
       id: session.activity_id || 1,
       name: session.activity_name || 'Kegiatan Pesantren',
@@ -422,6 +456,11 @@ export const attendanceApi = {
     if (engineResult.result.success && engineResult.newRecord) {
       records.push(engineResult.newRecord);
       setLocalCache(RECORDS_STORAGE_KEY, records);
+      queueOfflineAttendance({ sessionId, studentId, method: 'manual', status: (engineResult.newRecord as any).status || status, notes, operator });
+      return {
+        ...engineResult.result,
+        message: 'Server tidak terjangkau. Absensi disimpan di antrean offline dan akan dikirim otomatis saat koneksi kembali.',
+      };
     }
 
     return engineResult.result;
@@ -449,31 +488,32 @@ export const attendanceApi = {
         }),
       });
       if (res && res.data) return res.data;
-    } catch {
+    } catch (err: any) {
+      if (!isOfflineError(err)) {
+        return { total: studentIds.length, success: 0, skipped: 0, failed: studentIds.length, messages: [resultFromApiError(err).message], newRecords: [] };
+      }
       // fallback
     }
 
-    const sessions = getLocalCache<AttendanceSession[]>(SESSIONS_STORAGE_KEY, INITIAL_ATTENDANCE_SESSIONS);
+    const sessions = getLocalCache<AttendanceSession[]>(SESSIONS_STORAGE_KEY, []);
     const session = sessions.find((s) => s.id === sessionId);
     if (!session) {
+      studentIds.forEach((sid) => queueOfflineAttendance({ sessionId, studentId: sid, method: 'manual', status, notes, operator }));
       return {
         total: studentIds.length,
-        success: 0,
+        success: studentIds.length,
         skipped: 0,
-        failed: studentIds.length,
-        messages: ['Sesi absensi tidak ditemukan.'],
+        failed: 0,
+        messages: ['Server tidak terjangkau. Absensi disimpan di antrean offline dan akan dikirim otomatis saat koneksi kembali.'],
         newRecords: [],
       };
     }
 
-    const students = getLocalCache<Student[]>('siuba_students_cache', INITIAL_STUDENTS);
+    const students = getLocalCache<Student[]>('siuba_master_students', []);
     const targetStudents = students.filter((st) => studentIds.includes(st.id));
-    const participants = getLocalCache<AttendanceSessionParticipant[]>(
-      PARTICIPANTS_STORAGE_KEY,
-      INITIAL_ATTENDANCE_SESSION_PARTICIPANTS
-    );
-    const records = getLocalCache<AttendanceRecord[]>(RECORDS_STORAGE_KEY, INITIAL_ATTENDANCE_RECORDS);
-    const activities = getLocalCache<Activity[]>('siuba_master_activities', INITIAL_ACTIVITIES);
+    const participants = getLocalCache<AttendanceSessionParticipant[]>(PARTICIPANTS_STORAGE_KEY, []);
+    const records = getLocalCache<AttendanceRecord[]>(RECORDS_STORAGE_KEY, []);
+    const activities = getLocalCache<Activity[]>('siuba_master_activities', []);
     const activity = activities.find((a) => a.id === session.activity_id) || activities[0] || ({
       id: session.activity_id || 1,
       name: session.activity_name || 'Kegiatan Pesantren',
@@ -497,6 +537,9 @@ export const attendanceApi = {
     if (bulkResult.newRecords.length > 0) {
       records.push(...bulkResult.newRecords);
       setLocalCache(RECORDS_STORAGE_KEY, records);
+      bulkResult.newRecords.forEach((r: any) =>
+        queueOfflineAttendance({ sessionId, studentId: r.student_id, method: 'manual', status: r.status || status, notes, operator })
+      );
     }
 
     return bulkResult;
@@ -525,24 +568,15 @@ export const attendanceApi = {
       });
       if (res && res.data) return res.data;
     } catch (err: any) {
-      if (err instanceof ApiClientError && err.status === 422) {
-        return {
-          success: false,
-          code: 'ALREADY_RECORDED',
-          message: err.message || 'Santri sudah memiliki absensi pada sesi ini.',
-        };
-      }
+      if (!isOfflineError(err)) return resultFromApiError(err);
     }
 
-    const sessions = getLocalCache<AttendanceSession[]>(SESSIONS_STORAGE_KEY, INITIAL_ATTENDANCE_SESSIONS);
-    const students = getLocalCache<Student[]>('siuba_students_cache', INITIAL_STUDENTS);
-    const participants = getLocalCache<AttendanceSessionParticipant[]>(
-      PARTICIPANTS_STORAGE_KEY,
-      INITIAL_ATTENDANCE_SESSION_PARTICIPANTS
-    );
-    const records = getLocalCache<AttendanceRecord[]>(RECORDS_STORAGE_KEY, INITIAL_ATTENDANCE_RECORDS);
-    const devices = getLocalCache<AttendanceDevice[]>(DEVICES_STORAGE_KEY, INITIAL_ATTENDANCE_DEVICES);
-    const activities = INITIAL_ACTIVITIES;
+    const sessions = getLocalCache<AttendanceSession[]>(SESSIONS_STORAGE_KEY, []);
+    const students = getLocalCache<Student[]>('siuba_master_students', []);
+    const participants = getLocalCache<AttendanceSessionParticipant[]>(PARTICIPANTS_STORAGE_KEY, []);
+    const records = getLocalCache<AttendanceRecord[]>(RECORDS_STORAGE_KEY, []);
+    const devices = getLocalCache<AttendanceDevice[]>(DEVICES_STORAGE_KEY, []);
+    const activities = getLocalCache<Activity[]>('siuba_master_activities', []);
 
     const qrResult = QrAttendanceService.recordQrAttendance({
       sessionId,
@@ -561,6 +595,7 @@ export const attendanceApi = {
     if (qrResult.newRecord) {
       records.push(qrResult.newRecord);
       setLocalCache(RECORDS_STORAGE_KEY, records);
+      queueOfflineAttendance({ sessionId, studentId: (qrResult.newRecord as any).student_id, method: 'qr', status: (qrResult.newRecord as any).status || 'present', operator });
     }
 
     return qrResult.response;
@@ -594,11 +629,13 @@ export const attendanceApi = {
         }),
       });
       if (res && res.data) return res.data;
-    } catch {
+    } catch (err: any) {
+      if (!isOfflineError(err)) return resultFromApiError(err);
+      return { success: false, code: 'OFFLINE', message: 'Server tidak terjangkau: koreksi status membutuhkan koneksi ke server.' } as any;
       // fallback
     }
 
-    const records = getLocalCache<AttendanceRecord[]>(RECORDS_STORAGE_KEY, INITIAL_ATTENDANCE_RECORDS);
+    const records = getLocalCache<AttendanceRecord[]>(RECORDS_STORAGE_KEY, []);
     const histories = getLocalCache<AttendanceRecordHistory[]>(RECORD_HISTORIES_STORAGE_KEY, []);
 
     const recordIndex = records.findIndex((r) => r.id === recordId);
@@ -664,13 +701,15 @@ export const attendanceApi = {
     try {
       const res = await apiClient.request<AttendanceDevice[]>('/attendance/devices');
       if (res && res.data && Array.isArray(res.data)) {
+        setLocalCache(DEVICES_STORAGE_KEY, res.data);
         return res.data;
       }
-    } catch {
+    } catch (err: any) {
+      if (!isOfflineError(err)) throw err;
       // fallback
     }
 
-    return getLocalCache<AttendanceDevice[]>(DEVICES_STORAGE_KEY, INITIAL_ATTENDANCE_DEVICES);
+    return getLocalCache<AttendanceDevice[]>(DEVICES_STORAGE_KEY, []);
   },
 
   /**
@@ -683,11 +722,12 @@ export const attendanceApi = {
       if (res && res.data && Array.isArray(res.data)) {
         return res.data;
       }
-    } catch {
+    } catch (err: any) {
+      if (!isOfflineError(err)) throw err;
       // fallback
     }
 
-    let logs = getLocalCache<AttendanceDeviceLog[]>(DEVICE_LOGS_STORAGE_KEY, INITIAL_ATTENDANCE_DEVICE_LOGS);
+    let logs = getLocalCache<AttendanceDeviceLog[]>(DEVICE_LOGS_STORAGE_KEY, []);
     if (deviceId) {
       logs = logs.filter((l) => l.attendance_device_id === deviceId);
     }
@@ -703,17 +743,15 @@ export const attendanceApi = {
       if (res && res.data && Array.isArray(res.data)) {
         return res.data;
       }
-    } catch {
+    } catch (err: any) {
+      if (!isOfflineError(err)) throw err;
       // fallback
     }
 
     const sessions = (await this.getSessions()).filter((s) => s.status === 'open');
-    const participants = getLocalCache<AttendanceSessionParticipant[]>(
-      PARTICIPANTS_STORAGE_KEY,
-      INITIAL_ATTENDANCE_SESSION_PARTICIPANTS
-    );
-    const records = getLocalCache<AttendanceRecord[]>(RECORDS_STORAGE_KEY, INITIAL_ATTENDANCE_RECORDS);
-    const activities = INITIAL_ACTIVITIES;
+    const participants = getLocalCache<AttendanceSessionParticipant[]>(PARTICIPANTS_STORAGE_KEY, []);
+    const records = getLocalCache<AttendanceRecord[]>(RECORDS_STORAGE_KEY, []);
+    const activities = getLocalCache<Activity[]>('siuba_master_activities', []);
 
     return sessions.map((session) => {
       const act = activities.find((a) => a.id === session.activity_id);

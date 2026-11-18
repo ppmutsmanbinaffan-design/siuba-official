@@ -35,10 +35,10 @@ export const dataImportService = {
   /**
    * Trigger download of Santri template CSV
    */
-  async downloadStudentTemplate(): Promise<void> {
+  async downloadStudentTemplate(format: 'csv' | 'xlsx' = 'csv'): Promise<void> {
     const token = authService.getState().token || '';
     try {
-      const res = await fetch('/api/v1/import/students/template', {
+      const res = await fetch(`/api/v1/import/students/template${format === 'xlsx' ? '?format=xlsx' : ''}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -49,15 +49,17 @@ export const dataImportService = {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = 'Template_Import_Santri_SIUBA.csv';
+        a.download = 'Template_Import_Santri_SIUBA.' + format;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         window.URL.revokeObjectURL(url);
         return;
       }
-    } catch {
-      // fallback to client-side generation
+      if (format === 'xlsx') throw new Error('Template Excel gagal diunduh dari server.');
+    } catch (e) {
+      if (format === 'xlsx') throw e;
+      // fallback to client-side generation (CSV)
     }
 
     // Client-side fallback template
@@ -96,10 +98,10 @@ export const dataImportService = {
   /**
    * Trigger download of Staff / Teacher / Coach template CSV
    */
-  async downloadStaffTemplate(): Promise<void> {
+  async downloadStaffTemplate(format: 'csv' | 'xlsx' = 'csv'): Promise<void> {
     const token = authService.getState().token || '';
     try {
-      const res = await fetch('/api/v1/import/staff/template', {
+      const res = await fetch(`/api/v1/import/staff/template${format === 'xlsx' ? '?format=xlsx' : ''}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -110,15 +112,17 @@ export const dataImportService = {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = 'Template_Import_Guru_SDM_SIUBA.csv';
+        a.download = 'Template_Import_Guru_SDM_SIUBA.' + format;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         window.URL.revokeObjectURL(url);
         return;
       }
-    } catch {
-      // fallback
+      if (format === 'xlsx') throw new Error('Template Excel gagal diunduh dari server.');
+    } catch (e) {
+      if (format === 'xlsx') throw e;
+      // fallback to client-side generation (CSV)
     }
 
     const headers = [

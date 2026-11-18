@@ -1,11 +1,8 @@
 import React, { useState, useRef } from 'react';
 import { 
   X, 
-  CreditCard, 
   Upload, 
-  Check, 
   AlertTriangle, 
-  Sparkles,
   LayoutTemplate
 } from 'lucide-react';
 import { 

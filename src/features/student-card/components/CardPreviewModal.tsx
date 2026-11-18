@@ -2,14 +2,11 @@ import React, { useState, useEffect } from 'react';
 import QRCode from 'qrcode';
 import { 
   X, 
-  Eye, 
   Download, 
   Printer, 
   Search, 
-  RotateCw, 
   CheckCircle2, 
   User as UserIcon,
-  CreditCard,
   Sparkles
 } from 'lucide-react';
 import { Student, StudentCardTemplate, CardSide } from '../../../types';

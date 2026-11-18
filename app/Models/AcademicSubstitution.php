@@ -40,4 +40,9 @@ class AcademicSubstitution extends Model
     {
         return $this->belongsTo(User::class, 'substitute_teacher_id');
     }
+
+    public function assignedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'assigned_by');
+    }
 }

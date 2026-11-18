@@ -1,26 +1,24 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { startAutoQueueSync } from './services/offlineQueueSync';
+import { startAutoStaffQueueSync } from './features/staff-attendance/offline/staffOfflineQueue';
+import { loadInstitution } from './services/institutionService';
 import { Sidebar } from './components/Sidebar';
 import { TopHeader } from './components/TopHeader';
 import { LoginPage, AuthLoadingScreen, GuestRoute, ProtectedRoute, Forbidden403, NotFound404 } from './components/auth';
 import { authService, AuthStatus } from './services/authService';
 import { getTabFromPath, getPathFromTab } from './utils/router';
-import { hasPermission, getTabRequiredPermission, getFirstAccessibleRoute, can } from './config/navigationRegistry';
-import { AccessScopeService } from './services/accessScopeService';
+import { hasPermission, getTabRequiredPermission, getFirstAccessibleRoute } from './config/navigationRegistry';
 import { DashboardView } from './components/DashboardView';
-import { ManualAttendanceView } from './components/ManualAttendanceView';
 import { ExcuseManagerView } from './components/ExcuseManagerView';
-import { SessionsView } from './components/SessionsView';
-import { StudentsView } from './components/StudentsView';
 import { ActivitiesView } from './components/ActivitiesView';
 import { ExtracurricularsGroupsView } from './components/ExtracurricularsGroupsView';
 import { ClassroomsDormitoriesView } from './components/ClassroomsDormitoriesView';
 import { DevicesView } from './components/DevicesView';
 import { RfidSimulatorView } from './components/RfidSimulatorView';
-import { QrScannerView } from './components/QrScannerView';
 import { QrBulkPrintView } from './components/QrBulkPrintView';
 import { InteractiveScannerSimulator } from './components/InteractiveScannerSimulator';
 import { HistoryView } from './components/HistoryView';
-import { AcceptanceTestView } from './components/AcceptanceTestView';
+import { SystemReadinessView } from './features/golive/SystemReadinessPanel';
 import { AccessControlView } from './components/AccessControlView';
 import { Profile360View } from './components/Profile360View';
 import { SettingsView } from './components/SettingsView';
@@ -37,22 +35,18 @@ import { RoutineScheduleManagerView } from './components/RoutineScheduleManagerV
 import { DutyRosterManagerView } from './components/DutyRosterManagerView';
 import { EventsManagerView } from './components/EventsManagerView';
 import { ExecutiveDashboardView } from './components/ExecutiveDashboardView';
-import { ReportCenterView } from './components/ReportCenterView';
 import { SyncCenterView } from './components/SyncCenterView';
 import { SecurityAuditView } from './components/SecurityAuditView';
-import { GoLiveQAView } from './components/GoLiveQAView';
+import { GoLiveQAPage } from './features/golive/GoLiveQAPage';
 import { StaffAttendanceView } from './components/StaffAttendanceView';
 import { TrainerAttendanceView } from './components/TrainerAttendanceView';
-import { StaffIntegratedDashboardView } from './components/StaffIntegratedDashboardView';
-import { StaffReportCenterView } from './components/StaffReportCenterView';
 import { IntegratedDashboardPage } from './features/dashboard';
 import { IntegratedReportCenterPage } from './features/reports';
 import { MaintenanceHubPage } from './features/maintenance';
 import { StudentCardDesignerView } from './components/StudentCardDesignerView';
-import { ServerConnectivityService } from './services/serverConnectivityService';
-import { OfflineStorageService } from './services/offlineStorageService';
-import { AcademicSessionGenerator } from './services/academicSessionGenerator';
-import { apiClient } from './services/apiClient';
+import { apiClient, isOfflineError } from './services/apiClient';
+import { loadServerSnapshot, persistSnapshotToCache } from './services/serverHydrationService';
+import { hasPendingLegacyMigration } from './services/localDataGuard';
 import { 
   StudentListPage, 
   StudentDetailPage, 
@@ -74,52 +68,7 @@ import {
   RfidMonitoringPage,
   AttendanceMonitoringPage
 } from './features/attendance';
-import { 
-  INITIAL_ACADEMIC_CALENDAR_EVENTS,
-  INITIAL_ACADEMIC_SCHEDULES,
-  INITIAL_ACADEMIC_SESSION_CONTEXTS,
-  INITIAL_ACADEMIC_SUBSTITUTIONS,
-  INITIAL_ACADEMIC_YEARS,
-  INITIAL_ACTIVITIES, 
-  INITIAL_ACTIVITY_PARTICIPANTS, 
-  INITIAL_ACTIVITY_SUPERVISORS,
-  INITIAL_ACTIVITY_PARTICIPANT_RULES,
-  INITIAL_CATEGORIES, 
-  INITIAL_CLASSROOMS, 
-  INITIAL_CLASS_HISTORIES, 
-  INITIAL_DEVICES, 
-  INITIAL_DEVICE_LOGS,
-  INITIAL_DORMITORIES, 
-  INITIAL_DORMITORY_ROOMS, 
-  INITIAL_DUTY_ROSTERS,
-  INITIAL_EVENT_ORGANIZERS,
-  INITIAL_EVENT_REGISTRATIONS,
-  INITIAL_EVENT_SESSIONS,
-  INITIAL_EXTRACURRICULARS, 
-  INITIAL_EXTRACURRICULAR_MEMBERS, 
-  INITIAL_HALAQAHS,
-  INITIAL_HALAQAH_MEMBERS,
-  INITIAL_LESSON_PERIODS,
-  INITIAL_PRAYER_CALENDARS,
-  INITIAL_RECORDS, 
-  INITIAL_RECORD_HISTORIES,
-  INITIAL_ROOM_HISTORIES, 
-  INITIAL_ROUTINE_OVERRIDES,
-  INITIAL_ROUTINE_SCHEDULES,
-  INITIAL_SPECIAL_EVENTS,
-  INITIAL_WALK_IN_AUDIT_LOGS,
-  INITIAL_SEMESTERS,
-  INITIAL_SESSIONS, 
-  INITIAL_SESSION_PARTICIPANTS, 
-  INITIAL_STUDENTS, 
-  INITIAL_STUDENT_EXCUSALS,
-  INITIAL_STUDENT_GROUPS, 
-  INITIAL_STUDENT_GROUP_MEMBERS, 
-  INITIAL_SUBJECTS,
-  INITIAL_TEACHERS,
-  INITIAL_TEACHING_ASSIGNMENTS,
-  INITIAL_USERS 
-} from './data/initialData';
+import { INITIAL_CATEGORIES } from './data/initialData';
 import { 
   AcademicCalendarEvent,
   AcademicSchedule,
@@ -162,7 +111,6 @@ import {
   Teacher,
   TeachingAssignment,
   User,
-  UserRole,
   SpecialEvent,
   EventSession,
   EventRegistration,
@@ -171,9 +119,8 @@ import {
   WalkInAuditLog
 } from './types';
 import { AttendanceEngine } from './services/attendanceEngine';
-import { RfidAttendanceService } from './services/rfidAttendanceService';
-import { ActivityParticipantService } from './services/activityParticipantService';
 import { CheckCircle2, AlertTriangle, X } from 'lucide-react';
+import { todayLocalDate } from './utils/today';
 
 export function App() {
   const [authStatus, setAuthStatus] = useState<AuthStatus>('loading');
@@ -218,63 +165,25 @@ export function App() {
   };
 
   const [users, setUsers] = useState<User[]>(() => {
+    // Daftar pengguna berasal dari server (cache terakhir); tidak lagi dicampur akun contoh.
     try {
       const saved = localStorage.getItem('siuba_custom_users_v1');
-      if (saved !== null) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          // Merge with INITIAL_USERS to ensure any newly added default accounts (such as panitia.psb) are always present
-          const merged = [...parsed];
-          for (const iu of INITIAL_USERS) {
-            const idx = merged.findIndex((u) => u.username === iu.username || u.id === iu.id);
-            if (idx === -1) {
-              merged.push(iu);
-            } else if (iu.roles && (!merged[idx].roles || merged[idx].roles.length === 0)) {
-              merged[idx] = { ...merged[idx], roles: iu.roles };
-            }
-          }
-          return merged;
-        }
-      }
+      const parsed = saved ? JSON.parse(saved) : [];
+      return Array.isArray(parsed) ? parsed : [];
     } catch {
-      // fallback
+      return [];
     }
-    return INITIAL_USERS;
   });
 
-  // Sync users list from backend database on startup
-  useEffect(() => {
-    fetch('/api/v1/users', {
-      headers: { 'Accept': 'application/json' },
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success && Array.isArray(data.users) && data.users.length > 0) {
-          setUsers((prev) => {
-            const next = data.users.map((dbUser: User) => {
-              const localMatch = prev.find((p) => p.id === dbUser.id || p.username === dbUser.username);
-              return {
-                ...dbUser,
-                password: localMatch?.password || 'password',
-              };
-            });
-            try {
-              localStorage.setItem('siuba_custom_users_v1', JSON.stringify(stripPasswordsForStorage(next)));
-            } catch {}
-            return next;
-          });
-        }
-      })
-      .catch(() => {});
-  }, []);
+  // Daftar pengguna kini dimuat dari server setelah login (lihat efek hidrasi server di bawah)
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [students, setStudents] = useState<Student[]>(() => loadPersistentCollection('siuba_master_students', INITIAL_STUDENTS));
-  const [classrooms, setClassrooms] = useState<Classroom[]>(() => loadPersistentCollection('siuba_master_classrooms', INITIAL_CLASSROOMS));
-  const [dormitories, setDormitories] = useState<Dormitory[]>(() => loadPersistentCollection('siuba_master_dormitories', INITIAL_DORMITORIES));
-  const [dormitoryRooms, setDormitoryRooms] = useState<DormitoryRoom[]>(() => loadPersistentCollection('siuba_master_dormitory_rooms', INITIAL_DORMITORY_ROOMS));
-  const [categories, setCategories] = useState(INITIAL_CATEGORIES);
-  const [activities, setActivities] = useState<Activity[]>(() => loadPersistentCollection('siuba_master_activities', INITIAL_ACTIVITIES));
-  const [sessions, setSessions] = useState<AttendanceSession[]>(() => loadPersistentCollection('siuba_attendance_sessions_cache', INITIAL_SESSIONS));
+  const [students, setStudents] = useState<Student[]>(() => loadPersistentCollection('siuba_master_students', []));
+  const [classrooms, setClassrooms] = useState<Classroom[]>(() => loadPersistentCollection('siuba_master_classrooms', []));
+  const [dormitories, setDormitories] = useState<Dormitory[]>(() => loadPersistentCollection('siuba_master_dormitories', []));
+  const [dormitoryRooms, setDormitoryRooms] = useState<DormitoryRoom[]>(() => loadPersistentCollection('siuba_master_dormitory_rooms', []));
+  const [categories, setCategories] = useState(() => loadPersistentCollection('siuba_activity_categories', INITIAL_CATEGORIES));
+  const [activities, setActivities] = useState<Activity[]>(() => loadPersistentCollection('siuba_master_activities', []));
+  const [sessions, setSessions] = useState<AttendanceSession[]>(() => loadPersistentCollection('siuba_attendance_sessions_cache', []));
 
   useEffect(() => {
     const handleCacheUpdate = (e: any) => {
@@ -295,22 +204,22 @@ export function App() {
     window.addEventListener('siuba:cache-updated', handleCacheUpdate);
     return () => window.removeEventListener('siuba:cache-updated', handleCacheUpdate);
   }, []);
-  const [records, setRecords] = useState<AttendanceRecord[]>(() => loadPersistentCollection('siuba_attendance_records_cache', INITIAL_RECORDS));
-  const [devices, setDevices] = useState<AttendanceDevice[]>(INITIAL_DEVICES);
-  const [deviceLogs, setDeviceLogs] = useState<AttendanceDeviceLog[]>(INITIAL_DEVICE_LOGS);
+  const [records, setRecords] = useState<AttendanceRecord[]>(() => loadPersistentCollection('siuba_attendance_records_cache', []));
+  const [devices, setDevices] = useState<AttendanceDevice[]>([]);
+  const [deviceLogs, setDeviceLogs] = useState<AttendanceDeviceLog[]>([]);
   
   // Sprint 2 State
-  const [extracurriculars, setExtracurriculars] = useState<Extracurricular[]>(INITIAL_EXTRACURRICULARS);
-  const [extracurricularMembers, setExtracurricularMembers] = useState<ExtracurricularMember[]>(INITIAL_EXTRACURRICULAR_MEMBERS);
-  const [studentGroups, setStudentGroups] = useState<StudentGroup[]>(INITIAL_STUDENT_GROUPS);
-  const [studentGroupMembers, setStudentGroupMembers] = useState<StudentGroupMember[]>(INITIAL_STUDENT_GROUP_MEMBERS);
-  const [classHistories, setClassHistories] = useState<StudentClassHistory[]>(INITIAL_CLASS_HISTORIES);
-  const [roomHistories, setRoomHistories] = useState<StudentRoomHistory[]>(INITIAL_ROOM_HISTORIES);
-  const [sessionParticipants, setSessionParticipants] = useState<AttendanceSessionParticipant[]>(() => loadPersistentCollection('siuba_session_participants_cache', INITIAL_SESSION_PARTICIPANTS));
-  const [activityParticipants, setActivityParticipants] = useState<ActivityParticipant[]>(INITIAL_ACTIVITY_PARTICIPANTS);
+  const [extracurriculars, setExtracurriculars] = useState<Extracurricular[]>([]);
+  const [extracurricularMembers, setExtracurricularMembers] = useState<ExtracurricularMember[]>([]);
+  const [studentGroups, setStudentGroups] = useState<StudentGroup[]>([]);
+  const [studentGroupMembers, setStudentGroupMembers] = useState<StudentGroupMember[]>([]);
+  const [classHistories, setClassHistories] = useState<StudentClassHistory[]>([]);
+  const [roomHistories, setRoomHistories] = useState<StudentRoomHistory[]>([]);
+  const [sessionParticipants, setSessionParticipants] = useState<AttendanceSessionParticipant[]>(() => loadPersistentCollection('siuba_session_participants_cache', []));
+  const [activityParticipants, setActivityParticipants] = useState<ActivityParticipant[]>([]);
 
   // Sprint 3 State: Excusals & Record Audit Histories
-  const [excusals, setExcusals] = useState<StudentExcusal[]>(() => loadPersistentCollection('siuba_student_excusals_v1', INITIAL_STUDENT_EXCUSALS));
+  const [excusals, setExcusals] = useState<StudentExcusal[]>(() => loadPersistentCollection('siuba_student_excusals_v1', []));
 
   useEffect(() => {
     try {
@@ -319,36 +228,153 @@ export function App() {
       // ignore
     }
   }, [excusals]);
-  const [recordHistories, setRecordHistories] = useState<AttendanceRecordHistory[]>(INITIAL_RECORD_HISTORIES);
+  const [recordHistories, setRecordHistories] = useState<AttendanceRecordHistory[]>([]);
 
   // Sprint 6 State: Academic / KBM Domain
-  const [academicYears, setAcademicYears] = useState<AcademicYear[]>(INITIAL_ACADEMIC_YEARS);
-  const [semesters, setSemesters] = useState<Semester[]>(INITIAL_SEMESTERS);
-  const [subjects, setSubjects] = useState<Subject[]>(INITIAL_SUBJECTS);
-  const [teachers, setTeachers] = useState<Teacher[]>(INITIAL_TEACHERS);
-  const [teachingAssignments, setTeachingAssignments] = useState<TeachingAssignment[]>(INITIAL_TEACHING_ASSIGNMENTS);
-  const [lessonPeriods, setLessonPeriods] = useState<LessonPeriod[]>(INITIAL_LESSON_PERIODS);
-  const [academicSchedules, setAcademicSchedules] = useState<AcademicSchedule[]>(INITIAL_ACADEMIC_SCHEDULES);
-  const [academicSubstitutions, setAcademicSubstitutions] = useState<AcademicSubstitution[]>(INITIAL_ACADEMIC_SUBSTITUTIONS);
-  const [academicCalendarEvents, setAcademicCalendarEvents] = useState<AcademicCalendarEvent[]>(INITIAL_ACADEMIC_CALENDAR_EVENTS);
-  const [academicSessionContexts, setAcademicSessionContexts] = useState<AcademicSessionContext[]>(INITIAL_ACADEMIC_SESSION_CONTEXTS);
+  const [academicYears, setAcademicYears] = useState<AcademicYear[]>([]);
+  const [semesters, setSemesters] = useState<Semester[]>([]);
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [teachers, setTeachers] = useState<Teacher[]>([]);
+  const [teachingAssignments, setTeachingAssignments] = useState<TeachingAssignment[]>([]);
+  const [lessonPeriods, setLessonPeriods] = useState<LessonPeriod[]>([]);
+  const [academicSchedules, setAcademicSchedules] = useState<AcademicSchedule[]>([]);
+  const [academicSubstitutions, setAcademicSubstitutions] = useState<AcademicSubstitution[]>([]);
+  const [academicCalendarEvents, setAcademicCalendarEvents] = useState<AcademicCalendarEvent[]>([]);
+  const [academicSessionContexts, setAcademicSessionContexts] = useState<AcademicSessionContext[]>([]);
 
   // Sprint 7 State: Routine Activities, Prayers, Dormitory, Halaqah
-  const [halaqahs, setHalaqahs] = useState<Halaqah[]>(INITIAL_HALAQAHS);
-  const [halaqahMembers, setHalaqahMembers] = useState<HalaqahMember[]>(INITIAL_HALAQAH_MEMBERS);
-  const [dutyRosters, setDutyRosters] = useState<DutyRoster[]>(INITIAL_DUTY_ROSTERS);
-  const [routineSchedules, setRoutineSchedules] = useState<RoutineSchedule[]>(INITIAL_ROUTINE_SCHEDULES);
-  const [routineOverrides, setRoutineOverrides] = useState<RoutineScheduleOverride[]>(INITIAL_ROUTINE_OVERRIDES);
-  const [prayerCalendars, setPrayerCalendars] = useState<PrayerTimeCalendar[]>(INITIAL_PRAYER_CALENDARS);
-  const [activitySupervisors, setActivitySupervisors] = useState<ActivitySupervisor[]>(INITIAL_ACTIVITY_SUPERVISORS);
+  const [halaqahs, setHalaqahs] = useState<Halaqah[]>([]);
+  const [halaqahMembers, setHalaqahMembers] = useState<HalaqahMember[]>([]);
+  const [dutyRosters, setDutyRosters] = useState<DutyRoster[]>([]);
+  const [routineSchedules, setRoutineSchedules] = useState<RoutineSchedule[]>([]);
+  const [routineOverrides, setRoutineOverrides] = useState<RoutineScheduleOverride[]>([]);
+  const [prayerCalendars, setPrayerCalendars] = useState<PrayerTimeCalendar[]>([]);
+  const [activitySupervisors, setActivitySupervisors] = useState<ActivitySupervisor[]>([]);
 
   // Sprint 8 State: Events, Participant Rules, Walk-In Audit
-  const [specialEvents, setSpecialEvents] = useState<SpecialEvent[]>(INITIAL_SPECIAL_EVENTS);
-  const [eventSessions, setEventSessions] = useState<EventSession[]>(INITIAL_EVENT_SESSIONS);
-  const [eventRegistrations, setEventRegistrations] = useState<EventRegistration[]>(INITIAL_EVENT_REGISTRATIONS);
-  const [eventOrganizers, setEventOrganizers] = useState<EventOrganizer[]>(INITIAL_EVENT_ORGANIZERS);
-  const [participantRules, setParticipantRules] = useState<ActivityParticipantRule[]>(INITIAL_ACTIVITY_PARTICIPANT_RULES);
-  const [walkInAuditLogs, setWalkInAuditLogs] = useState<WalkInAuditLog[]>(INITIAL_WALK_IN_AUDIT_LOGS);
+  const [specialEvents, setSpecialEvents] = useState<SpecialEvent[]>([]);
+  const [eventSessions, setEventSessions] = useState<EventSession[]>([]);
+  const [eventRegistrations, setEventRegistrations] = useState<EventRegistration[]>([]);
+  const [eventOrganizers, setEventOrganizers] = useState<EventOrganizer[]>([]);
+  const [participantRules, setParticipantRules] = useState<ActivityParticipantRule[]>([]);
+  const [serverActivities, setServerActivities] = useState<Activity[]>([]);
+  const halaqahDirty = useRef(false);
+  const routineDirty = useRef(false);
+  const dutyDirty = useRef(false);
+  const [walkInAuditLogs, setWalkInAuditLogs] = useState<WalkInAuditLog[]>([]);
+
+  // ===================================================================
+  // HIDRASI DARI SERVER: setelah login, isi state dengan data MySQL (Laravel)
+  // menggantikan data contoh / localStorage. Offline -> tetap pakai data lokal.
+  // ===================================================================
+  const [serverSyncInfo, setServerSyncInfo] = useState<{ at: string | null; errors: string[] }>({ at: null, errors: [] });
+
+  const applyServerSnapshot = (snap: Awaited<ReturnType<typeof loadServerSnapshot>>) => {
+    if (snap.students) setStudents(snap.students);
+    if (snap.classrooms) setClassrooms(snap.classrooms);
+    if (snap.dormitories) setDormitories(snap.dormitories);
+    if (snap.dormitoryRooms) setDormitoryRooms(snap.dormitoryRooms);
+    if (snap.sessions) setSessions(snap.sessions);
+    if (snap.participants) setSessionParticipants(snap.participants);
+    if (snap.records) setRecords(snap.records);
+    if (snap.devices) setDevices(snap.devices);
+    if (snap.deviceLogs) setDeviceLogs(snap.deviceLogs);
+    if (snap.recordHistories) setRecordHistories(snap.recordHistories);
+    if (snap.excusals) setExcusals(snap.excusals);
+    if (snap.academic) {
+      const a = snap.academic;
+      setAcademicYears(a.academic_years);
+      setSemesters(a.semesters);
+      setSubjects(a.subjects);
+      setLessonPeriods(a.lesson_periods);
+      setTeachers(a.teachers);
+      setTeachingAssignments(a.teaching_assignments);
+      setAcademicSchedules(a.academic_schedules);
+      setAcademicCalendarEvents(a.calendar_events);
+      setAcademicSessionContexts(a.session_contexts);
+      setAcademicSubstitutions(a.substitutions);
+    }
+    if (snap.routine) {
+      const r = snap.routine;
+      if (r.categories?.length) setCategories(r.categories);
+      setActivities(r.activities);
+      setServerActivities(r.activities);
+      if (!routineDirty.current) {
+        setRoutineSchedules(r.routine_schedules);
+        setRoutineOverrides(r.routine_overrides);
+        setPrayerCalendars(r.prayer_calendars);
+        setActivitySupervisors(r.supervisors);
+      }
+    }
+    if (snap.community) {
+      const c = snap.community;
+      if (!snap.routine) setServerActivities(c.activities);
+      setExtracurriculars(c.extracurriculars);
+      setExtracurricularMembers(c.extracurricular_members);
+      if (!halaqahDirty.current) {
+        setHalaqahs(c.halaqahs);
+        setHalaqahMembers(c.halaqah_members);
+      }
+      if (!dutyDirty.current) setDutyRosters(c.duty_rosters);
+      setSpecialEvents(c.events);
+      setEventSessions(c.event_sessions);
+      setEventRegistrations(c.event_registrations);
+      setEventOrganizers(c.event_organizers);
+      setParticipantRules(c.participant_rules);
+      if (c.student_groups) setStudentGroups(c.student_groups);
+      if (c.student_group_members) setStudentGroupMembers(c.student_group_members);
+    }
+    if (snap.users && snap.users.length > 0) {
+      // Password tidak pernah disimpan / ditampilkan di browser
+      const serverUsers = snap.users.map((u: User) => ({ ...u, password: '' }) as User);
+      setUsers(serverUsers);
+      try {
+        localStorage.setItem('siuba_custom_users_v1', JSON.stringify(stripPasswordsForStorage(serverUsers)));
+      } catch {
+        // ignore
+      }
+    }
+    persistSnapshotToCache(snap);
+    setServerSyncInfo({ at: new Date().toISOString(), errors: snap.errors });
+    if (snap.errors.length > 0) {
+      console.warn('SIUBA: sebagian data gagal dimuat dari server:', snap.errors);
+    }
+  };
+
+  /** Muat ulang data dari server setelah perubahan (absensi/KBM saja agar cepat). */
+  const refreshServerData = async (attendanceOnly = true) => {
+    if (!attendanceOnly) void loadInstitution(true); // identitas lembaga untuk menu/kop laporan
+    try {
+      applyServerSnapshot(await loadServerSnapshot({ attendanceOnly }));
+    } catch (e) {
+      console.warn('SIUBA: gagal memuat ulang data server', e);
+    }
+  };
+
+  useEffect(() => {
+    if (authStatus !== 'authenticated') return;
+    let cancelled = false;
+    let firstRun = true;
+
+    const hydrate = async () => {
+      const snap = await loadServerSnapshot({ attendanceOnly: !firstRun });
+      if (cancelled) return;
+      applyServerSnapshot(snap);
+      if (firstRun && hasPendingLegacyMigration()) {
+        showToast('Ada data lama di browser ini yang belum dipindahkan ke server. Buka menu /migrasi-data (Super Admin).', 'info');
+      }
+      firstRun = false;
+    };
+
+    hydrate();
+    // Segarkan data absensi, KBM & perangkat secara berkala (tiap 60 detik) selama aplikasi terbuka
+    const timer = window.setInterval(hydrate, 60000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authStatus]);
 
   // Authentication & URL Synchronization Lifecycle
   useEffect(() => {
@@ -412,143 +438,97 @@ export function App() {
   }, []);
 
   // Sprint 8 Handlers
-  const handleAddEvent = (evt: Partial<SpecialEvent>) => {
-    const newId = specialEvents.length ? Math.max(...specialEvents.map((e) => e.id)) + 1 : 1;
-    const newEvent: SpecialEvent = {
-      id: newId,
-      code: evt.code || `EVT-${newId}`,
-      name: evt.name || 'Event Baru',
-      description: evt.description || '',
-      event_type: evt.event_type || 'seminar',
-      start_at: evt.start_at || '2026-08-25 08:00',
-      end_at: evt.end_at || '2026-08-25 12:00',
-      location: evt.location || 'Aula Utama',
-      capacity: evt.capacity,
-      participant_mode: evt.participant_mode || 'registration',
-      attendance_enabled: true,
-      allow_manual: true,
-      allow_qr: true,
-      allow_rfid: true,
-      status: evt.status || 'published',
-      finalization_policy: 'required',
-      activity_id: evt.activity_id || 10,
-      created_by: evt.created_by || currentUser.name,
-      created_at: new Date().toISOString().slice(0, 10),
-    };
-    setSpecialEvents((prev) => [newEvent, ...prev]);
-    showToast(`Event "${newEvent.name}" berhasil dibuat.`, 'success');
-  };
-
-  const handleUpdateEventStatus = (eventId: number, status: SpecialEvent['status']) => {
-    setSpecialEvents((prev) =>
-      prev.map((e) => (e.id === eventId ? { ...e, status } : e))
-    );
-    showToast(`Status event berhasil diperbarui menjadi ${status.toUpperCase()}.`, 'info');
-  };
-
-  const handleAddEventSession = (session: Partial<EventSession>) => {
-    const newId = eventSessions.length ? Math.max(...eventSessions.map((s) => s.id)) + 1 : 1;
-    const newSession: EventSession = {
-      id: newId,
-      event_id: session.event_id || 1,
-      name: session.name || 'Sesi Baru',
-      start_at: session.start_at || '2026-08-25 08:00',
-      present_until: session.present_until || '08:15',
-      late_until: session.late_until || '08:30',
-      end_at: session.end_at || '2026-08-25 10:00',
-      attendance_required: true,
-      sort_order: session.sort_order || 1,
-    };
-    setEventSessions((prev) => [...prev, newSession]);
-    showToast(`Sesi "${newSession.name}" berhasil ditambahkan.`, 'success');
-  };
-
-  const handleAddEventRegistration = (reg: Partial<EventRegistration>) => {
-    const newId = eventRegistrations.length ? Math.max(...eventRegistrations.map((r) => r.id)) + 1 : 1;
-    const newReg: EventRegistration = {
-      id: newId,
-      event_id: reg.event_id || 1,
-      student_id: reg.student_id || 1,
-      student_name: reg.student_name || 'Santri',
-      student_number: reg.student_number || 'UBA260001',
-      classroom_name: reg.classroom_name || '-',
-      status: reg.status || 'approved',
-      registered_at: reg.registered_at || new Date().toISOString().slice(0, 10),
-      registration_source: reg.registration_source || 'student_registration',
-      approved_by: reg.approved_by,
-      approved_at: reg.approved_at,
-    };
-    setEventRegistrations((prev) => [...prev, newReg]);
-    showToast(`Santri "${newReg.student_name}" berhasil terdaftar di event.`, 'success');
-  };
-
-  const handleUpdateRegistrationStatus = (registrationId: number, status: EventRegistration['status']) => {
-    setEventRegistrations((prev) =>
-      prev.map((r) => (r.id === registrationId ? { ...r, status } : r))
-    );
-    showToast(`Status registrasi berhasil diubah menjadi ${status.toUpperCase()}.`, 'info');
-  };
-
+  // ===== Event khusus: disimpan di server =====
+  const handleAddEvent = (evt: Partial<SpecialEvent>) =>
+    kbmCall(() => apiClient.post('/community/events', evt), `Event "${evt.name || ''}" berhasil dibuat.`);
+  const handleUpdateEventStatus = (eventId: number, status: SpecialEvent['status']) =>
+    kbmCall(() => apiClient.post(`/community/events/${eventId}/status`, { status }), 'Status event diperbarui.');
+  const handleAddEventSession = (session: Partial<EventSession>) =>
+    kbmCall(() => apiClient.post(`/community/events/${session.event_id}/sessions`, session), `Sesi "${session.name || ''}" ditambahkan.`);
+  const handleAddEventRegistration = (reg: Partial<EventRegistration>) =>
+    kbmCall(() => apiClient.post(`/community/events/${reg.event_id}/registrations`, { student_id: reg.student_id, status: reg.status, notes: reg.notes }), 'Santri terdaftar di event.');
+  const handleUpdateRegistrationStatus = (registrationId: number, status: EventRegistration['status']) =>
+    kbmCall(() => apiClient.post(`/community/event-registrations/${registrationId}/status`, { status }), 'Status registrasi diperbarui.');
   const handleAddParticipantRule = (rule: Partial<ActivityParticipantRule>) => {
-    const newId = participantRules.length ? Math.max(...participantRules.map((r) => r.id)) + 1 : 1;
-    const newRule: ActivityParticipantRule = {
-      id: newId,
-      activity_id: rule.activity_id || 10,
-      activity_name: rule.activity_name || 'Kegiatan',
-      rule_type: rule.rule_type || 'classroom',
-      rule_operator: rule.rule_operator || 'include',
-      rule_value: rule.rule_value || 'VII A',
-      rule_description: rule.rule_description || '',
-      is_active: true,
-      created_by: rule.created_by || currentUser.name,
-    };
-    setParticipantRules((prev) => [...prev, newRule]);
-    showToast(`Rule peserta "${newRule.rule_operator.toUpperCase()} ${newRule.rule_type}" berhasil ditambahkan.`, 'success');
+    const ev = specialEvents.find((e) => e.activity_id === rule.activity_id || e.name === rule.activity_name);
+    if (!ev) {
+      showToast('Event untuk rule ini tidak ditemukan. Muat ulang halaman lalu coba lagi.', 'error');
+      return;
+    }
+    return kbmCall(() => apiClient.post(`/community/events/${ev.id}/rules`, rule), 'Rule peserta ditambahkan.');
+  };
+  const handleRemoveParticipantRule = (ruleId: number) =>
+    kbmCall(() => apiClient.delete(`/community/event-rules/${ruleId}`), 'Rule peserta dihapus.');
+
+  // Dispensasi peserta event disimpan ke server (dulu hanya di layar dan hilang saat data dimuat ulang)
+  const handleCreateEventDispensations = async (updatedExcusals: StudentExcusal[]): Promise<boolean> => {
+    const known = new Set(excusals.map((e) => e.id));
+    const fresh = updatedExcusals.filter((e) => !known.has(e.id));
+    if (fresh.length === 0) return true;
+    const first = fresh[0];
+    try {
+      const res: any = await apiClient.post('/student-excusals/bulk', {
+        student_ids: fresh.map((e) => e.student_id),
+        type: first.type,
+        start_at: first.start_at,
+        end_at: first.end_at,
+        reason: first.reason,
+        notes: first.notes,
+      });
+      showToast(res?.message || `${fresh.length} dispensasi disimpan.`, 'success');
+      await refreshServerData(true);
+      return true;
+    } catch (err: any) {
+      showToast(
+        isOfflineError(err) ? 'Server offline: dispensasi belum bisa disimpan. Coba lagi saat tersambung.' : err?.message || 'Gagal menyimpan dispensasi.',
+        'error'
+      );
+      return false;
+    }
   };
 
-  const handleRemoveParticipantRule = (ruleId: number) => {
-    setParticipantRules((prev) => prev.filter((r) => r.id !== ruleId));
-    showToast('Rule peserta berhasil dihapus.', 'info');
+  // ===== KBM: semua perubahan master data disimpan di server lalu dimuat ulang =====
+  const kbmCall = async (fn: () => Promise<any>, successMsg: string) => {
+    try {
+      const res: any = await fn();
+      showToast(res?.message || successMsg, 'success');
+      await refreshServerData(true);
+      return res;
+    } catch (err: any) {
+      const fieldMsg = err?.fieldErrors ? (Object.values(err.fieldErrors).flat()[0] as string | undefined) : undefined;
+      showToast(isOfflineError(err) ? 'Server offline: perubahan KBM belum bisa disimpan.' : fieldMsg || err?.message || 'Gagal menyimpan.', 'error');
+      return null;
+    }
   };
 
-  const handleCreateEventDispensations = (updatedExcusals: StudentExcusal[]) => {
-    setExcusals(updatedExcusals);
-  };
+  const handleAddSubject = (subj: Subject) =>
+    kbmCall(() => apiClient.post('/academic/subjects', subj), `Mata pelajaran '${subj.name}' ditambahkan.`);
+  const handleUpdateSubject = (id: number, subj: Partial<Subject>) =>
+    kbmCall(() => apiClient.put(`/academic/subjects/${id}`, subj), 'Mata pelajaran berhasil diperbarui.');
+  const handleDeleteSubject = (id: number) =>
+    kbmCall(() => apiClient.delete(`/academic/subjects/${id}`), 'Mata pelajaran berhasil dihapus.');
 
-  const handleAddSubject = (subj: Subject) => setSubjects((prev) => [...prev, subj]);
-  const handleUpdateSubject = (id: number, subj: Partial<Subject>) => {
-    setSubjects((prev) => prev.map((s) => (s.id === id ? { ...s, ...subj } : s)));
-    showToast('Mata pelajaran berhasil diperbarui.', 'success');
-  };
-  const handleDeleteSubject = (id: number) => {
-    setSubjects((prev) => prev.filter((s) => s.id !== id));
-    showToast('Mata pelajaran berhasil dihapus.', 'info');
-  };
+  const handleAddTeacher = (tch: Teacher) =>
+    kbmCall(() => apiClient.post('/academic/teachers', tch), `Guru '${tch.name}' ditambahkan.`);
+  const handleUpdateTeacher = (id: number, tch: Partial<Teacher>) =>
+    kbmCall(() => apiClient.put(`/academic/teachers/${id}`, tch), 'Data guru berhasil diperbarui.');
+  const handleDeleteTeacher = (id: number) =>
+    kbmCall(() => apiClient.delete(`/academic/teachers/${id}`), 'Guru dinonaktifkan.');
 
-  const handleAddTeacher = (tch: Teacher) => setTeachers((prev) => [...prev, tch]);
-  const handleUpdateTeacher = (id: number, tch: Partial<Teacher>) => {
-    setTeachers((prev) => prev.map((t) => (t.id === id ? { ...t, ...tch } : t)));
-    showToast('Data guru berhasil diperbarui.', 'success');
-  };
-  const handleDeleteTeacher = (id: number) => {
-    setTeachers((prev) => prev.filter((t) => t.id !== id));
-    showToast('Data guru berhasil dihapus.', 'info');
-  };
+  const handleAddAssignment = (ta: TeachingAssignment) =>
+    kbmCall(() => apiClient.post('/academic/assignments', ta), 'Penugasan mengajar ditambahkan.');
+  const handleDeleteAssignment = (id: number) =>
+    kbmCall(() => apiClient.delete(`/academic/assignments/${id}`), 'Penugasan mengajar berhasil dihapus.');
 
-  const handleAddAssignment = (ta: TeachingAssignment) => setTeachingAssignments((prev) => [...prev, ta]);
-  const handleDeleteAssignment = (id: number) => {
-    setTeachingAssignments((prev) => prev.filter((ta) => ta.id !== id));
-    showToast('Penugasan mengajar berhasil dihapus.', 'info');
-  };
+  const handleAddCalendarEvent = (ev: AcademicCalendarEvent) =>
+    kbmCall(() => apiClient.post('/academic/calendar-events', ev), `Agenda '${ev.name}' ditambahkan.`);
+  const handleDeleteCalendarEvent = (id: number) =>
+    kbmCall(() => apiClient.delete(`/academic/calendar-events/${id}`), 'Agenda kalender berhasil dihapus.');
 
-  const handleAddCalendarEvent = (ev: AcademicCalendarEvent) => setAcademicCalendarEvents((prev) => [...prev, ev]);
-  const handleDeleteCalendarEvent = (id: number) => {
-    setAcademicCalendarEvents((prev) => prev.filter((ev) => ev.id !== id));
-    showToast('Agenda kalender berhasil dihapus.', 'info');
-  };
-
-  const handleAddSchedule = (sched: AcademicSchedule) => setAcademicSchedules((prev) => [...prev, sched]);
-  const handleDeleteSchedule = (id: number) => setAcademicSchedules((prev) => prev.filter((s) => s.id !== id));
+  const handleAddSchedule = (sched: AcademicSchedule) =>
+    kbmCall(() => apiClient.post('/academic/schedules', sched), 'Jadwal pelajaran ditambahkan.');
+  const handleDeleteSchedule = (id: number) =>
+    kbmCall(() => apiClient.delete(`/academic/schedules/${id}`), 'Jadwal pelajaran dihapus.');
 
   // User & Access Control Handlers with Instant Backend & Local Sync
   const handleAddUser = (newUser: User, plainPassword?: string) => {
@@ -674,49 +654,154 @@ export function App() {
     );
   };
 
-  const handleSelectUser = (user: User) => {
-    setCurrentUser(user);
-    authService.setAuthenticatedUser(user, `token_${user.id}`, true);
-  };
+  // ===== Halaqah & piket: tampilan mengubah daftar lengkap, lalu disinkronkan ke server =====
+  const updateHalaqahs = (next: Halaqah[]) => { halaqahDirty.current = true; setHalaqahs(next); };
+  const updateHalaqahMembers = (next: HalaqahMember[]) => { halaqahDirty.current = true; setHalaqahMembers(next); };
+  const updateDutyRosters = (next: DutyRoster[]) => { dutyDirty.current = true; setDutyRosters(next); };
 
-  const handleGenerateAcademicSessions = (dateStr: string) => {
-    const res = AcademicSessionGenerator.generateSessionsForDate({
-      date: dateStr,
-      academicYearId: 1,
-      semesterId: 1,
-      academicSchedules,
-      lessonPeriods,
-      calendarEvents: academicCalendarEvents,
-      classrooms,
-      subjects,
-      teachers,
-      students,
-      activities,
-      existingSessions: sessions,
-      existingContexts: academicSessionContexts,
-      existingParticipants: sessionParticipants,
-      currentUser,
-    });
-
-    if (res.result.is_holiday) {
-      showToast(res.result.errors[0] || 'Tanggal libur.', 'error');
-      return;
-    }
-
-    if (res.result.sessions_created > 0) {
-      setSessions((prev) => [...res.newSessions, ...prev]);
-      setAcademicSessionContexts((prev) => [...res.newContexts, ...prev]);
-      setSessionParticipants((prev) => [...res.newParticipants, ...prev]);
-      if (res.newActivities.length > 0) {
-        setActivities((prev) => [...prev, ...res.newActivities]);
+  useEffect(() => {
+    if (!halaqahDirty.current) return;
+    const t = setTimeout(async () => {
+      try {
+        await apiClient.put('/community/halaqahs', { halaqahs, members: halaqahMembers });
+        halaqahDirty.current = false;
+        await refreshServerData(true);
+      } catch (err: any) {
+        halaqahDirty.current = false;
+        const fieldMsg = err?.fieldErrors ? (Object.values(err.fieldErrors).flat()[0] as string | undefined) : undefined;
+        showToast(isOfflineError(err) ? 'Server offline: perubahan halaqah belum tersimpan.' : fieldMsg || err?.message || 'Gagal menyimpan halaqah.', 'error');
+        await refreshServerData(true);
       }
-      showToast(`Berhasil menggenerate ${res.result.sessions_created} sesi KBM untuk tanggal ${dateStr}.`, 'success');
-    } else {
-      showToast(`Sesi KBM tanggal ${dateStr} sudah lengkap (${res.result.sessions_existing} sesi terverifikasi).`, 'info');
+    }, 700);
+    return () => clearTimeout(t);
+  }, [halaqahs, halaqahMembers]);
+
+  useEffect(() => {
+    if (!dutyDirty.current) return;
+    const t = setTimeout(async () => {
+      try {
+        const payload = dutyRosters.map((d) => ({ activity_id: d.activity_id, date: d.date, student_id: d.student_id, role: d.role, is_active: d.is_active }));
+        await apiClient.put('/community/duty-rosters', { rosters: payload });
+        dutyDirty.current = false;
+        await refreshServerData(true);
+      } catch (err: any) {
+        dutyDirty.current = false;
+        const fieldMsg = err?.fieldErrors ? (Object.values(err.fieldErrors).flat()[0] as string | undefined) : undefined;
+        showToast(isOfflineError(err) ? 'Server offline: jadwal piket belum tersimpan.' : fieldMsg || err?.message || 'Gagal menyimpan jadwal piket.', 'error');
+        await refreshServerData(true);
+      }
+    }, 700);
+    return () => clearTimeout(t);
+  }, [dutyRosters]);
+
+  // ===== Jadwal rutin, pengecualian, kalender shalat, penanggung jawab: disinkronkan ke server =====
+  const markRoutine = <T,>(setter: (v: T) => void) => (next: T) => { routineDirty.current = true; setter(next); };
+  const updateRoutineSchedules = markRoutine(setRoutineSchedules);
+  const updateRoutineOverrides = markRoutine(setRoutineOverrides);
+  const updatePrayerCalendars = markRoutine(setPrayerCalendars);
+  const updateSupervisors = markRoutine(setActivitySupervisors);
+
+  useEffect(() => {
+    if (!routineDirty.current) return;
+    const t = setTimeout(async () => {
+      try {
+        await apiClient.put('/routine-schedules/sync', {
+          schedules: routineSchedules,
+          overrides: routineOverrides,
+          prayer_calendars: prayerCalendars,
+          supervisors: activitySupervisors,
+        });
+        routineDirty.current = false;
+        await refreshServerData(true);
+      } catch (err: any) {
+        routineDirty.current = false;
+        const fieldMsg = err?.fieldErrors ? (Object.values(err.fieldErrors).flat()[0] as string | undefined) : undefined;
+        showToast(isOfflineError(err) ? 'Server offline: jadwal rutin belum tersimpan.' : fieldMsg || err?.message || 'Gagal menyimpan jadwal rutin.', 'error');
+        await refreshServerData(true);
+      }
+    }, 700);
+    return () => clearTimeout(t);
+  }, [routineSchedules, routineOverrides, prayerCalendars, activitySupervisors]);
+
+  const handleGenerateRoutineSessions = async (dateStr: string) => {
+    try {
+      const res: any = await apiClient.post('/routine-schedules/generate', { date: dateStr });
+      const d = res?.data || {};
+      showToast(
+        d.created > 0
+          ? `Berhasil membuat ${d.created} sesi kegiatan rutin untuk tanggal ${dateStr}.`
+          : `Semua sesi kegiatan rutin untuk ${dateStr} sudah tersedia (${d.existing || 0} ada, 0 baru).`,
+        d.created > 0 ? 'success' : 'info'
+      );
+      await refreshServerData(true);
+    } catch (err: any) {
+      showToast(isOfflineError(err) ? 'Server offline: sesi rutin belum bisa dibuat.' : err?.message || 'Gagal membuat sesi rutin.', 'error');
     }
   };
 
-  const [simulatedTime, setSimulatedTime] = useState<string>('2026-08-23 04:25:00');
+  // Antrean absensi offline dikirim otomatis ke server saat koneksi kembali
+  useEffect(() => {
+    if (!currentUser) return;
+    return startAutoQueueSync((r) => {
+      showToast(
+        r.conflict > 0
+          ? `${r.success} absensi offline terkirim ke server; ${r.conflict} konflik perlu ditinjau di Sync Center.`
+          : `${r.success} absensi offline berhasil dikirim ke server.`,
+        r.conflict > 0 || r.failed > 0 ? 'info' : 'success'
+      );
+      void refreshServerData(true);
+    });
+  }, [currentUser?.id]);
+
+  // Antrean tap SDM offline (tahap 28) dikirim otomatis saat server kembali
+  useEffect(() => {
+    if (!currentUser) return;
+    return startAutoStaffQueueSync((r) => {
+      const parts = [`${r.success} tap SDM offline terkirim ke server`];
+      if (r.duplicate) parts.push(`${r.duplicate} tap ganda diabaikan`);
+      if (r.rejected) parts.push(`${r.rejected} ditolak — lihat Antrean Offline di Presensi SDM`);
+      showToast(parts.join('; ') + '.', r.rejected ? 'info' : 'success');
+    });
+  }, [currentUser?.id]);
+
+  // Berpindah akun tanpa login sungguhan dinonaktifkan: dulu menimpa token asli dengan token palsu
+  // sehingga semua panggilan API gagal dan identitas pengguna menjadi rancu.
+  const handleSelectUser = (_user: User) => {
+    showToast('Untuk memakai akun lain, keluar lalu masuk dengan username akun tersebut.', 'info');
+  };
+
+  const handleGenerateAcademicSessions = async (dateStr: string) => {
+    try {
+      const res: any = await apiClient.post('/academic/generate', { date: dateStr });
+      const d = res?.data || {};
+      if (d.holidays?.length) {
+        showToast(`Tanggal ${dateStr} libur di kalender akademik — sesi KBM tidak dibuat.`, 'error');
+      } else if (d.created > 0) {
+        showToast(`Berhasil membuat ${d.created} sesi KBM untuk tanggal ${dateStr}.`, 'success');
+      } else if (d.messages?.length) {
+        showToast(d.messages[0], 'error');
+      } else {
+        showToast(`Sesi KBM tanggal ${dateStr} sudah lengkap (${d.existing || 0} sesi).`, 'info');
+      }
+      await refreshServerData(true);
+    } catch (err: any) {
+      showToast(isOfflineError(err) ? 'Server offline: sesi KBM belum bisa dibuat.' : err?.message || 'Gagal membuat sesi KBM.', 'error');
+    }
+  };
+
+  // Jam aplikasi = jam perangkat (dulu tertanam 23 Agustus 2026 04:25). Bisa diubah manual untuk simulasi.
+  const nowLocalString = () => {
+    const d = new Date();
+    const p2 = (n: number) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())} ${p2(d.getHours())}:${p2(d.getMinutes())}:${p2(d.getSeconds())}`;
+  };
+  const [simulatedTime, setSimulatedTimeState] = useState<string>(nowLocalString);
+  const manualClock = useRef(false);
+  const setSimulatedTime = (v: string) => { manualClock.current = true; setSimulatedTimeState(v); };
+  useEffect(() => {
+    const t = setInterval(() => { if (!manualClock.current) setSimulatedTimeState(nowLocalString()); }, 30000);
+    return () => clearInterval(t);
+  }, []);
 
   // Toast notification state
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info'; id: number } | null>(null);
@@ -730,57 +815,41 @@ export function App() {
   };
 
   // Reset demo data
+  // Dulu mengembalikan tampilan ke data contoh; kini cukup memuat ulang semua data dari server.
   const handleResetData = () => {
-    setStudents(INITIAL_STUDENTS);
-    setActivities(INITIAL_ACTIVITIES);
-    setSessions(INITIAL_SESSIONS);
-    setRecords(INITIAL_RECORDS);
-    setDevices(INITIAL_DEVICES);
-    setDeviceLogs(INITIAL_DEVICE_LOGS);
-    setExtracurriculars(INITIAL_EXTRACURRICULARS);
-    setExtracurricularMembers(INITIAL_EXTRACURRICULAR_MEMBERS);
-    setStudentGroups(INITIAL_STUDENT_GROUPS);
-    setStudentGroupMembers(INITIAL_STUDENT_GROUP_MEMBERS);
-    setClassHistories(INITIAL_CLASS_HISTORIES);
-    setRoomHistories(INITIAL_ROOM_HISTORIES);
-    setSessionParticipants(INITIAL_SESSION_PARTICIPANTS);
-    setActivityParticipants(INITIAL_ACTIVITY_PARTICIPANTS);
-    setExcusals(INITIAL_STUDENT_EXCUSALS);
-    setRecordHistories(INITIAL_RECORD_HISTORIES);
-    showToast('Data database simulasi berhasil direset ke initial seed Sprint 5.', 'success');
+    void refreshServerData(false);
+    showToast('Data dimuat ulang dari server.', 'info');
   };
 
-  // Device Management Handlers (Sprint 5)
-  const handleAddDevice = (newDev: AttendanceDevice, plainSecret: string) => {
-    setDevices((prev) => [...prev, newDev]);
-    const log: AttendanceDeviceLog = {
-      id: Date.now(),
-      attendance_device_id: newDev.id,
-      device_code: newDev.device_code,
-      event_type: 'FIRMWARE_BOOT',
-      level: 'info',
-      message: `Perangkat baru '${newDev.device_name}' didaftarkan oleh ${currentUser.name} (IP: ${newDev.ip_address}).`,
-      created_at: newDev.created_at || new Date().toISOString().slice(0, 19).replace('T', ' '),
-    };
-    setDeviceLogs((prev) => [log, ...prev]);
-  };
+  // ===== Perangkat: disimpan di server =====
+  // Token alat dibuat di browser, server hanya menyimpan hash-nya; dipakai alat lewat header X-DEVICE-TOKEN.
+  const handleAddDevice = (newDev: AttendanceDevice, plainSecret: string) =>
+    kbmCall(() => apiClient.post('/devices', {
+      device_code: newDev.device_code, device_name: newDev.device_name, device_type: newDev.device_type,
+      location: newDev.location, device_token: plainSecret,
+    }), `Perangkat ${newDev.device_code} berhasil didaftarkan.`);
 
   const handleUpdateDevice = (updatedDev: AttendanceDevice) => {
     setDevices((prev) => prev.map((d) => (d.id === updatedDev.id ? updatedDev : d)));
+    return kbmCall(() => apiClient.patch(`/devices/${updatedDev.id}`, {
+      device_name: updatedDev.device_name, location: updatedDev.location, is_active: updatedDev.is_active,
+      mode: updatedDev.mode || 'attendance', current_session_id: updatedDev.current_session_id ?? null,
+    }), `Perangkat ${updatedDev.device_code} diperbarui.`);
   };
 
   const handleRotateDeviceSecret = (deviceId: number) => {
-    const { newPlainSecret, updatedDevice, deviceLog } = RfidAttendanceService.rotateDeviceSecret({
-      deviceId,
-      devices,
-      operator: currentUser,
-    });
-    setDevices((prev) => prev.map((d) => (d.id === deviceId ? updatedDevice : d)));
-    setDeviceLogs((prev) => [deviceLog, ...prev]);
-    return { newSecret: newPlainSecret, updatedDevice };
+    const device = devices.find((d) => d.id === deviceId) as AttendanceDevice;
+    const bytes = new Uint8Array(24);
+    crypto.getRandomValues(bytes);
+    const newSecret = 'dev_' + Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+    void kbmCall(() => apiClient.post(`/devices/${deviceId}/token`, { device_token: newSecret }), `Token perangkat ${device?.device_code || ''} diperbarui.`);
+    return { newSecret, updatedDevice: { ...device, updated_at: new Date().toISOString() } };
   };
 
   // Record Attendance Handler (Engine Invocation with Session Participant Snapshot Verification)
+  // Hasil simulator disimpan terpisah (hilang saat halaman dimuat ulang), tidak dicampur dengan presensi asli
+  const [simulatedRecords, setSimulatedRecords] = useState<AttendanceRecord[]>([]);
+
   const handleRecordAttendance = (params: {
     sessionId: number;
     student: Student;
@@ -804,41 +873,8 @@ export function App() {
 
     const activity = activities.find((a) => a.id === session.activity_id) || activities[0];
 
-    // SPRINT 10: Check if Server LAN is Offline
-    if (ServerConnectivityService.getState() === 'SERVER_OFFLINE') {
-      const offlineRes = OfflineStorageService.addPendingAttendance({
-        sessionId: session.id,
-        sessionCode: session.session_code,
-        activityName: session.activity_name,
-        studentId: params.student.id,
-        studentNumber: params.student.student_number,
-        studentName: params.student.name,
-        classroomName: params.student.classroom_name,
-        dormitoryRoomName: params.student.dormitory_room_name,
-        method: params.method,
-        status: params.overrideStatus || 'present',
-        notes: params.notes,
-        operatorId: currentUser.id,
-        operatorName: currentUser.name,
-      });
-
-      if (offlineRes.success) {
-        showToast(`✓ [MODE OFFLINE] Absensi ${params.student.name} tersimpan di antrean perangkat (PENDING SYNC).`, 'info');
-        return {
-          success: true,
-          code: 'SUCCESS',
-          message: 'Absensi tersimpan sementara di antrean perangkat (Menunggu Sinkronisasi LAN).',
-        };
-      } else {
-        showToast(offlineRes.message || 'Gagal menyimpan antrean offline', 'error');
-        return {
-          success: false,
-          code: 'ALREADY_RECORDED',
-          message: offlineRes.message || 'Gagal menyimpan antrean offline',
-        };
-      }
-    }
-
+    // Hanya dipakai halaman SIMULATOR (scanner & RFID): hasilnya tidak pernah masuk antrean offline
+    // maupun daftar presensi sungguhan — dulu saat server offline simulasi ikut tersinkron sebagai presensi asli.
     const { result, newRecord } = AttendanceEngine.record({
       sessionId: session.id,
       sessionStatus: session.status,
@@ -854,14 +890,14 @@ export function App() {
       checkInTime: params.checkInTime || new Date().toISOString(),
       overrideStatus: params.overrideStatus,
       notes: params.notes,
-      existingRecords: records,
+      existingRecords: [...simulatedRecords, ...records],
       sessionParticipants,
       allowParticipantOverride: params.allowParticipantOverride,
     });
 
     if (result.success && newRecord) {
-      setRecords((prev) => [newRecord, ...prev]);
-      showToast(result.message, 'success');
+      setSimulatedRecords((prev) => [newRecord, ...prev]);
+      showToast(`[SIMULASI] ${result.message}`, 'success');
     } else {
       showToast(result.message, 'error');
     }
@@ -870,583 +906,190 @@ export function App() {
   };
 
   // Manual Sheet Status Click (Interactive Pill)
-  const handleRecordManualStatus = (params: {
-    sessionId: number;
-    student: Student;
-    status: AttendanceStatus;
-    notes?: string;
-  }) => {
-    const session = sessions.find((s) => s.id === params.sessionId);
-    if (!session) return;
-
-    // Check if record exists already for this student & session
-    const existingRecord = records.find(
-      (r) => r.attendance_session_id === session.id && r.student_id === params.student.id
-    );
-
-    if (existingRecord) {
-      // Prompt correction if already exists
-      handleCorrectStatus(existingRecord, params.status, 'Penyesuaian langsung operator pada lembar manual');
-    } else {
-      // Create fresh record
-      handleRecordAttendance({
-        sessionId: params.sessionId,
-        student: params.student,
-        method: 'manual',
-        overrideStatus: params.status,
-        notes: params.notes,
-        allowParticipantOverride: true, // Manual admin override
-      });
-    }
-  };
 
   // Bulk Mark All Present (Sprint 3 Engine)
-  const handleBulkMarkPresent = (sessionId: number) => {
-    const session = sessions.find((s) => s.id === sessionId);
-    if (!session) {
-      showToast('Sesi tidak ditemukan.', 'error');
-      return;
-    }
-
-    const activity = activities.find((a) => a.id === session.activity_id) || activities[0];
-
-    const bulkResult = AttendanceEngine.markAllPresent({
-      session,
-      activity,
-      allStudents: students,
-      existingRecords: records,
-      sessionParticipants,
-      operator: currentUser,
-    });
-
-    if (bulkResult.success > 0) {
-      setRecords((prev) => [...bulkResult.newRecords, ...prev]);
-      showToast(`Berhasil menandai ${bulkResult.success} santri sebagai Hadir (Dilewati: ${bulkResult.skipped}).`, 'success');
-    } else {
-      showToast(`Semua peserta sudah tercatat (${bulkResult.skipped} santri dilewati).`, 'success');
-    }
-  };
 
   // Bulk Apply Status (e.g. mass Izin, Sakit, Dispensasi, Alpha)
-  const handleBulkApplyStatus = (sessionId: number, targetStudentIds: number[], status: AttendanceStatus, notes?: string) => {
-    const session = sessions.find((s) => s.id === sessionId);
-    if (!session) return;
-
-    const activity = activities.find((a) => a.id === session.activity_id) || activities[0];
-    const targetStudents = students.filter((s) => targetStudentIds.includes(s.id));
-
-    const bulkResult = AttendanceEngine.bulkRecord({
-      session,
-      activity,
-      students: targetStudents,
-      status,
-      notes,
-      operator: currentUser,
-      existingRecords: records,
-      sessionParticipants,
-    });
-
-    if (bulkResult.success > 0) {
-      setRecords((prev) => [...bulkResult.newRecords, ...prev]);
-      showToast(`Berhasil memperbarui ${bulkResult.success} santri menjadi status ${status.toUpperCase()}.`, 'success');
-    } else {
-      showToast('Tidak ada data yang diproses.', 'error');
-    }
-  };
 
   // Attendance Correction with Mandatory Reason (Sprint 3 Engine)
-  const handleCorrectStatus = (record: AttendanceRecord, newStatus: AttendanceStatus, reason: string) => {
-    const corrResult = AttendanceEngine.correctAttendance({
-      record,
-      newStatus,
-      reason,
-      operator: currentUser,
-    });
 
-    if (corrResult.success && corrResult.updatedRecord && corrResult.historyEntry) {
-      setRecords((prev) => prev.map((r) => (r.id === corrResult.updatedRecord!.id ? corrResult.updatedRecord! : r)));
-      setRecordHistories((prev) => [corrResult.historyEntry!, ...prev]);
-      showToast(corrResult.message, 'success');
-    } else {
-      showToast(corrResult.message, 'error');
-    }
-  };
-
-  // Create Session (with Auto Snapshot of Session Participants)
-  const handleCreateSession = (sessionData: Partial<AttendanceSession>) => {
-    const newSessionId = Date.now();
-    const act = activities.find((a) => a.id === sessionData.activity_id) || activities[0];
-
-    const newSession: AttendanceSession = {
-      id: newSessionId,
-      activity_id: act.id,
-      activity_name: act.name,
-      activity_code: act.code,
-      session_code: sessionData.session_code || `ATT-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${act.code}-${Math.floor(100 + Math.random() * 900)}`,
-      session_date: sessionData.session_date || new Date().toISOString().slice(0, 10),
-      start_at: sessionData.start_at || `${new Date().toISOString().slice(0, 10)} ${act.default_start_time}:00`,
-      present_until: sessionData.present_until || `${new Date().toISOString().slice(0, 10)} ${act.default_present_until}:00`,
-      late_until: sessionData.late_until || `${new Date().toISOString().slice(0, 10)} ${act.default_late_until}:00`,
-      end_at: sessionData.end_at || `${new Date().toISOString().slice(0, 10)} ${act.default_end_time}:00`,
-      status: sessionData.status || 'draft',
-      location: sessionData.location || act.location,
-      participant_count: 0,
-      notes: sessionData.notes,
-    };
-
-    // Generate snapshot of eligible participants
-    const snapshot = ActivityParticipantService.generateSessionParticipantsSnapshot({
-      session: newSession,
-      activity: act,
-      students,
-      dormitoryRooms,
-      activityParticipants,
-      extracurricularMembers,
-      studentGroupMembers,
-    });
-
-    newSession.participant_count = snapshot.length;
-
-    setSessions((prev) => [newSession, ...prev]);
-    setSessionParticipants((prev) => [...prev, ...snapshot]);
-
-    showToast(`Sesi '${newSession.session_code}' berhasil dibuat dengan ${snapshot.length} santri peserta terdaftar snapshot.`, 'success');
-  };
+  // Buat sesi manual di server (peserta di-snapshot server sesuai aturan peserta kegiatan)
 
   // Open Session
-  const handleOpenSession = (sessionId: number) => {
-    handleUpdateSessionStatus(sessionId, 'open');
-  };
 
   // Close Session with Auto Alpha & Active Excuse Processing (Sprint 3 Engine)
-  const handleCloseSession = (sessionId: number) => {
-    const session = sessions.find((s) => s.id === sessionId);
-    if (!session) return;
+  // Buka/tutup/batal sesi lewat server (peserta yang belum tercatat otomatis difinalisasi saat ditutup)
 
-    const closeResult = AttendanceEngine.finalizeSessionAttendance({
-      session,
-      allStudents: students,
-      excusals,
-      existingRecords: records,
-      sessionParticipants,
-      operator: currentUser,
-    });
-
-    if (closeResult.success) {
-      setSessions((prev) => prev.map((s) => (s.id === sessionId ? closeResult.closedSession : s)));
-      if (closeResult.autoRecords.length > 0) {
-        setRecords((prev) => [...closeResult.autoRecords, ...prev]);
-      }
-      showToast(closeResult.message, 'success');
-    } else {
-      showToast(closeResult.message, 'error');
-    }
-  };
-
-  // Update Session Status with strict transition validation
-  const handleUpdateSessionStatus = (sessionId: number, newStatus: SessionStatus, cancelReason?: string) => {
+  const handleUpdateSessionStatus = async (sessionId: number, newStatus: SessionStatus, cancelReason?: string) => {
     const targetSession = sessions.find((s) => s.id === sessionId);
-    if (!targetSession) return;
-
-    if (newStatus === 'closed') {
-      handleCloseSession(sessionId);
+    const action = newStatus === 'open' ? 'open' : newStatus === 'closed' ? 'close' : newStatus === 'cancelled' ? 'cancel' : null;
+    if (!action) {
+      showToast(`Perubahan status ke '${newStatus}' tidak didukung.`, 'error');
       return;
     }
-
-    if (!AttendanceEngine.canTransition(targetSession.status, newStatus)) {
-      showToast(`Transisi status dari '${targetSession.status.toUpperCase()}' ke '${newStatus.toUpperCase()}' tidak diperbolehkan.`, 'error');
-      return;
+    try {
+      const res: any = await apiClient.post(`/attendance/sessions/${sessionId}/${action}`, action === 'cancel' ? { reason: cancelReason || 'Dibatalkan operator' } : {});
+      showToast(res?.message || `Status sesi '${targetSession?.session_code || sessionId}' diubah menjadi ${newStatus.toUpperCase()}.`, 'success');
+      await refreshServerData(true);
+    } catch (err: any) {
+      showToast(isOfflineError(err) ? 'Server offline: status sesi belum bisa diubah.' : err?.message || 'Gagal mengubah status sesi.', 'error');
     }
-
-    setSessions((prev) =>
-      prev.map((s) => {
-        if (s.id === sessionId) {
-          const nowStr = new Date().toISOString();
-          return {
-            ...s,
-            status: newStatus,
-            opened_by: newStatus === 'open' ? currentUser.name : s.opened_by,
-            opened_at: newStatus === 'open' ? nowStr : s.opened_at,
-            closed_by: s.closed_by,
-            closed_at: s.closed_at,
-            notes: cancelReason ? `${s.notes || ''} [BATAL: ${cancelReason}]` : s.notes,
-          };
-        }
-        return s;
-      })
-    );
-
-    showToast(`Status sesi '${targetSession.session_code}' berhasil diubah menjadi ${newStatus.toUpperCase()}.`, 'success');
   };
 
-  // Excusal Handlers (Sprint 3)
-  const handleAddExcusal = (data: Partial<StudentExcusal>) => {
-    const student = students.find((s) => s.id === data.student_id);
-    if (!student) return;
+  // Excusal Handlers — disimpan ke server (MySQL). Hanya saat server tidak terjangkau dicatat sementara di browser.
+  const upsertExcusalState = (exc: StudentExcusal) =>
+    setExcusals((prev) => [exc, ...prev.filter((e) => e.id !== exc.id)]);
 
-    const newExcusal: StudentExcusal = {
-      id: Date.now(),
+  const handleAddExcusal = async (data: Partial<StudentExcusal>) => {
+    const student = students.find((s) => s.id === data.student_id);
+    if (!student || !currentUser) return;
+
+    const today = todayLocalDate();
+    const payload = {
       student_id: student.id,
-      student_name: student.name,
-      student_number: student.student_number,
-      classroom_name: student.classroom_name,
-      dormitory_room_name: student.dormitory_room_name,
       type: data.type || 'sick',
       reason: data.reason || 'Izin dari wali santri',
-      start_at: data.start_at || '2026-08-23T04:00:00',
-      end_at: data.end_at || '2026-08-23T20:00:00',
-      status: 'approved', // Auto-approved when entered by authorized staff
-      approved_by: currentUser.name,
-      approved_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
+      start_at: data.start_at || `${today}T00:00:00`,
+      end_at: data.end_at || `${today}T23:59:00`,
       notes: data.notes,
-      created_by: currentUser.name,
-      created_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
-      updated_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
+      status: data.status === 'pending' ? 'pending' : 'approved',
     };
 
-    setExcusals((prev) => [newExcusal, ...prev]);
-    showToast(`Surat izin/dispensasi '${student.name}' berhasil disimpan dan disetujui.`, 'success');
+    try {
+      const res: any = await apiClient.post<StudentExcusal>('/student-excusals', payload);
+      upsertExcusalState(res.data);
+      showToast(
+        res.data.status === 'approved'
+          ? `Surat izin '${student.name}' tersimpan di server dan disetujui.`
+          : `Surat izin '${student.name}' tersimpan, menunggu persetujuan.`,
+        'success'
+      );
+    } catch (err: any) {
+      if (!isOfflineError(err)) {
+        showToast(err?.message || 'Surat izin gagal disimpan.', 'error');
+        return;
+      }
+      const nowStr = new Date().toISOString().slice(0, 19).replace('T', ' ');
+      upsertExcusalState({
+        id: Date.now(),
+        student_id: student.id,
+        student_name: student.name,
+        student_number: student.student_number,
+        classroom_name: student.classroom_name,
+        dormitory_room_name: student.dormitory_room_name,
+        ...payload,
+        status: 'approved',
+        approved_by: currentUser.name,
+        approved_at: nowStr,
+        created_by: currentUser.name,
+        created_at: nowStr,
+        updated_at: nowStr,
+      } as StudentExcusal);
+      showToast('Server offline: surat izin disimpan sementara di perangkat ini.', 'info');
+    }
   };
 
-  const handleApproveExcusal = (id: number) => {
-    setExcusals((prev) =>
-      prev.map((exc) =>
-        exc.id === id
-          ? {
-              ...exc,
-              status: 'approved',
-              approved_by: currentUser?.name || 'Musyrif / Super Admin',
-              approved_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
-            }
-          : exc
-      )
-    );
-    showToast('Surat izin berhasil disetujui.', 'success');
+  const changeExcusalStatus = async (id: number, action: 'approve' | 'reject' | 'cancel', reason = '') => {
+    try {
+      const res: any = await apiClient.post<StudentExcusal>(`/student-excusals/${id}/${action}`, action === 'reject' ? { reason } : {});
+      upsertExcusalState(res.data);
+      const label = action === 'approve' ? 'disetujui' : action === 'reject' ? 'ditolak' : 'dibatalkan';
+      showToast(`Surat izin berhasil ${label}.`, action === 'reject' ? 'error' : 'success');
+    } catch (err: any) {
+      showToast(
+        isOfflineError(err) ? 'Server offline: perubahan status izin belum bisa disimpan.' : err?.message || 'Gagal mengubah status izin.',
+        'error'
+      );
+    }
   };
 
-  const handleRejectExcusal = (id: number, reason: string = '') => {
-    setExcusals((prev) =>
-      prev.map((exc) =>
-        exc.id === id
-          ? {
-              ...exc,
-              status: 'rejected',
-              notes: reason ? `Ditolak: ${reason}` : (exc.notes || 'Ditolak oleh Musyrif/Admin'),
-            }
-          : exc
-      )
-    );
-    showToast('Surat izin ditolak.', 'error');
-  };
-
-  const handleCancelExcusal = (id: number) => {
-    setExcusals((prev) =>
-      prev.map((exc) =>
-        exc.id === id
-          ? {
-              ...exc,
-              status: 'cancelled',
-            }
-          : exc
-      )
-    );
-    showToast('Surat izin dibatalkan.', 'success');
-  };
+  const handleApproveExcusal = (id: number) => changeExcusalStatus(id, 'approve');
+  const handleRejectExcusal = (id: number, reason: string = '') => changeExcusalStatus(id, 'reject', reason);
+  const handleCancelExcusal = (id: number) => changeExcusalStatus(id, 'cancel');
 
   // Add Student
-  const handleAddStudent = (studentData: Partial<Student>) => {
-    const newStudent: Student = {
-      id: Date.now(),
-      student_number: studentData.student_number || `UBA2600${Math.floor(10 + Math.random() * 89)}`,
-      nisn: studentData.nisn || `0089${Math.floor(100000 + Math.random() * 900000)}`,
-      name: studentData.name || 'Santri Baru',
-      nickname: studentData.nickname,
-      gender: studentData.gender || 'male',
-      birth_place: studentData.birth_place,
-      birth_date: studentData.birth_date,
-      classroom_id: studentData.classroom_id || null,
-      classroom_name: studentData.classroom_name,
-      dormitory_room_id: studentData.dormitory_room_id || null,
-      dormitory_room_name: studentData.dormitory_room_name,
-      generation_year: studentData.generation_year || 2026,
-      entry_year: studentData.entry_year || 2026,
-      qr_token: studentData.qr_token || `STU-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
-      rfid_uid: studentData.rfid_uid || undefined,
-      guardian_name: studentData.guardian_name,
-      guardian_phone: studentData.guardian_phone,
-      address: studentData.address,
-      status: studentData.status || 'active',
-      is_active: studentData.is_active !== undefined ? studentData.is_active : true,
-    };
-
-    setStudents((prev) => [...prev, newStudent]);
-    showToast(`Santri '${newStudent.name}' (NIS: ${newStudent.student_number}) berhasil didaftarkan.`, 'success');
-  };
 
   // Update Student
-  const handleUpdateStudent = (studentId: number, updateData: Partial<Student>) => {
-    setStudents((prev) =>
-      prev.map((s) => (s.id === studentId ? { ...s, ...updateData } : s))
-    );
-    showToast(`Data santri berhasil diperbarui.`, 'success');
-  };
 
   // Toggle Student Active
-  const handleToggleStudentActive = (studentId: number) => {
-    setStudents((prev) =>
-      prev.map((s) => {
-        if (s.id === studentId) {
-          const nextState = !s.is_active;
-          const nextStatus = nextState ? 'active' : 'inactive';
-          showToast(`Status santri '${s.name}' diubah menjadi ${nextState ? 'AKTIF' : 'NON-AKTIF'}.`, 'success');
-          return { ...s, is_active: nextState, status: nextStatus };
-        }
-        return s;
-      })
-    );
-  };
 
   // Extracurriculars Handlers
-  const handleAddExtracurricular = (ekskul: Partial<Extracurricular>) => {
-    const newEks: Extracurricular = {
-      id: Date.now(),
-      code: ekskul.code || `EKS-${Math.random().toString(36).substring(2, 6).toUpperCase()}`,
-      name: ekskul.name || 'Ekstrakurikuler Baru',
-      description: ekskul.description || '',
-      coach_name: ekskul.coach_name || 'Pembina Umum',
-      location: ekskul.location || 'Area Pesantren',
-      is_active: true,
-    };
-    setExtracurriculars((prev) => [...prev, newEks]);
-    showToast(`Ekstrakurikuler '${newEks.name}' berhasil ditambahkan.`, 'success');
+  // ===== Ekstrakurikuler: disimpan di server =====
+  const handleAddExtracurricular = (ekskul: Partial<Extracurricular>) =>
+    kbmCall(() => apiClient.post('/community/extracurriculars', ekskul), `Ekstrakurikuler '${ekskul.name || ''}' ditambahkan.`);
+  const handleAddExtracurricularMember = (extracurricularId: number, studentId: number) =>
+    kbmCall(() => apiClient.post(`/community/extracurriculars/${extracurricularId}/members`, { student_id: studentId }), 'Anggota ekstrakurikuler ditambahkan.');
+  const handleRemoveExtracurricularMember = (memberId: number) =>
+    kbmCall(() => apiClient.delete(`/community/extracurricular-members/${memberId}`), 'Anggota ekstrakurikuler dinonaktifkan.');
+
+  // ===== Kelompok santri khusus: disimpan di server =====
+  const handleAddStudentGroup = (grp: Partial<StudentGroup>) =>
+    kbmCall(() => apiClient.post('/community/student-groups', grp), `Kelompok '${grp.name || ''}' berhasil dibuat.`);
+  const handleAddStudentGroupMember = (groupId: number, studentId: number) =>
+    kbmCall(() => apiClient.post(`/community/student-groups/${groupId}/members`, { student_id: studentId }), 'Santri berhasil didaftarkan ke kelompok.');
+  const handleRemoveStudentGroupMember = (memberId: number) =>
+    kbmCall(() => apiClient.delete(`/community/student-group-members/${memberId}`), 'Santri dikeluarkan dari kelompok.');
+
+  // ===== Kelas, gedung asrama, kamar: disimpan di server (setelah berubah, data master dimuat ulang penuh) =====
+  const masterCall = async (fn: () => Promise<any>, successMsg: string) => {
+    try {
+      const res: any = await fn();
+      showToast(res?.message || successMsg, 'success');
+      await refreshServerData(false);
+      return res;
+    } catch (err: any) {
+      const fieldMsg = err?.fieldErrors ? (Object.values(err.fieldErrors).flat()[0] as string | undefined) : undefined;
+      showToast(isOfflineError(err) ? 'Server offline: perubahan belum bisa disimpan.' : fieldMsg || err?.message || 'Gagal menyimpan.', 'error');
+      return null;
+    }
   };
 
-  const handleAddExtracurricularMember = (member: Partial<ExtracurricularMember>) => {
-    const newMem: ExtracurricularMember = {
-      id: Date.now(),
-      extracurricular_id: member.extracurricular_id || 1,
-      student_id: member.student_id || 1,
-      membership_status: member.membership_status || 'active',
-      registration_source: member.registration_source || 'admin_assignment',
-      joined_at: '2026-08-23',
-      is_active: true,
-    };
-    setExtracurricularMembers((prev) => [...prev, newMem]);
-    showToast('Anggota ekstrakurikuler berhasil ditambahkan.', 'success');
-  };
+  const handleAddClassroom = (classroomData: Partial<Classroom>) =>
+    masterCall(() => apiClient.post('/classrooms', classroomData), `Kelas '${classroomData.name || ''}' berhasil ditambahkan.`);
+  const handleUpdateClassroom = (classroomId: number, updateData: Partial<Classroom>) =>
+    masterCall(() => apiClient.put(`/classrooms/${classroomId}`, updateData), 'Data kelas berhasil diperbarui.');
+  const handleDeleteClassroom = (classroomId: number) =>
+    masterCall(() => apiClient.delete(`/classrooms/${classroomId}`), 'Kelas dihapus.');
 
-  const handleRemoveExtracurricularMember = (memberId: number) => {
-    setExtracurricularMembers((prev) => prev.filter((m) => m.id !== memberId));
-    showToast('Anggota ekstrakurikuler dinonaktifkan.', 'success');
-  };
+  const handleAddDormitory = (dormData: Partial<Dormitory>) =>
+    masterCall(() => apiClient.post('/dormitories', dormData), `Gedung asrama '${dormData.name || ''}' berhasil ditambahkan.`);
+  const handleUpdateDormitory = (dormId: number, updateData: Partial<Dormitory>) =>
+    masterCall(() => apiClient.put(`/dormitories/${dormId}`, updateData), 'Data gedung asrama berhasil diperbarui.');
+  const handleDeleteDormitory = (dormId: number) =>
+    masterCall(() => apiClient.delete(`/dormitories/${dormId}`), 'Gedung asrama dihapus.');
 
-  // Student Group Handlers
-  const handleAddStudentGroup = (grp: Partial<StudentGroup>) => {
-    const newGrp: StudentGroup = {
-      id: Date.now(),
-      code: grp.code || `GRP-${Math.random().toString(36).substring(2, 6).toUpperCase()}`,
-      name: grp.name || 'Kelompok Santri Baru',
-      description: grp.description || '',
-      is_active: true,
-    };
-    setStudentGroups((prev) => [...prev, newGrp]);
-    showToast(`Kelompok '${newGrp.name}' berhasil dibuat.`, 'success');
-  };
-
-  const handleAddStudentGroupMember = (member: Partial<StudentGroupMember>) => {
-    const newMem: StudentGroupMember = {
-      id: Date.now(),
-      student_group_id: member.student_group_id || 1,
-      student_id: member.student_id || 1,
-      joined_at: '2026-08-23',
-    };
-    setStudentGroupMembers((prev) => [...prev, newMem]);
-    showToast('Santri berhasil didaftarkan ke kelompok.', 'success');
-  };
-
-  const handleRemoveStudentGroupMember = (memberId: number) => {
-    setStudentGroupMembers((prev) => prev.filter((m) => m.id !== memberId));
-    showToast('Santri dikeluarkan dari kelompok.', 'success');
-  };
-
-  // Classroom CRUD Handlers
-  const handleAddClassroom = (classroomData: Partial<Classroom>) => {
-    const newClassroom: Classroom = {
-      id: Date.now(),
-      code: classroomData.code || `CLS-${classroomData.grade_level || 7}-${classroomData.name || 'NEW'}`,
-      name: classroomData.name || 'Kelas Baru',
-      grade_level: classroomData.grade_level || 7,
-      academic_year: classroomData.academic_year || '2025/2026',
-      homeroom_teacher: classroomData.homeroom_teacher || 'Ustadz Pengampu',
-      capacity: classroomData.capacity || 30,
-      student_count: 0,
-      is_active: true,
-    };
-    setClassrooms((prev) => [...prev, newClassroom]);
-    showToast(`Kelas '${newClassroom.name}' (Tingkat ${newClassroom.grade_level}) berhasil ditambahkan.`, 'success');
-  };
-
-  const handleUpdateClassroom = (classroomId: number, updateData: Partial<Classroom>) => {
-    setClassrooms((prev) =>
-      prev.map((c) => (c.id === classroomId ? { ...c, ...updateData } : c))
-    );
-    showToast(`Data kelas berhasil diperbarui.`, 'success');
-  };
-
-  const handleDeleteClassroom = (classroomId: number) => {
-    const target = classrooms.find((c) => c.id === classroomId);
-    setClassrooms((prev) => prev.filter((c) => c.id !== classroomId));
-    setStudents((prev) =>
-      prev.map((s) => (s.classroom_id === classroomId ? { ...s, classroom_id: null, classroom_name: undefined } : s))
-    );
-    showToast(`Kelas '${target?.name || ''}' berhasil dihapus.`, 'info');
-  };
-
-  // Dormitory & Room CRUD Handlers
-  const handleAddDormitory = (dormData: Partial<Dormitory>) => {
-    const newDorm: Dormitory = {
-      id: Date.now(),
-      name: dormData.name || 'Gedung Asrama Baru',
-      gender: dormData.gender || 'L',
-      is_active: true,
-    };
-    setDormitories((prev) => [...prev, newDorm]);
-    showToast(`Gedung asrama '${newDorm.name}' berhasil ditambahkan.`, 'success');
-  };
-
-  const handleUpdateDormitory = (dormId: number, updateData: Partial<Dormitory>) => {
-    setDormitories((prev) =>
-      prev.map((d) => (d.id === dormId ? { ...d, ...updateData } : d))
-    );
-    showToast(`Data gedung asrama berhasil diperbarui.`, 'success');
-  };
-
-  const handleDeleteDormitory = (dormId: number) => {
-    const target = dormitories.find((d) => d.id === dormId);
-    setDormitories((prev) => prev.filter((d) => d.id !== dormId));
-    // Also remove associated rooms and unassign students
-    const roomIdsToDelete = dormitoryRooms.filter((r) => r.dormitory_id === dormId).map((r) => r.id);
-    setDormitoryRooms((prev) => prev.filter((r) => r.dormitory_id !== dormId));
-    setStudents((prev) =>
-      prev.map((s) => (s.dormitory_room_id && roomIdsToDelete.includes(s.dormitory_room_id) ? { ...s, dormitory_room_id: null, dormitory_room_name: undefined } : s))
-    );
-    showToast(`Gedung asrama '${target?.name || ''}' dan kamarnya berhasil dihapus.`, 'info');
-  };
-
-  const handleAddDormitoryRoom = (roomData: Partial<DormitoryRoom>) => {
-    const dorm = dormitories.find((d) => d.id === roomData.dormitory_id);
-    const newRoom: DormitoryRoom = {
-      id: Date.now(),
-      dormitory_id: roomData.dormitory_id || 1,
-      dormitory_name: dorm?.name || roomData.dormitory_name || 'Asrama',
-      code: roomData.code || `RM-${Math.random().toString(36).substring(2, 6).toUpperCase()}`,
-      name: roomData.name || 'Kamar Baru',
-      capacity: roomData.capacity || 8,
-      supervisor: roomData.supervisor || 'Ustadz Pembina',
-      is_active: true,
-    };
-    setDormitoryRooms((prev) => [...prev, newRoom]);
-    showToast(`Kamar '${newRoom.name}' berhasil ditambahkan ke ${newRoom.dormitory_name}.`, 'success');
-  };
-
-  const handleUpdateDormitoryRoom = (roomId: number, updateData: Partial<DormitoryRoom>) => {
-    setDormitoryRooms((prev) =>
-      prev.map((r) => (r.id === roomId ? { ...r, ...updateData } : r))
-    );
-    showToast(`Data kamar berhasil diperbarui.`, 'success');
-  };
-
-  const handleDeleteDormitoryRoom = (roomId: number) => {
-    const target = dormitoryRooms.find((r) => r.id === roomId);
-    setDormitoryRooms((prev) => prev.filter((r) => r.id !== roomId));
-    setStudents((prev) =>
-      prev.map((s) => (s.dormitory_room_id === roomId ? { ...s, dormitory_room_id: null, dormitory_room_name: undefined } : s))
-    );
-    showToast(`Kamar '${target?.name || ''}' berhasil dihapus.`, 'info');
-  };
+  const handleAddDormitoryRoom = (roomData: Partial<DormitoryRoom>) =>
+    masterCall(() => apiClient.post('/dormitory-rooms', roomData), `Kamar '${roomData.name || ''}' berhasil ditambahkan.`);
+  const handleUpdateDormitoryRoom = (roomId: number, updateData: Partial<DormitoryRoom>) =>
+    masterCall(() => apiClient.put(`/dormitory-rooms/${roomId}`, updateData), 'Data kamar berhasil diperbarui.');
+  const handleDeleteDormitoryRoom = (roomId: number) =>
+    masterCall(() => apiClient.delete(`/dormitory-rooms/${roomId}`), 'Kamar dihapus.');
 
   // Activity Handlers
-  const handleAddActivity = (act: Partial<Activity>) => {
-    const newAct: Activity = {
-      id: Date.now(),
-      activity_category_id: act.activity_category_id || 1,
-      category_name: act.category_name || 'Shalat Berjamaah',
-      code: act.code || `ACT-${Math.random().toString(36).substring(2, 6).toUpperCase()}`,
-      name: act.name || 'Kegiatan Baru',
-      description: act.description || '',
-      participant_type: act.participant_type || 'all_students',
-      default_start_time: act.default_start_time || '04:15',
-      default_present_until: act.default_present_until || '04:30',
-      default_late_until: act.default_late_until || '04:45',
-      default_end_time: act.default_end_time || '05:00',
-      location: act.location || 'Masjid Utama Kampus 1',
-      attendance_enabled: true,
-      allow_manual: act.allow_manual !== undefined ? act.allow_manual : true,
-      allow_qr: act.allow_qr !== undefined ? act.allow_qr : true,
-      allow_rfid: act.allow_rfid !== undefined ? act.allow_rfid : true,
-      late_tolerance_minutes: act.late_tolerance_minutes || 15,
-      is_active: true,
-    };
-    setActivities((prev) => [...prev, newAct]);
-    showToast(`Kegiatan '${newAct.name}' berhasil didaftarkan.`, 'success');
-  };
-
-  const handleUpdateActivity = (actId: number, updateData: Partial<Activity>) => {
-    setActivities((prev) =>
-      prev.map((a) => (a.id === actId ? { ...a, ...updateData } : a))
-    );
-    showToast(`Kegiatan berhasil diperbarui.`, 'success');
-  };
-
-  const handleDeleteActivity = (actId: number) => {
-    const target = activities.find((a) => a.id === actId);
-    setActivities((prev) => prev.filter((a) => a.id !== actId));
-    showToast(`Kegiatan '${target?.name || ''}' berhasil dihapus.`, 'info');
-  };
+  // ===== Master kegiatan: disimpan di server =====
+  const handleAddActivity = (act: Partial<Activity>) =>
+    kbmCall(() => apiClient.post('/activities', act), `Kegiatan '${act.name || ''}' berhasil didaftarkan.`);
+  const handleUpdateActivity = (actId: number, updateData: Partial<Activity>) =>
+    kbmCall(() => apiClient.put(`/activities/${actId}`, updateData), 'Kegiatan berhasil diperbarui.');
+  const handleDeleteActivity = (actId: number) =>
+    kbmCall(() => apiClient.delete(`/activities/${actId}`), 'Kegiatan dihapus.');
 
   // Lesson Periods CRUD Handlers
-  const handleAddLessonPeriod = (periodData: Partial<LessonPeriod>) => {
-    const nextSort = lessonPeriods.length > 0 ? Math.max(...lessonPeriods.map((lp) => lp.sort_order || 0)) + 1 : 1;
-    const nextNum = lessonPeriods.length > 0 ? Math.max(...lessonPeriods.map((lp) => lp.period_number || 0)) + 1 : 1;
-    const newPeriod: LessonPeriod = {
-      id: Date.now(),
-      code: periodData.code || `JP-${nextNum.toString().padStart(2, '0')}`,
-      name: periodData.name || `JP ${nextNum}`,
-      period_number: periodData.period_number || nextNum,
-      start_time: periodData.start_time || '07:00',
-      end_time: periodData.end_time || '07:45',
-      is_break: Boolean(periodData.is_break),
-      is_active: true,
-      sort_order: periodData.sort_order || nextSort,
-    };
-    setLessonPeriods((prev) => [...prev, newPeriod].sort((a, b) => a.sort_order - b.sort_order));
-    showToast(`Jam Pelajaran '${newPeriod.name}' berhasil ditambahkan.`, 'success');
-  };
-
-  const handleUpdateLessonPeriod = (periodId: number, updateData: Partial<LessonPeriod>) => {
-    setLessonPeriods((prev) =>
-      prev.map((lp) => (lp.id === periodId ? { ...lp, ...updateData } : lp)).sort((a, b) => a.sort_order - b.sort_order)
-    );
-    showToast('Jam Pelajaran berhasil diperbarui.', 'success');
-  };
-
-  const handleDeleteLessonPeriod = (periodId: number) => {
-    const target = lessonPeriods.find((lp) => lp.id === periodId);
-    setLessonPeriods((prev) => prev.filter((lp) => lp.id !== periodId));
-    showToast(`Jam Pelajaran '${target?.name || ''}' berhasil dihapus.`, 'info');
-  };
+  const handleAddLessonPeriod = (periodData: Partial<LessonPeriod>) =>
+    kbmCall(() => apiClient.post('/academic/lesson-periods', periodData), `Jam Pelajaran '${periodData.name || ''}' ditambahkan.`);
+  const handleUpdateLessonPeriod = (periodId: number, updateData: Partial<LessonPeriod>) =>
+    kbmCall(() => apiClient.put(`/academic/lesson-periods/${periodId}`, updateData), 'Jam Pelajaran berhasil diperbarui.');
+  const handleDeleteLessonPeriod = (periodId: number) =>
+    kbmCall(() => apiClient.delete(`/academic/lesson-periods/${periodId}`), 'Jam Pelajaran berhasil dihapus.');
 
   const handleToggleActivityMethod = (activityId: number, method: 'manual' | 'qr' | 'rfid') => {
-    setActivities((prev) =>
-      prev.map((a) => {
-        if (a.id === activityId) {
-          const key = method === 'manual' ? 'allow_manual' : method === 'qr' ? 'allow_qr' : 'allow_rfid';
-          const nextVal = !a[key];
-          showToast(`Izin metode ${method.toUpperCase()} pada '${a.name}' diubah menjadi ${nextVal ? 'AKTIF' : 'NONAKTIF'}.`, 'success');
-          return { ...a, [key]: nextVal };
-        }
-        return a;
-      })
+    const act = activities.find((a) => a.id === activityId);
+    if (!act) return;
+    const key = method === 'manual' ? 'allow_manual' : method === 'qr' ? 'allow_qr' : 'allow_rfid';
+    const nextVal = !act[key];
+    return kbmCall(
+      () => apiClient.put(`/activities/${activityId}`, { [key]: nextVal }),
+      `Izin metode ${method.toUpperCase()} pada '${act.name}' diubah menjadi ${nextVal ? 'AKTIF' : 'NONAKTIF'}.`
     );
   };
 
@@ -1659,7 +1302,7 @@ export function App() {
       case 'scanner-simulator': return 'Simulator Pemindai QR';
       case 'history': return 'Riwayat & Log Transaksi Presensi';
       case 'devices': return 'Manajemen Perangkat Terminal';
-      case 'acceptance-tests': return 'Acceptance Tests';
+      case 'acceptance-tests': return 'Uji Kesiapan Sistem';
       case 'access': return 'Role & Permission';
       case 'psb-management': return 'Pusat Manajemen PSB';
       case 'settings': return 'Pengaturan Sistem & Lingkungan';
@@ -1675,7 +1318,7 @@ export function App() {
       case 'timetable': return 'Jadwal Pelajaran KBM';
       case 'academic-master': return 'Master Akademik';
       case 'academic-reports': return 'Laporan Akademik KBM';
-      case 'go-live-qa': return 'Go-Live & QA Master';
+      case 'go-live-qa': return 'Go-Live & QA';
       case '403': return 'Akses Ditolak (403)';
       case '404': return 'Halaman Tidak Ditemukan (404)';
       default: return 'Presensi Terpadu SDM & Guru';
@@ -1730,7 +1373,7 @@ export function App() {
           isMobileOpen={isMobileSidebarOpen}
           onCloseMobile={() => setIsMobileSidebarOpen(false)}
           onLogout={handleLogout}
-          isLoadingAuth={authStatus === 'loading'}
+          isLoadingAuth={false}
         />
 
         {/* Main Content Area */}
@@ -1753,14 +1396,12 @@ export function App() {
             {activeTab === '403' && (
               <Forbidden403
                 onBackToDashboard={() => handleSetActiveTab('dashboard')}
-                onLoginAsDifferentUser={handleLogout}
               />
             )}
 
             {activeTab === '404' && (
               <NotFound404
                 onBackToDashboard={() => handleSetActiveTab('dashboard')}
-                requestedPath={window.location.pathname}
               />
             )}
 
@@ -1835,7 +1476,6 @@ export function App() {
 
           {activeTab === 'attendance-dashboard' && (
             <AttendanceDashboardPage
-              userRole={currentUser.role}
               onNavigateToManual={(sId) => {
                 if (sId) setSelectedAttendanceSessionId(sId);
                 setActiveTab('manual-attendance');
@@ -1853,10 +1493,10 @@ export function App() {
                 setAttendanceSubView('detail');
                 setActiveTab('sessions');
               }}
-              onNavigateToRfidMonitoring={() => {
+              onNavigateToRfid={() => {
                 setActiveTab('rfid-monitoring');
               }}
-              onNavigateToLiveMonitoring={() => {
+              onNavigateToMonitoring={() => {
                 setActiveTab('attendance-monitoring');
               }}
             />
@@ -1923,8 +1563,8 @@ export function App() {
             attendanceSubView === 'detail' && selectedAttendanceSessionId ? (
               <SessionDetailPage
                 sessionId={selectedAttendanceSessionId}
-                userRole={currentUser.role}
-                onNavigateBack={() => setAttendanceSubView('sessions')}
+                onBack={() => setAttendanceSubView('sessions')}
+                currentUser={currentUser}
                 onNavigateToManual={(sId) => {
                   setSelectedAttendanceSessionId(sId);
                   setActiveTab('manual-attendance');
@@ -1933,7 +1573,6 @@ export function App() {
                   setSelectedAttendanceSessionId(sId);
                   setActiveTab('qr-scanner');
                 }}
-                onShowToast={showToast}
               />
             ) : (
               <SessionListPage
@@ -2039,7 +1678,7 @@ export function App() {
               eventSessions={eventSessions}
               eventRegistrations={eventRegistrations}
               eventOrganizers={eventOrganizers}
-              activities={activities}
+              activities={serverActivities.length ? serverActivities : activities}
               students={students}
               classrooms={classrooms}
               dormitories={dormitories}
@@ -2138,30 +1777,40 @@ export function App() {
           )}
 
           {activeTab === 'scanner-simulator' && (
-            <InteractiveScannerSimulator
-              sessions={sessions}
-              students={students}
-              activities={activities}
-              devices={devices}
-              records={records}
-              currentUser={currentUser}
-              sessionParticipants={sessionParticipants}
-              onRecordAttendance={handleRecordAttendance}
-            />
+            <>
+              <div className="mb-4 p-3 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-semibold">
+                Mode simulasi: hasil di halaman ini hanya untuk latihan/uji coba dan <b>tidak disimpan ke server</b>. Untuk absensi sungguhan gunakan Scan QR, Absensi Manual, atau alat RFID.
+              </div>
+                          <InteractiveScannerSimulator
+                sessions={sessions}
+                students={students}
+                activities={activities}
+                devices={devices}
+                records={[...simulatedRecords, ...records]}
+                currentUser={currentUser}
+                sessionParticipants={sessionParticipants}
+                onRecordAttendance={handleRecordAttendance}
+              />
+            </>
           )}
 
           {activeTab === 'rfid-simulator' && (
-            <RfidSimulatorView
-              sessions={sessions}
-              students={students}
-              activities={activities}
-              devices={devices}
-              records={records}
-              sessionParticipants={sessionParticipants}
-              currentUser={currentUser}
-              onRecordAttendance={handleRecordAttendance}
-              onShowToast={showToast}
-            />
+            <>
+              <div className="mb-4 p-3 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-semibold">
+                Mode simulasi: hasil di halaman ini hanya untuk latihan/uji coba dan <b>tidak disimpan ke server</b>. Untuk absensi sungguhan gunakan Scan QR, Absensi Manual, atau alat RFID.
+              </div>
+                          <RfidSimulatorView
+                sessions={sessions}
+                students={students}
+                activities={activities}
+                devices={devices}
+                records={[...simulatedRecords, ...records]}
+                sessionParticipants={sessionParticipants}
+                currentUser={currentUser}
+                onRecordAttendance={handleRecordAttendance}
+                onShowToast={showToast}
+              />
+            </>
           )}
 
           {activeTab === 'history' && (
@@ -2187,21 +1836,7 @@ export function App() {
           )}
 
           {activeTab === 'acceptance-tests' && (
-            <AcceptanceTestView
-              students={students}
-              activities={activities}
-              sessions={sessions}
-              records={records}
-              devices={devices}
-              currentUser={currentUser}
-              extracurriculars={extracurriculars}
-              extracurricularMembers={extracurricularMembers}
-              studentGroups={studentGroups}
-              studentGroupMembers={studentGroupMembers}
-              sessionParticipants={sessionParticipants}
-              excusals={excusals}
-              recordHistories={recordHistories}
-            />
+            <SystemReadinessView onShowToast={showToast} />
           )}
 
           {activeTab === 'access' && (
@@ -2255,6 +1890,16 @@ export function App() {
           {activeTab === 'staff-integrated-dashboard' && (
             <IntegratedDashboardPage
               currentUser={currentUser}
+              sessions={sessions}
+              participants={sessionParticipants}
+              records={records}
+              students={students}
+              classrooms={classrooms}
+              dormitories={dormitories}
+              categories={categories}
+              activities={activities}
+              excusals={excusals}
+              devices={devices}
               onNavigateTab={(t, params) => {
                 if (params?.category) setReportCategory(params.category);
                 if (params?.filters) setReportFilters(params.filters);
@@ -2401,13 +2046,7 @@ export function App() {
           )}
 
           {activeTab === 'go-live-qa' && (
-            <GoLiveQAView
-              sessions={sessions}
-              records={records}
-              students={students}
-              devices={devices}
-              currentUser={currentUser}
-            />
+            <GoLiveQAPage onShowToast={showToast} />
           )}
 
           {activeTab === 'security-audit' && (
@@ -2454,7 +2093,8 @@ export function App() {
               onUpdateRecordHistories={(newHistories) => setRecordHistories(newHistories)}
               onUpdateParticipants={(newParts) => setSessionParticipants(newParts)}
               onApplySyncedRecords={(newRecords) => {
-                setRecords((prev) => [...newRecords, ...prev]);
+                if (newRecords.length) setRecords((prev) => [...newRecords, ...prev]);
+                void refreshServerData(true); // ambil data terbaru setelah antrean offline terkirim
                 showToast(`Berhasil menambahkan ${newRecords.length} record dari antrean offline ke server.`, 'success');
               }}
               onRestoreDatabase={(dump) => {
@@ -2475,6 +2115,9 @@ export function App() {
 
           {activeTab === 'academic-master' && (
             <AcademicMasterView
+              academicYears={academicYears}
+              semesters={semesters}
+              onAcademicPeriodsChanged={(y, sm) => { setAcademicYears(y); setSemesters(sm); }}
               subjects={subjects}
               teachers={teachers}
               teachingAssignments={teachingAssignments}
@@ -2594,6 +2237,7 @@ export function App() {
               onOpenSession={(sId) => handleUpdateSessionStatus(sId, 'open')}
               onCloseSession={(sId) => handleUpdateSessionStatus(sId, 'closed')}
               onShowToast={showToast}
+              onGenerateSessions={handleGenerateRoutineSessions}
             />
           )}
 
@@ -2624,19 +2268,19 @@ export function App() {
               halaqahMembers={halaqahMembers}
               students={students}
               users={users}
-              onUpdateHalaqahs={setHalaqahs}
-              onUpdateHalaqahMembers={setHalaqahMembers}
+              onUpdateHalaqahs={updateHalaqahs}
+              onUpdateHalaqahMembers={updateHalaqahMembers}
               onShowToast={showToast}
             />
           )}
 
           {activeTab === 'duty-roster-manager' && (
             <DutyRosterManagerView
-              activities={activities}
+              activities={serverActivities.length ? serverActivities : activities}
               dutyRosters={dutyRosters}
               students={students}
               currentUser={currentUser}
-              onUpdateDutyRosters={setDutyRosters}
+              onUpdateDutyRosters={updateDutyRosters}
               onShowToast={showToast}
             />
           )}
@@ -2649,10 +2293,10 @@ export function App() {
               prayerCalendars={prayerCalendars}
               activitySupervisors={activitySupervisors}
               users={users}
-              onUpdateRoutineSchedules={setRoutineSchedules}
-              onUpdateRoutineOverrides={setRoutineOverrides}
-              onUpdatePrayerCalendars={setPrayerCalendars}
-              onUpdateSupervisors={setActivitySupervisors}
+              onUpdateRoutineSchedules={updateRoutineSchedules}
+              onUpdateRoutineOverrides={updateRoutineOverrides}
+              onUpdatePrayerCalendars={updatePrayerCalendars}
+              onUpdateSupervisors={updateSupervisors}
               onShowToast={showToast}
             />
           )}

@@ -35,6 +35,7 @@ class RolePermissionSeeder extends Seeder
             'activities.update',
             'activities.delete',
             'classrooms.view',
+            'classrooms.manage',
             'dormitories.view',
             'extracurriculars.view',
 
@@ -80,6 +81,10 @@ class RolePermissionSeeder extends Seeder
             'halaqah.view',
             'duty_roster.view',
             'routine_schedule.view',
+            'halaqah.manage',
+            'duty_roster.manage',
+            'extracurriculars.manage',
+            'routine_schedule.manage',
 
             // Events
             'events.view',
@@ -120,6 +125,7 @@ class RolePermissionSeeder extends Seeder
             // System
             'system.sync_center',
             'system.maintenance',
+            'system.backup',
             'system.security_audit',
             'system.settings',
             'settings.manage',
@@ -135,10 +141,11 @@ class RolePermissionSeeder extends Seeder
             'super-admin' => $permissions,
 
             'admin' => [
+                'system.backup', 'classrooms.manage', 'routine_schedule.manage', 'halaqah.manage', 'duty_roster.manage', 'extracurriculars.manage',
                 'dashboard.view',
                 'dashboard.executive',
                 'students.view', 'students.create', 'students.update', 'students.edit', 'students.deactivate', 'students.cards',
-                'activities.view', 'activities.create', 'activities.update',
+                'activities.view', 'activities.create', 'activities.update', 'activities.delete',
                 'classrooms.view', 'dormitories.view', 'extracurriculars.view',
                 'attendance.view', 'attendance.create', 'attendance.update', 'attendance.scan', 'attendance.manual', 'attendance.qr', 'attendance.rfid', 'attendance.monitoring', 'attendance.excuses', 'attendance.history',
                 'attendance.sessions.view', 'attendance.sessions.create', 'attendance.sessions.open', 'attendance.sessions.close',
@@ -167,7 +174,6 @@ class RolePermissionSeeder extends Seeder
                 'staff.reports',
                 'kbm.reports', 'kbm.monitoring',
                 'dormitory.view',
-                'system.settings',
             ],
 
             'kepala-sekolah' => [
@@ -178,10 +184,10 @@ class RolePermissionSeeder extends Seeder
                 'kbm.teacher_dashboard', 'kbm.monitoring', 'kbm.timetable', 'kbm.master', 'kbm.reports',
                 'attendance.view', 'attendance.sessions.view',
                 'reports.view', 'reports.export', 'reports.attendance.view', 'reports.attendance.export',
-                'system.settings',
             ],
 
             'kepala-asrama' => [
+                'routine_schedule.manage', 'halaqah.manage', 'duty_roster.manage',
                 'dashboard.view',
                 'students.view',
                 'attendance.view', 'attendance.scan', 'attendance.manual', 'attendance.monitoring', 'attendance.excuses',
@@ -191,7 +197,6 @@ class RolePermissionSeeder extends Seeder
                 'halaqah.view',
                 'duty_roster.view',
                 'reports.view', 'reports.attendance.view',
-                'system.settings',
             ],
 
             'guru' => [
@@ -202,7 +207,6 @@ class RolePermissionSeeder extends Seeder
                 'staff.attendance',
                 'kbm.teacher_dashboard', 'kbm.monitoring', 'kbm.timetable', 'kbm.reports',
                 'reports.attendance.view',
-                'system.settings',
             ],
 
             'teacher' => [
@@ -213,7 +217,6 @@ class RolePermissionSeeder extends Seeder
                 'staff.attendance',
                 'kbm.teacher_dashboard', 'kbm.monitoring', 'kbm.timetable', 'kbm.reports',
                 'reports.attendance.view',
-                'system.settings',
             ],
 
             'wali-kelas' => [
@@ -226,6 +229,7 @@ class RolePermissionSeeder extends Seeder
             ],
 
             'musyrif' => [
+                'duty_roster.manage',
                 'dashboard.view',
                 'students.view',
                 'attendance.view', 'attendance.create', 'attendance.manual', 'attendance.qr', 'attendance.rfid', 'attendance.monitoring', 'attendance.excuses',
@@ -234,7 +238,6 @@ class RolePermissionSeeder extends Seeder
                 'prayer.monitoring',
                 'halaqah.view',
                 'duty_roster.view',
-                'system.settings',
             ],
 
             'pelatih' => [
@@ -244,7 +247,6 @@ class RolePermissionSeeder extends Seeder
                 'extracurriculars.view',
                 'attendance.view',
                 'attendance.sessions.view',
-                'system.settings',
             ],
 
             'petugas-masjid' => [
@@ -253,7 +255,6 @@ class RolePermissionSeeder extends Seeder
                 'attendance.view', 'attendance.create', 'attendance.manual', 'attendance.qr', 'attendance.rfid', 'attendance.monitoring',
                 'attendance.sessions.view', 'attendance.sessions.open', 'attendance.sessions.close',
                 'prayer.monitoring',
-                'system.settings',
             ],
 
             'petugas-absensi' => [
@@ -262,7 +263,6 @@ class RolePermissionSeeder extends Seeder
                 'attendance.view', 'attendance.create', 'attendance.manual', 'attendance.qr', 'attendance.rfid', 'attendance.monitoring',
                 'attendance.sessions.view', 'attendance.sessions.open', 'attendance.sessions.close',
                 'prayer.monitoring',
-                'system.settings',
             ],
 
             'operator' => [
@@ -271,26 +271,24 @@ class RolePermissionSeeder extends Seeder
                 'attendance.view', 'attendance.create', 'attendance.scan', 'attendance.manual', 'attendance.monitoring', 'attendance.rfid',
                 'attendance.sessions.view',
                 'devices.view',
-                'system.settings',
             ],
 
             'kesantrian' => [
+                'classrooms.manage', 'routine_schedule.manage', 'halaqah.manage', 'duty_roster.manage', 'extracurriculars.manage',
                 'dashboard.view',
                 'students.view', 'students.create', 'students.edit', 'students.deactivate', 'students.cards',
                 'staff.view',
                 'attendance.view', 'attendance.create', 'attendance.scan', 'attendance.manual', 'attendance.monitoring', 'attendance.excuses',
                 'dormitory.view', 'dormitory.manage',
                 'reports.view', 'reports.export', 'reports.attendance.view',
-                'system.settings',
             ],
 
             'academic' => [
-                'dashboard.view',
+                'classrooms.manage', 'dashboard.view',
                 'students.view', 'students.create', 'students.edit',
                 'staff.view',
                 'kbm.teacher_dashboard', 'kbm.monitoring', 'kbm.timetable', 'kbm.master', 'kbm.reports',
                 'reports.view',
-                'system.settings',
             ],
 
             'panitia-psb' => [
@@ -304,7 +302,6 @@ class RolePermissionSeeder extends Seeder
                 'ppdb.manage',
                 'ppdb.verify',
                 'ppdb.export',
-                'system.settings',
             ],
 
             'panitia-ppdb' => [
@@ -318,7 +315,6 @@ class RolePermissionSeeder extends Seeder
                 'ppdb.manage',
                 'ppdb.verify',
                 'ppdb.export',
-                'system.settings',
             ],
         ];
 

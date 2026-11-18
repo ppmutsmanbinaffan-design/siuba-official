@@ -30,8 +30,14 @@ export const DataImportModal: React.FC<DataImportModalProps> = ({
   type,
   onClose,
   onSuccess,
-  onShowToast = () => {},
+  onShowToast: externalToast,
 }) => {
+  const [notice, setNotice] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  // Pesan selalu tampil di dalam dialog; diteruskan juga ke toast halaman bila disediakan.
+  const onShowToast = (message: string, type: 'success' | 'error') => {
+    setNotice({ message, type });
+    externalToast?.(message, type);
+  };
   const [step, setStep] = useState<'upload' | 'preview' | 'result'>('upload');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [importMode, setImportMode] = useState<'upsert' | 'skip'>('upsert');
@@ -51,30 +57,50 @@ export const DataImportModal: React.FC<DataImportModalProps> = ({
     ? 'Unggah file CSV/Excel data santri untuk pendaftaran masal, penugasan kelas, kamar asrama, dan RFID.'
     : 'Unggah file CSV/Excel data guru, musyrif, pelatih dan staf untuk pembuatan akun user dan penugasan peran.';
 
-  const handleDownloadTemplate = async () => {
+  const handleDownloadTemplate = async (format: 'csv' | 'xlsx' = 'xlsx') => {
     try {
       if (isStudent) {
-        await dataImportService.downloadStudentTemplate();
+        await dataImportService.downloadStudentTemplate(format);
       } else {
-        await dataImportService.downloadStaffTemplate();
+        await dataImportService.downloadStaffTemplate(format);
       }
-      onShowToast('Template CSV berhasil diunduh.', 'success');
+      onShowToast(format === 'xlsx' ? 'Template Excel berhasil diunduh.' : 'Template CSV berhasil diunduh.', 'success');
     } catch {
       onShowToast('Gagal mengunduh template.', 'error');
     }
   };
 
+  const ACCEPTED_EXT = /\.(csv|txt|xlsx|xlsm)$/i;
+
+  const pickFile = (file: File) => {
+    if (/\.xls$/i.test(file.name)) {
+      onShowToast('Format .xls lama belum didukung. Simpan ulang di Excel sebagai .xlsx atau CSV UTF-8.', 'error');
+      return;
+    }
+    if (!ACCEPTED_EXT.test(file.name)) {
+      onShowToast('Gunakan file Excel (.xlsx) atau CSV (.csv / .txt).', 'error');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      onShowToast('Ukuran file maksimal 10 MB. Pecah data menjadi beberapa file.', 'error');
+      return;
+    }
+    setNotice(null);
+    setSelectedFile(file);
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setSelectedFile(e.target.files[0]);
+      pickFile(e.target.files[0]);
     }
+    e.target.value = '';
   };
 
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDragOver(false);
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      setSelectedFile(e.dataTransfer.files[0]);
+      pickFile(e.dataTransfer.files[0]);
     }
   };
 
@@ -165,6 +191,21 @@ export const DataImportModal: React.FC<DataImportModalProps> = ({
 
         {/* Modal Body */}
         <div className="p-6 overflow-y-auto flex-1 space-y-6">
+          {notice && (
+            <div
+              id="import-notice"
+              role="status"
+              className={`px-4 py-3 rounded-2xl text-xs font-semibold border flex items-start justify-between gap-3 ${
+                notice.type === 'error'
+                  ? 'bg-red-950/40 border-red-500/40 text-red-200'
+                  : 'bg-emerald-950/40 border-emerald-500/40 text-emerald-200'
+              }`}
+            >
+              <span>{notice.message}</span>
+              <button type="button" onClick={() => setNotice(null)} className="font-bold opacity-70 hover:opacity-100">×</button>
+            </div>
+          )}
+
           
           {/* STEP 1: UPLOAD */}
           {step === 'upload' && (
@@ -177,19 +218,30 @@ export const DataImportModal: React.FC<DataImportModalProps> = ({
                     <Download className="w-5 h-5" />
                   </div>
                   <div>
-                    <h4 className="text-sm font-bold text-emerald-200">Unduh Format Template CSV</h4>
+                    <h4 className="text-sm font-bold text-emerald-200">Unduh Template Import</h4>
                     <p className="text-xs text-emerald-400/80 mt-0.5">
-                      Gunakan template resmi SIUBA agar kolom data terbaca otomatis dan bebas error.
+                      Isi template resmi SIUBA di Excel. Template Excel sudah berformat teks, jadi NIS, NISN, dan No HP
+                      yang diawali angka 0 tidak berubah.
                     </p>
                   </div>
                 </div>
-                <button
-                  onClick={handleDownloadTemplate}
-                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl flex items-center gap-2 transition-all shrink-0 cursor-pointer shadow-md"
-                >
-                  <Download className="w-4 h-4" />
-                  Download Template .CSV
-                </button>
+                <div className="flex gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => handleDownloadTemplate('xlsx')}
+                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl flex items-center gap-2 transition-all cursor-pointer shadow-md"
+                  >
+                    <Download className="w-4 h-4" />
+                    Template Excel (.xlsx)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDownloadTemplate('csv')}
+                    className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-emerald-200 text-xs font-bold rounded-xl flex items-center gap-2 transition-all cursor-pointer border border-emerald-500/30"
+                  >
+                    .CSV
+                  </button>
+                </div>
               </div>
 
               {/* Drag & Drop File Zone */}
@@ -209,7 +261,7 @@ export const DataImportModal: React.FC<DataImportModalProps> = ({
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept=".csv,.txt"
+                  accept=".xlsx,.xlsm,.csv,.txt,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"
                   className="hidden"
                   onChange={handleFileChange}
                 />
@@ -231,9 +283,9 @@ export const DataImportModal: React.FC<DataImportModalProps> = ({
                   </div>
                 ) : (
                   <div>
-                    <p className="text-sm font-bold text-white">Tarik & Lepas File CSV ke Sini</p>
+                    <p className="text-sm font-bold text-white">Tarik & Lepas File Excel / CSV ke Sini</p>
                     <p className="text-xs text-slate-400 mt-1">
-                      atau <span className="text-emerald-400 underline font-semibold">klik untuk memilih file</span> dari komputer Anda (Format .csv / .txt)
+                      atau <span className="text-emerald-400 underline font-semibold">klik untuk memilih file</span> dari komputer Anda (Format .xlsx / .csv / .txt, maks. 10 MB — sheet pertama yang dibaca)
                     </p>
                   </div>
                 )}
@@ -481,6 +533,50 @@ export const DataImportModal: React.FC<DataImportModalProps> = ({
                   </p>
                 </div>
               </div>
+
+              {Array.isArray((executionResult as any).records) &&
+                (executionResult as any).records.some((r: any) => r.initial_password) && (
+                <div className="max-w-xl mx-auto text-left bg-amber-950/30 border border-amber-500/40 rounded-2xl p-4 space-y-2">
+                  <p className="text-xs font-bold text-amber-200">
+                    Password awal akun baru (hanya ditampilkan sekali). Salin & bagikan ke masing-masing guru/SDM, minta mereka segera menggantinya.
+                  </p>
+                  <div className="max-h-48 overflow-y-auto">
+                    <table className="w-full text-xs font-mono">
+                      <thead>
+                        <tr className="text-amber-300/80">
+                          <th className="text-left py-1">Username</th>
+                          <th className="text-left py-1">Nama</th>
+                          <th className="text-left py-1">Password awal</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(executionResult as any).records
+                          .filter((r: any) => r.initial_password)
+                          .map((r: any) => (
+                            <tr key={r.id} className="text-slate-100 border-t border-amber-500/20">
+                              <td className="py-1 pr-2">{r.username}</td>
+                              <td className="py-1 pr-2 font-sans">{r.name}</td>
+                              <td className="py-1 select-all">{r.initial_password}</td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const text = (executionResult as any).records
+                        .filter((r: any) => r.initial_password)
+                        .map((r: any) => `${r.username}\t${r.name}\t${r.initial_password}`)
+                        .join('\n');
+                      navigator.clipboard?.writeText(`Username\tNama\tPassword awal\n${text}`);
+                    }}
+                    className="px-3 py-1.5 text-[11px] font-bold rounded-lg bg-amber-500/20 text-amber-100 border border-amber-500/40 cursor-pointer"
+                  >
+                    Salin semua (tempel ke Excel)
+                  </button>
+                </div>
+              )}
             </div>
           )}
 

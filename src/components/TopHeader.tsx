@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, Wifi, WifiOff, Shield, Server, Bell, RefreshCw, Smartphone, Menu, LogOut } from 'lucide-react';
+import { Clock, Wifi, WifiOff, Menu, LogOut } from 'lucide-react';
 import { User, ServerConnectivityState } from '../types';
 import { ServerConnectivityService } from '../services/serverConnectivityService';
+import { staffPendingCount } from '../features/staff-attendance/offline/staffOfflineQueue';
 import { OfflineStorageService } from '../services/offlineStorageService';
 
 interface TopHeaderProps {
@@ -43,7 +44,7 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
       const pending = Array.isArray(pendingRecords)
         ? pendingRecords.filter(p => p && (p.sync_status === 'pending' || p.sync_status === 'syncing')).length
         : 0;
-      setPendingCount(pending);
+      setPendingCount(pending + staffPendingCount());
     };
     updateTime();
     const interval = setInterval(updateTime, 1000);

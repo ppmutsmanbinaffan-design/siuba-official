@@ -2,72 +2,51 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Award, 
   Users, 
-  UserCheck, 
   Clock, 
   Calendar, 
   CheckCircle2, 
-  AlertCircle, 
   AlertTriangle, 
   RefreshCw, 
   Plus, 
   Search, 
-  Filter, 
   QrCode, 
   Radio, 
-  Layers, 
-  FileText, 
   ShieldCheck, 
   Check, 
-  X, 
-  Play, 
-  CheckSquare, 
   Sparkles, 
   UserPlus, 
   ArrowRightLeft, 
   BookOpen, 
-  Info,
-  ChevronRight,
   ChevronDown,
-  Printer,
-  Trash2,
-  Edit3
-} from 'lucide-react';
+  Printer} from 'lucide-react';
 import { 
   User, 
   Staff, 
-  Extracurricular, 
   TrainingSession, 
   ExtracurricularStaffAssignment, 
   ExtracurricularStaffRole,
   TrainerSubstitution, 
-  StaffAttendanceRecord,
-  TrainingContextResolution,
-  TrainingReconciliationItem
-} from '../types';
-import { StaffIdentityResolver } from '../services/staffIdentityResolver';
-import { StaffAttendanceService } from '../services/staffAttendanceService';
-import { TrainingSessionService } from '../services/trainingSessionService';
-import { ExtracurricularStaffAssignmentService } from '../services/extracurricularStaffAssignmentService';
-import { TrainerSubstitutionService } from '../services/trainerSubstitutionService';
-import { TrainingAttendanceContextResolver } from '../services/trainingAttendanceContextResolver';
-import { TrainingRealizationService } from '../services/trainingRealizationService';
-import { TrainingAttendanceMetricService } from '../services/trainingAttendanceMetricService';
+  StaffAttendanceRecord} from '../types';
+import { apiClient } from '../services/apiClient';
+import { todayLocalDate } from '../utils/today';
 import { AudioFeedbackService } from '../services/audioFeedbackService';
-import { TrainingJournalService } from '../services/trainingJournalService';
 import { PersonAvatar } from './common/PersonAvatar';
 
 interface TrainerAttendanceViewProps {
   currentUser?: User;
+  /** Ditampilkan sebagai tab di Presensi SDM: judul besar disembunyikan */
+  embedded?: boolean;
 }
 
 type TabType = 'MONITORING' | 'ASSIGNMENTS' | 'SUBSTITUTIONS' | 'JOURNAL' | 'SCANNER' | 'RECONCILIATION';
 
-export const TrainerAttendanceView: React.FC<TrainerAttendanceViewProps> = ({
-  currentUser = { id: 1, name: 'Pembina Ekskul', role: 'admin', email: 'pembina@pesantren.id', username: 'pembina', is_active: true }
-}) => {
+export const TrainerAttendanceView: React.FC<TrainerAttendanceViewProps> = ({ embedded = false }) => {
+  // Hak akses dari server: petugas mengelola semua; pelatih biasa hanya presensi & jurnal miliknya
+  const [me, setMe] = useState<{ staff_id: number; name: string } | null>(null);
+  const [canManage, setCanManage] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<TabType>('MONITORING');
   const [isTabDropdownOpen, setIsTabDropdownOpen] = useState<boolean>(false);
-  const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().substring(0, 10));
+  const [selectedDate, setSelectedDate] = useState<string>(todayLocalDate());
   
   // Data States
   const [trainingSessions, setTrainingSessions] = useState<TrainingSession[]>([]);
@@ -100,45 +79,69 @@ export const TrainerAttendanceView: React.FC<TrainerAttendanceViewProps> = ({
   const [subOriginalStaffId, setSubOriginalStaffId] = useState<number>(1);
   const [subSubstituteStaffId, setSubSubstituteStaffId] = useState<number>(2);
   const [subDate, setSubDate] = useState<string>(selectedDate);
-  const [subReason, setSubReason] = useState<string>('Tugas dinas luar pesantren');
+  const [subReason, setSubReason] = useState<string>('');
 
   // Journal Modal
   const [showJournalModal, setShowJournalModal] = useState<boolean>(false);
   const [selectedSessionForJournal, setSelectedSessionForJournal] = useState<TrainingSession | null>(null);
   const [journalTopic, setJournalTopic] = useState<string>('');
-  const [journalStudentCount, setJournalStudentCount] = useState<number>(20);
+  const [journalStudentCount, setJournalStudentCount] = useState<number>(0);
   const [journalNotes, setJournalNotes] = useState<string>('');
 
-  // Refresh All Data
-  const refreshData = () => {
-    setStaffList(StaffIdentityResolver.getStaffList());
-    setTrainingSessions(TrainingSessionService.getTrainingSessions(selectedDate));
-    setAssignments(ExtracurricularStaffAssignmentService.getAssignments());
-    setSubstitutions(TrainerSubstitutionService.getSubstitutions());
-    setAttendanceRecords(StaffAttendanceService.getRecords());
+  // ===== Data dari server (sebelumnya disimpan di browser dengan jadwal contoh tertanam) =====
+  const [summary, setSummary] = useState<any>({ total_sessions: 0, realized_sessions: 0, substituted_count: 0, realization_rate: 0, punctuality_rate: 0, present_count: 0, late_count: 0, absent_count: 0 });
+  const [reconciliationItems, setReconciliationItems] = useState<any[]>([]);
+  const [extracurriculars, setExtracurriculars] = useState<{ id: number; name: string }[]>([]);
+  const [trainingSchedules, setTrainingSchedules] = useState<any[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [newSchEkskulId, setNewSchEkskulId] = useState<number>(0);
+  const [newSchDay, setNewSchDay] = useState<number>(1);
+  const [newSchStart, setNewSchStart] = useState<string>('16:00');
+  const [newSchEnd, setNewSchEnd] = useState<string>('17:30');
+  const [newSchLocation, setNewSchLocation] = useState<string>('');
+
+  const apiError = (err: any, fallback: string) => {
+    const fieldMsg = err?.fieldErrors ? (Object.values(err.fieldErrors).flat()[0] as string | undefined) : undefined;
+    return fieldMsg || err?.message || fallback;
+  };
+
+  const refreshData = async () => {
+    try {
+      const res: any = await apiClient.get('/trainer/overview', { date: selectedDate });
+      const d = res?.data || {};
+      setMe(d.me || null);
+      setCanManage(Boolean(d.can_manage));
+      setStaffList(d.staff || []);
+      setTrainingSessions(d.sessions || []);
+      setAssignments(d.assignments || []);
+      setSubstitutions(d.substitutions || []);
+      setAttendanceRecords(d.records || []);
+      setSummary(d.summary || {});
+      setReconciliationItems(d.reconciliation || []);
+      setExtracurriculars((d.extracurriculars || []).map((e: any) => ({ id: e.id, name: e.name })));
+      setTrainingSchedules(d.schedules || []);
+      const firstEks = d.extracurriculars?.[0]?.id;
+      const firstStaff = d.staff?.[0]?.id;
+      if (firstEks) {
+        setAssignEkskulId((v) => (d.extracurriculars.some((e: any) => e.id === v) ? v : firstEks));
+        setSubEkskulId((v) => (d.extracurriculars.some((e: any) => e.id === v) ? v : firstEks));
+        setNewSchEkskulId((v) => (d.extracurriculars.some((e: any) => e.id === v) ? v : firstEks));
+      }
+      if (firstStaff) {
+        setAssignStaffId((v) => (d.staff.some((x: any) => x.id === v) ? v : firstStaff));
+        setSubOriginalStaffId((v) => (d.staff.some((x: any) => x.id === v) ? v : firstStaff));
+        setSubSubstituteStaffId((v) => (d.staff.some((x: any) => x.id === v) ? v : (d.staff[1]?.id ?? firstStaff)));
+      }
+      setLoadError(null);
+    } catch (err: any) {
+      setLoadError(apiError(err, 'Gagal memuat data presensi pembina dari server.'));
+    }
   };
 
   useEffect(() => {
-    refreshData();
+    void refreshData();
+    setSubDate(selectedDate);
   }, [selectedDate]);
-
-  // Daily Summary Metric
-  const summary = useMemo(() => {
-    return TrainingAttendanceMetricService.calculateSummary({ date: selectedDate });
-  }, [selectedDate, trainingSessions, attendanceRecords]);
-
-  // Reconciliation items
-  const reconciliationItems = useMemo(() => {
-    return TrainingRealizationService.getReconciliationList(selectedDate);
-  }, [selectedDate, trainingSessions, attendanceRecords]);
-
-  // Unique Extracurricular List
-  const extracurriculars = useMemo(() => {
-    const map = new Map<number, string>();
-    trainingSessions.forEach(s => map.set(s.extracurricular_id, s.extracurricular_name));
-    assignments.forEach(a => map.set(a.extracurricular_id, a.extracurricular_name || `Ekskul #${a.extracurricular_id}`));
-    return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
-  }, [trainingSessions, assignments]);
 
   // Filtered Sessions
   const filteredSessions = useMemo(() => {
@@ -156,183 +159,180 @@ export const TrainerAttendanceView: React.FC<TrainerAttendanceViewProps> = ({
     });
   }, [trainingSessions, filterEkskul, filterStatus, searchQuery]);
 
-  // Handle Generate Daily Sessions
-  const handleGenerateSessions = () => {
-    const result = TrainingSessionService.generateSessionsForDate({ 
-      date: selectedDate, 
-      operatorName: currentUser?.name || 'Pembina' 
-    });
-    alert(`Hasil Sinkronisasi Sesi Latihan:\n- Jadwal Terdeteksi: ${result.schedules_found}\n- Sesi Dibuat: ${result.sessions_created}\n- Sesi Sudah Ada: ${result.sessions_existing}\n- Substitusi Diterapkan: ${result.substitutions_applied}`);
-    refreshData();
+  // Buat sesi latihan dari jadwal latihan (server)
+  const handleGenerateSessions = async () => {
+    try {
+      const res: any = await apiClient.post('/trainer/generate', { date: selectedDate });
+      const r = res?.data || {};
+      alert(r.is_holiday
+        ? `Tanggal ${selectedDate} libur (${r.holiday_name}). Sesi latihan tidak dibuat.`
+        : `Hasil Sinkronisasi Sesi Latihan:\n- Jadwal Terdeteksi: ${r.schedules_found}\n- Sesi Dibuat: ${r.sessions_created}\n- Sesi Sudah Ada: ${r.sessions_existing}\n- Pengganti Diterapkan: ${r.substitutions_applied}` +
+          (r.schedules_found === 0 ? '\n\nBelum ada jadwal latihan untuk hari ini. Tambahkan di tab Penugasan → Jadwal Latihan.' : ''));
+    } catch (err: any) {
+      alert(`Gagal: ${apiError(err, 'tidak bisa membuat sesi latihan.')}`);
+    }
+    void refreshData();
   };
 
-  // Handle Fast Scan Terminal
-  const handleProcessScan = (method: 'qr' | 'rfid', overrideStaffId?: number) => {
-    let targetStaff: Staff | undefined;
-    if (overrideStaffId) {
-      targetStaff = staffList.find(s => s.id === overrideStaffId);
-    } else if (scannerInput.trim()) {
-      targetStaff = StaffIdentityResolver.resolveByIdentifier(scannerInput.trim()) || undefined;
-    }
-
-    if (!targetStaff) {
-      AudioFeedbackService.playError();
-      setScanFeedback({ success: false, message: 'Data staf/pelatih tidak ditemukan dengan identitas tersebut.' });
-      return;
-    }
-
-    // Determine target session
-    let targetSessionId = selectedSessionForScan;
-    if (!targetSessionId) {
-      // Find open or nearest session for this coach today
-      const todaySessions = trainingSessions.filter(s => s.status !== 'cancelled');
-      const coachSession = todaySessions.find(s => 
-        s.primary_staff_id === targetStaff!.id || 
-        s.actual_primary_staff_id === targetStaff!.id ||
-        assignments.some(a => a.extracurricular_id === s.extracurricular_id && a.staff_id === targetStaff!.id && a.is_active)
-      );
-      if (coachSession) {
-        targetSessionId = coachSession.id;
-      } else if (todaySessions.length > 0) {
-        targetSessionId = todaySessions[0].id;
-      }
-    }
-
-    if (!targetSessionId) {
-      AudioFeedbackService.playError();
-      setScanFeedback({ success: false, message: 'Tidak ada sesi latihan aktif yang cocok untuk presensi pelatih ini.' });
-      return;
-    }
-
+  // Presensi pelatih (RFID / QR / nomor induk / tombol cepat)
+  const handleProcessScan = async (method: 'qr' | 'rfid' | 'manual', overrideStaffId?: number, overrideSessionId?: number) => {
+    if (!overrideStaffId && !scannerInput.trim()) return;
     setIsProcessingScan(true);
     setScanFeedback(null);
-
     try {
-      const res = StaffAttendanceService.recordTrainingAttendanceScan({
-        staffId: targetStaff.id,
-        sessionId: targetSessionId,
+      const res: any = await apiClient.post('/trainer/scan', {
+        identifier: overrideStaffId ? undefined : scannerInput.trim(),
+        staff_id: overrideStaffId,
+        session_id: overrideSessionId || selectedSessionForScan || undefined,
         method,
-        operatorName: currentUser?.name || 'Gate Terminal'
       });
-
-      if (res.success) {
-        AudioFeedbackService.playSuccess();
-        setScanFeedback({ success: true, message: res.message, mode: res.mode });
-        setScannerInput('');
-        refreshData();
-      } else {
-        AudioFeedbackService.playError();
-        setScanFeedback({ success: false, message: res.message });
-      }
-    } catch (e: any) {
+      AudioFeedbackService.playSuccess();
+      setScanFeedback({ success: true, message: res?.message || 'Presensi tercatat.', mode: res?.data?.mode });
+      setScannerInput('');
+      void refreshData();
+    } catch (err: any) {
       AudioFeedbackService.playError();
-      setScanFeedback({ success: false, message: `Error: ${e.message || e}` });
+      setScanFeedback({ success: false, message: apiError(err, 'Presensi gagal dicatat.') });
     } finally {
       setIsProcessingScan(false);
     }
   };
 
-  // Handle Save Staff Assignment
-  const handleSaveAssignment = (e: React.FormEvent) => {
+  const handleSaveAssignment = async (e: React.FormEvent) => {
     e.preventDefault();
-    const targetStaff = staffList.find(s => s.id === assignStaffId);
-    const targetEkskul = extracurriculars.find(e => e.id === assignEkskulId);
-
-    if (!targetStaff || !targetEkskul) {
-      alert('Pilih data staf dan ekstrakurikuler yang valid.');
-      return;
-    }
-
-    const res = ExtracurricularStaffAssignmentService.assignStaff({
-      extracurricularId: assignEkskulId,
-      extracurricularName: targetEkskul.name,
-      staffId: targetStaff.id,
-      role: assignRole,
-      startDate: '2026-07-01',
-      isPrimary: assignIsPrimary,
-      operatorName: currentUser?.name || 'Admin'
-    });
-
-    if (res.success) {
+    try {
+      await apiClient.post('/trainer/assignments', { extracurricular_id: assignEkskulId, staff_id: assignStaffId, role: assignRole, is_primary: assignIsPrimary });
       setShowAssignModal(false);
-      refreshData();
       alert('Penugasan pelatih ekstrakurikuler berhasil disimpan.');
-    } else {
-      alert(`Gagal: ${res.message}`);
+    } catch (err: any) {
+      alert(`Gagal: ${apiError(err, 'penugasan tidak tersimpan.')}`);
     }
+    void refreshData();
   };
 
-  // Handle Save Substitution
-  const handleSaveSubstitution = (e: React.FormEvent) => {
+  const handleRemoveAssignment = async (id: number) => {
+    if (!confirm('Nonaktifkan penugasan pelatih ini?')) return;
+    try {
+      await apiClient.delete(`/trainer/assignments/${id}`);
+    } catch (err: any) {
+      alert(`Gagal: ${apiError(err, 'penugasan tidak bisa dinonaktifkan.')}`);
+    }
+    void refreshData();
+  };
+
+  const handleSaveSubstitution = async (e: React.FormEvent) => {
     e.preventDefault();
-    const origStaff = staffList.find(s => s.id === subOriginalStaffId);
-    const subStaff = staffList.find(s => s.id === subSubstituteStaffId);
-    const targetEkskul = extracurriculars.find(e => e.id === subEkskulId);
-
-    if (!origStaff || !subStaff || !targetEkskul) {
-      alert('Pilih data staf asal, staf pengganti, dan ekstrakurikuler yang valid.');
-      return;
-    }
-
-    const res = TrainerSubstitutionService.assignSubstitution({
-      extracurricularId: subEkskulId,
-      extracurricularName: targetEkskul.name,
-      originalStaffId: origStaff.id,
-      substituteStaffId: subStaff.id,
-      date: subDate,
-      reason: subReason,
-      assignedBy: currentUser?.name || 'Pembina'
-    });
-
-    if (res.success) {
+    try {
+      await apiClient.post('/trainer/substitutions', {
+        extracurricular_id: subEkskulId, original_staff_id: subOriginalStaffId, substitute_staff_id: subSubstituteStaffId, date: subDate, reason: subReason,
+      });
       setShowSubModal(false);
-      refreshData();
-      alert('Penggantian pelatih (Inval/Substitusi) berhasil didaftarkan dan diaplikasikan ke sesi terkait.');
-    } else {
-      alert(`Gagal: ${res.message}`);
+      alert('Penggantian pelatih (inval) berhasil didaftarkan dan diterapkan ke sesi terkait.');
+    } catch (err: any) {
+      alert(`Gagal: ${apiError(err, 'penggantian tidak tersimpan.')}`);
     }
+    void refreshData();
   };
 
-  // Handle Save Journal
-  const handleSaveJournal = (e: React.FormEvent) => {
+  const handleCancelSubstitution = async (id: number) => {
+    if (!confirm('Batalkan penggantian pelatih ini?')) return;
+    try {
+      await apiClient.delete(`/trainer/substitutions/${id}`);
+    } catch (err: any) {
+      alert(`Gagal: ${apiError(err, 'penggantian tidak bisa dibatalkan.')}`);
+    }
+    void refreshData();
+  };
+
+  const handleAddSchedule = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await apiClient.post('/trainer/schedules', {
+        extracurricular_id: newSchEkskulId, day_of_week: newSchDay, start_time: newSchStart, end_time: newSchEnd, location: newSchLocation || undefined,
+      });
+      setNewSchLocation('');
+    } catch (err: any) {
+      alert(`Gagal: ${apiError(err, 'jadwal latihan tidak tersimpan.')}`);
+    }
+    void refreshData();
+  };
+
+  const handleDeleteSchedule = async (id: number) => {
+    if (!confirm('Hapus jadwal latihan ini? Sesi latihan yang sudah dibuat tetap tersimpan.')) return;
+    try {
+      await apiClient.delete(`/trainer/schedules/${id}`);
+    } catch (err: any) {
+      alert(`Gagal: ${apiError(err, 'jadwal latihan tidak bisa dihapus.')}`);
+    }
+    void refreshData();
+  };
+
+  const handleSaveJournal = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedSessionForJournal) return;
-
-    const res = TrainingRealizationService.submitRealization({
-      sessionId: selectedSessionForJournal.id,
-      topic: journalTopic,
-      studentPresentCount: Number(journalStudentCount),
-      activityNotes: journalNotes,
-      operatorName: currentUser?.name || 'Pelatih'
-    });
-
-    if (res.success) {
+    try {
+      await apiClient.post(`/trainer/sessions/${selectedSessionForJournal.id}/journal`, {
+        topic: journalTopic, student_present_count: Number(journalStudentCount), activity_notes: journalNotes,
+      });
       setShowJournalModal(false);
-      refreshData();
       alert('Jurnal latihan dan realisasi materi berhasil disimpan.');
-    } else {
-      alert(`Gagal: ${res.message}`);
+    } catch (err: any) {
+      alert(`Gagal: ${apiError(err, 'jurnal tidak tersimpan.')}`);
     }
+    void refreshData();
   };
 
-  // Handle Finalize Attendance
-  const handleFinalizeAttendance = () => {
-    if (confirm(`Apakah Anda yakin ingin memfinalisasi presensi pelatih/pembina untuk tanggal ${selectedDate}? Sesi yang belum terisi presensi akan otomatis ditandai Alpha.`)) {
-      const res = StaffAttendanceService.finalizeTrainingAttendance(selectedDate, currentUser?.name || 'Pembina Ekskul');
-      alert(res.message);
-      refreshData();
+  const handleFinalizeAttendance = async () => {
+    if (!confirm(`Apakah Anda yakin ingin memfinalisasi presensi pelatih/pembina untuk tanggal ${selectedDate}? Sesi yang belum terisi presensi akan otomatis ditandai Alpha.`)) return;
+    try {
+      const res: any = await apiClient.post('/trainer/finalize', { date: selectedDate });
+      alert(res?.message || 'Finalisasi selesai.');
+    } catch (err: any) {
+      alert(`Gagal: ${apiError(err, 'finalisasi gagal.')}`);
     }
+    void refreshData();
   };
+
+  const DAY_NAMES = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+
+  // Rekap rekonsiliasi tanggal terpilih → CSV (dibuka di Excel)
+  const handleExportReconciliation = () => {
+    const esc = (v: any) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const rows = [
+      ['Tanggal', 'Ekskul', 'Pelatih', 'Pelatih Hadir', 'Santri Hadir', 'Anggota Aktif', 'Jurnal', 'Perlu Tinjauan', 'Alasan'],
+      ...reconciliationItems.map((r: any) => [
+        selectedDate, r.extracurricular_name, r.trainer_name, r.trainer_attended ? 'Ya' : 'Tidak',
+        r.students_present, r.students_eligible, r.realization_status === 'submitted' ? 'Terisi' : 'Belum',
+        r.needs_review ? 'Ya' : 'Tidak', r.review_reason || '',
+      ]),
+    ];
+    const csv = '\ufeff' + rows.map((r) => r.map(esc).join(';')).join('\r\n');
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `rekap-latihan-ekskul-${selectedDate}.csv`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+
+  // Sesi latihan milik pengguna yang login (pelatih utama / pengganti)
+  const mySessions = me
+    ? trainingSessions.filter((s: any) => s.actual_primary_staff_id === me.staff_id || s.primary_staff_id === me.staff_id)
+    : [];
+  const isToday = selectedDate === todayLocalDate();
 
   return (
     <div id="trainer-attendance-container" className="space-y-6 pb-12">
+      {loadError && (
+        <div className="p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold">{loadError}</div>
+      )}
       {/* Header Banner */}
-      <div className="bg-gradient-to-br from-[#1F5C45] via-[#1A503C] to-[#12382A] text-white rounded-3xl p-6 shadow-md border border-[#164735]">
-        <div>
+      <div className={`bg-gradient-to-br from-[#1F5C45] via-[#1A503C] to-[#12382A] text-white rounded-3xl shadow-md border border-[#164735] ${embedded ? 'p-4' : 'p-6'}`}>
+        <div className={embedded ? 'hidden' : ''}>
           <div className="flex items-center gap-2 mb-1.5 flex-wrap">
             <span className="bg-white/15 border border-white/20 text-emerald-100 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1 backdrop-blur-xs">
               <Award className="w-3 h-3 text-[#C9A227]" />
-              SIUBA v1.1.3 PRODUCTION
+              Ekstrakurikuler
             </span>
             <span className="text-[11px] text-emerald-100 font-bold bg-black/25 px-2.5 py-0.5 rounded-full border border-white/15 backdrop-blur-xs">
               Presensi & Inval Pelatih Ekstrakurikuler
@@ -342,7 +342,7 @@ export const TrainerAttendanceView: React.FC<TrainerAttendanceViewProps> = ({
             Presensi Pelatih & Pembina Ekstrakurikuler
           </h1>
           <p className="text-xs text-emerald-100/90 mt-1 max-w-3xl leading-relaxed">
-            Manajemen komprehensif kehadiran pelatih, asisten pembina, pergantian pelatih (inval/substitusi), jurnal realisasi materi, verifikasi RFID/QR scanner, dan rekonsiliasi honorarium.
+            Kehadiran pelatih & pembina ekskul (kartu RFID/QR atau manual), inval/pengganti, jurnal materi latihan, dan rekap kesesuaian presensi dengan jurnal.
           </p>
         </div>
 
@@ -352,15 +352,15 @@ export const TrainerAttendanceView: React.FC<TrainerAttendanceViewProps> = ({
             { id: 'MONITORING' as TabType, label: 'Monitoring Sesi Latihan', desc: 'Pantau status sesi, jam masuk pelatih & absensi santri', icon: Clock, badge: `${summary.total_sessions} Sesi` },
             { id: 'ASSIGNMENTS' as TabType, label: 'Penugasan Pelatih & Pembina', desc: 'Matriks penugasan pelatih utama, asisten & jenis ekskul', icon: Users, badge: `${assignments.length} Penugasan` },
             { id: 'SUBSTITUTIONS' as TabType, label: 'Inval / Pengganti Pelatih', desc: 'Penggantian pelatih berhalangan & pelimpahan wewenang', icon: ArrowRightLeft, badge: `${substitutions.length} Inval` },
-            { id: 'JOURNAL' as TabType, label: 'Jurnal Realisasi Materi', desc: 'Catatan materi latihan, foto dokumentasi & verifikasi', icon: BookOpen, badge: `${summary.realized_sessions} Jurnal` },
+            { id: 'JOURNAL' as TabType, label: 'Jurnal Realisasi Materi', desc: 'Catatan materi latihan & jumlah santri hadir', icon: BookOpen, badge: `${summary.realized_sessions} Jurnal` },
             { id: 'SCANNER' as TabType, label: 'Terminal Scan Cepat (QR/RFID)', desc: 'Terminal pemindai presensi cepat pelatih di lapangan', icon: QrCode, badge: 'Fast-Tap' },
-            { id: 'RECONCILIATION' as TabType, label: 'Rekonsiliasi & Audit Honor', desc: 'Audit jam melatih, validasi honorarium & ekspor rekap', icon: ShieldCheck, badge: 'Audit Valid' },
+            { id: 'RECONCILIATION' as TabType, label: 'Rekap & Rekonsiliasi', desc: 'Kesesuaian presensi pelatih dengan jurnal & unduh rekap', icon: ShieldCheck, badge: 'Audit Valid' },
           ];
           const currentTabInfo = TRAINER_TABS.find(t => t.id === activeTab) || TRAINER_TABS[0];
           const CurrentTabIcon = currentTabInfo.icon;
 
           return (
-            <div className="mt-5 pt-4 border-t border-white/15">
+            <div className={embedded ? "" : "mt-5 pt-4 border-t border-white/15"}>
               {/* Single Unified White Toolbar Bar (Side-by-Side) */}
               <div className="bg-white rounded-2xl p-2 shadow-lg border border-white/30 flex flex-row items-center justify-between gap-3 relative flex-wrap sm:flex-nowrap">
                 {/* Left: Dropdown Selector Trigger */}
@@ -467,14 +467,14 @@ export const TrainerAttendanceView: React.FC<TrainerAttendanceViewProps> = ({
                       className="bg-transparent text-slate-900 font-bold text-xs focus:outline-none cursor-pointer"
                     />
                   </div>
-                  <button 
+                  {canManage && <button 
                     onClick={handleGenerateSessions}
                     title="Generate / Sinkronkan Sesi Latihan Hari Ini"
                     className="px-3.5 py-1.5 bg-[#1F5C45] hover:bg-[#12372A] text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-xs cursor-pointer min-h-[32px] active:scale-95 whitespace-nowrap"
                   >
                     <Sparkles className="w-3.5 h-3.5 text-[#EADAA2]" />
-                    <span>Generate Sesi</span>
-                  </button>
+                    <span>Buat Sesi dari Jadwal</span>
+                  </button>}
                   <button 
                     onClick={refreshData}
                     title="Refresh Data"
@@ -572,7 +572,7 @@ export const TrainerAttendanceView: React.FC<TrainerAttendanceViewProps> = ({
               </select>
             </div>
 
-            <div className="flex items-center gap-2.5 shrink-0 flex-wrap sm:flex-nowrap">
+            {canManage && <div className="flex items-center gap-2.5 shrink-0 flex-wrap sm:flex-nowrap">
               <button
                 onClick={handleFinalizeAttendance}
                 className="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer active:scale-95 shadow-xs"
@@ -590,8 +590,41 @@ export const TrainerAttendanceView: React.FC<TrainerAttendanceViewProps> = ({
                 <ArrowRightLeft className="w-4 h-4 text-[#C9A227]" />
                 <span>Tambah Inval Pelatih</span>
               </button>
-            </div>
+            </div>}
           </div>
+
+          {/* Presensi melatih milik pengguna yang login */}
+          {me && mySessions.length > 0 && (
+            <div id="trainer-my-sessions" className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 space-y-2">
+              <h4 className="text-xs font-black text-emerald-900">Latihan Saya — {me.name}</h4>
+              {mySessions.map((s: any) => {
+                const st = s.trainer_attendance_status;
+                const label = st === 'unrecorded' || st === 'absent' ? 'Mulai Melatih' : 'Selesai Melatih';
+                return (
+                  <div key={s.id} className="flex items-center justify-between gap-3 bg-white rounded-xl border border-emerald-100 p-3">
+                    <div className="text-xs">
+                      <div className="font-bold text-slate-900">{s.extracurricular_name}</div>
+                      <div className="text-slate-500">{s.start_time}–{s.end_time} &bull; {s.location || '-'} &bull; Status: {st === 'unrecorded' ? 'belum presensi' : st}</div>
+                    </div>
+                    {isToday ? (
+                      <button
+                        disabled={isProcessingScan || s.status === 'cancelled'}
+                        onClick={() => handleProcessScan('manual', me.staff_id, s.id)}
+                        className="px-3 py-1.5 rounded-lg bg-[#1F5C45] text-white text-xs font-bold disabled:opacity-50 cursor-pointer"
+                      >
+                        {label}
+                      </button>
+                    ) : (
+                      <span className="text-[11px] text-slate-500">Presensi hanya pada hari latihan</span>
+                    )}
+                  </div>
+                );
+              })}
+              {scanFeedback && (
+                <p className={`text-xs font-semibold ${scanFeedback.success ? 'text-emerald-800' : 'text-rose-700'}`}>{scanFeedback.message}</p>
+              )}
+            </div>
+          )}
 
           {/* Training Sessions Table */}
           <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-sm overflow-hidden">
@@ -691,7 +724,7 @@ export const TrainerAttendanceView: React.FC<TrainerAttendanceViewProps> = ({
                           </td>
 
                           <td className="py-3 px-4">
-                            {session.realization_status === 'realized' ? (
+                            {['realized', 'submitted'].includes(session.realization_status as string) ? (
                               <div>
                                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800">
                                   <BookOpen className="w-2.5 h-2.5" />
@@ -738,7 +771,7 @@ export const TrainerAttendanceView: React.FC<TrainerAttendanceViewProps> = ({
                                 onClick={() => {
                                   setSelectedSessionForJournal(session);
                                   setJournalTopic(session.topic || '');
-                                  setJournalStudentCount(session.student_present_count || 20);
+                                  setJournalStudentCount(session.student_present_count ?? 0);
                                   setJournalNotes(session.activity_notes || '');
                                   setShowJournalModal(true);
                                 }}
@@ -775,13 +808,13 @@ export const TrainerAttendanceView: React.FC<TrainerAttendanceViewProps> = ({
                 Pemetaan resmi SDM pelatih utama, instruktur luar, asisten pembina, dan pembina pendamping per ekstrakurikuler.
               </p>
             </div>
-            <button
+            {canManage && <button
               onClick={() => setShowAssignModal(true)}
               className="px-3.5 py-1.5 bg-[#1F5C45] hover:bg-[#12372A] text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm cursor-pointer min-h-[36px]"
             >
               <UserPlus className="w-3.5 h-3.5" />
               Tambah Penugasan Baru
-            </button>
+            </button>}
           </div>
 
           <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-sm overflow-hidden">
@@ -794,6 +827,7 @@ export const TrainerAttendanceView: React.FC<TrainerAttendanceViewProps> = ({
                   <th className="py-3 px-4">Peran & Tanggung Jawab</th>
                   <th className="py-3 px-4">Status Penugasan</th>
                   <th className="py-3 px-4">Masa Berlaku</th>
+                  <th className="py-3 px-4 text-center">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-200">
@@ -828,12 +862,61 @@ export const TrainerAttendanceView: React.FC<TrainerAttendanceViewProps> = ({
                       </span>
                     </td>
                     <td className="py-3 px-4 font-mono text-zinc-500 text-[11px]">
-                      {a.start_date} s.d {a.end_date || 'Aktif'}
+                      {a.start_date || '-'} s.d {a.end_date || 'Aktif'}
+                    </td>
+                    <td className="py-3 px-4 text-center">
+                      {a.is_active && canManage && (
+                        <button onClick={() => handleRemoveAssignment(a.id)} className="text-[11px] font-bold text-rose-700 hover:underline cursor-pointer">
+                          Nonaktifkan
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}
+                {assignments.length === 0 && (
+                  <tr><td colSpan={7} className="py-8 text-center text-zinc-400">Belum ada penugasan pelatih.</td></tr>
+                )}
               </tbody>
             </table>
+          </div>
+
+          {/* Jadwal latihan mingguan: dasar pembuatan sesi latihan */}
+          <div className="bg-white p-4 rounded-2xl border border-zinc-200/80 shadow-sm space-y-3">
+            <div>
+              <h3 className="text-sm font-black text-zinc-900 flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-indigo-600" />
+                Jadwal Latihan Mingguan
+              </h3>
+              <p className="text-xs text-zinc-500 mt-0.5">
+                Sesi latihan harian dibuat dari jadwal ini lewat tombol Sinkronisasi Sesi.
+              </p>
+            </div>
+            {canManage && <form onSubmit={handleAddSchedule} className="grid grid-cols-2 md:grid-cols-6 gap-2 text-xs">
+              <select value={newSchEkskulId} onChange={(e) => setNewSchEkskulId(Number(e.target.value))} className="md:col-span-2 bg-zinc-50 border border-zinc-300 rounded-xl px-3 py-2" aria-label="Ekstrakurikuler">
+                {extracurriculars.length === 0 && <option value={0}>Belum ada ekskul</option>}
+                {extracurriculars.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
+              </select>
+              <select value={newSchDay} onChange={(e) => setNewSchDay(Number(e.target.value))} className="bg-zinc-50 border border-zinc-300 rounded-xl px-3 py-2" aria-label="Hari">
+                {DAY_NAMES.map((d, i) => <option key={d} value={i}>{d}</option>)}
+              </select>
+              <input type="time" value={newSchStart} onChange={(e) => setNewSchStart(e.target.value)} className="bg-zinc-50 border border-zinc-300 rounded-xl px-3 py-2" aria-label="Jam mulai" />
+              <input type="time" value={newSchEnd} onChange={(e) => setNewSchEnd(e.target.value)} className="bg-zinc-50 border border-zinc-300 rounded-xl px-3 py-2" aria-label="Jam selesai" />
+              <button type="submit" disabled={!newSchEkskulId} className="px-3 py-2 bg-[#1F5C45] hover:bg-[#12372A] disabled:opacity-50 text-white rounded-xl font-bold cursor-pointer">
+                Tambah Jadwal
+              </button>
+              <input value={newSchLocation} onChange={(e) => setNewSchLocation(e.target.value)} placeholder="Lokasi (opsional)" className="col-span-2 md:col-span-6 bg-zinc-50 border border-zinc-300 rounded-xl px-3 py-2" />
+            </form>}
+            <div className="divide-y divide-zinc-100 text-xs">
+              {trainingSchedules.length === 0 ? (
+                <div className="py-4 text-center text-zinc-400">Belum ada jadwal latihan.</div>
+              ) : trainingSchedules.map((sch) => (
+                <div key={sch.id} className="py-2 flex items-center justify-between gap-2">
+                  <span className="font-bold text-zinc-900">{sch.extracurricular_name}</span>
+                  <span className="text-zinc-600">{sch.day_name}, {sch.start_time}–{sch.end_time}{sch.location ? ` · ${sch.location}` : ''}</span>
+                  {canManage && <button onClick={() => handleDeleteSchedule(sch.id)} className="text-[11px] font-bold text-rose-700 hover:underline cursor-pointer">Hapus</button>}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       )}
@@ -853,13 +936,13 @@ export const TrainerAttendanceView: React.FC<TrainerAttendanceViewProps> = ({
                 Pengalihan hak presensi dan honorarium mengajar kepada pelatih pengganti saat pelatih utama berhalangan hadir.
               </p>
             </div>
-            <button
+            {canManage && <button
               onClick={() => setShowSubModal(true)}
               className="px-3.5 py-1.5 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700 transition flex items-center gap-1.5 shadow-md shadow-indigo-500/20"
             >
               <Plus className="w-3.5 h-3.5" />
               Daftarkan Inval Baru
-            </button>
+            </button>}
           </div>
 
           <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-sm overflow-hidden">
@@ -902,8 +985,13 @@ export const TrainerAttendanceView: React.FC<TrainerAttendanceViewProps> = ({
                         <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
                           sub.status === 'active' ? 'bg-amber-100 text-amber-800' : 'bg-zinc-100 text-zinc-500'
                         }`}>
-                          {sub.status === 'active' ? 'Aktif Berlaku' : 'Selesai / Non-Aktif'}
+                          {sub.status === 'active' ? 'Aktif Berlaku' : 'Dibatalkan'}
                         </span>
+                        {sub.status === 'active' && canManage && (
+                          <button onClick={() => handleCancelSubstitution(sub.id)} className="ml-2 text-[11px] font-bold text-rose-700 hover:underline cursor-pointer">
+                            Batalkan
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -936,9 +1024,9 @@ export const TrainerAttendanceView: React.FC<TrainerAttendanceViewProps> = ({
                   <div className="flex items-center justify-between gap-2">
                     <span className="font-black text-sm text-zinc-900">{session.extracurricular_name}</span>
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                      session.realization_status === 'realized' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                      ['realized', 'submitted'].includes(session.realization_status as string) ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
                     }`}>
-                      {session.realization_status === 'realized' ? 'Jurnal Terisi' : 'Belum Terisi'}
+                      {['realized', 'submitted'].includes(session.realization_status as string) ? 'Jurnal Terisi' : 'Belum Terisi'}
                     </span>
                   </div>
                   <p className="text-xs text-zinc-500 mt-1">
@@ -948,7 +1036,7 @@ export const TrainerAttendanceView: React.FC<TrainerAttendanceViewProps> = ({
                     {session.scheduled_start_at} - {session.scheduled_end_at} | {session.location || 'Lapangan Utama'}
                   </p>
 
-                  {session.realization_status === 'realized' ? (
+                  {['realized', 'submitted'].includes(session.realization_status as string) ? (
                     <div className="mt-3 p-3 bg-zinc-50 rounded-xl border border-zinc-200/60 text-xs space-y-1">
                       <div className="font-bold text-zinc-800">Materi Terlaksana:</div>
                       <div className="text-zinc-600">{session.topic}</div>
@@ -967,14 +1055,14 @@ export const TrainerAttendanceView: React.FC<TrainerAttendanceViewProps> = ({
                   onClick={() => {
                     setSelectedSessionForJournal(session);
                     setJournalTopic(session.topic || '');
-                    setJournalStudentCount(session.student_present_count || 20);
+                    setJournalStudentCount(session.student_present_count ?? 0);
                     setJournalNotes(session.activity_notes || '');
                     setShowJournalModal(true);
                   }}
                   className="w-full py-2 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5"
                 >
                   <BookOpen className="w-3.5 h-3.5" />
-                  {session.realization_status === 'realized' ? 'Ubah / Lengkapi Jurnal' : 'Entri Jurnal Latihan'}
+                  {['realized', 'submitted'].includes(session.realization_status as string) ? 'Ubah / Lengkapi Jurnal' : 'Entri Jurnal Latihan'}
                 </button>
               </div>
             ))}
@@ -1068,29 +1156,43 @@ export const TrainerAttendanceView: React.FC<TrainerAttendanceViewProps> = ({
               )}
             </div>
 
-            {/* Quick Tap Simulator */}
-            <div className="bg-white p-6 rounded-3xl border border-zinc-200/80 shadow-md">
-              <h4 className="text-xs font-black text-zinc-900 uppercase tracking-wider mb-3">
-                Simulasi Tap Cepat Pelatih Ekstrakurikuler
-              </h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {staffList.filter(s => s.staff_type === 'trainer' || s.staff_type === 'teacher').slice(0, 6).map(staff => (
-                  <button
-                    key={staff.id}
-                    onClick={() => handleProcessScan('rfid', staff.id)}
-                    className="p-3 bg-zinc-50 hover:bg-indigo-50/60 border border-zinc-200/80 rounded-2xl text-left transition flex items-center justify-between group"
-                  >
-                    <div>
-                      <div className="font-bold text-xs text-zinc-900 group-hover:text-indigo-700">{staff.name}</div>
-                      <div className="text-[10px] font-mono text-zinc-500">NIP: {staff.staff_number} | {staff.staff_type.toUpperCase()}</div>
-                    </div>
-                    <span className="text-[10px] font-bold text-indigo-600 bg-indigo-100 px-2 py-1 rounded-lg">
-                      Tap Kartu
-                    </span>
-                  </button>
-                ))}
+            {/* Catat manual oleh petugas: pelatih sesi hari ini (tanpa kartu) */}
+            {canManage && (
+              <div id="trainer-manual-record" className="bg-white p-6 rounded-3xl border border-zinc-200/80 shadow-md">
+                <h4 className="text-xs font-black text-zinc-900 uppercase tracking-wider mb-1">
+                  Catat Manual oleh Petugas
+                </h4>
+                <p className="text-[11px] text-zinc-500 mb-3">
+                  Untuk pelatih yang lupa membawa kartu. Tanggal lampau dicatat sebagai presensi susulan (hadir sesuai jadwal).
+                </p>
+                {trainingSessions.filter((s: any) => s.status !== 'cancelled').length === 0 ? (
+                  <p className="text-xs text-zinc-500 italic">Belum ada sesi latihan pada tanggal ini.</p>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {trainingSessions.filter((s: any) => s.status !== 'cancelled').map((s: any) => {
+                      const trainerId = s.actual_primary_staff_id || s.primary_staff_id;
+                      const trainerName = s.actual_primary_staff_name || s.primary_staff_name || 'Belum ada pelatih';
+                      return (
+                        <button
+                          key={s.id}
+                          disabled={!trainerId || isProcessingScan}
+                          onClick={() => trainerId && handleProcessScan('manual', trainerId, s.id)}
+                          className="p-3 bg-zinc-50 hover:bg-emerald-50/60 border border-zinc-200/80 rounded-2xl text-left transition flex items-center justify-between gap-2 group disabled:opacity-50 cursor-pointer"
+                        >
+                          <div className="min-w-0">
+                            <div className="font-bold text-xs text-zinc-900 truncate">{s.extracurricular_name}</div>
+                            <div className="text-[10px] text-zinc-500 truncate">{trainerName} &bull; {s.start_time}–{s.end_time}</div>
+                          </div>
+                          <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-1 rounded-lg shrink-0">
+                            {s.trainer_attendance_status === 'unrecorded' || s.trainer_attendance_status === 'absent' ? 'Catat Hadir' : 'Catat Selesai'}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
-            </div>
+            )}
           </div>
 
           {/* Today's Trainer Attendance Stream */}
@@ -1145,15 +1247,16 @@ export const TrainerAttendanceView: React.FC<TrainerAttendanceViewProps> = ({
                 Rekonsiliasi Realisasi Latihan vs Presensi Pelatih
               </h3>
               <p className="text-xs text-zinc-500 mt-0.5">
-                Audit otomatis untuk memastikan kesesuaian antara kehadiran fisik pelatih, keterisian jurnal, dan kelayakan honorarium.
+                Pemeriksaan kesesuaian kehadiran pelatih, keterisian jurnal, dan jumlah santri hadir — dasar perhitungan honor.
               </p>
             </div>
             <button
-              onClick={() => alert('Laporan rekonsiliasi siap diexport ke format Excel/PDF.')}
+              onClick={handleExportReconciliation}
+              disabled={reconciliationItems.length === 0}
               className="px-3.5 py-1.5 bg-zinc-800 text-white rounded-xl text-xs font-bold hover:bg-zinc-900 transition flex items-center gap-1.5"
             >
               <Printer className="w-3.5 h-3.5" />
-              Cetak / Export Laporan
+              Unduh Rekap (CSV)
             </button>
           </div>
 
@@ -1190,11 +1293,11 @@ export const TrainerAttendanceView: React.FC<TrainerAttendanceViewProps> = ({
                     </td>
                     <td className="py-3 px-4">
                       <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-black uppercase ${
-                        item.realization_status === 'realized'
+                        ['realized', 'submitted'].includes(item.realization_status as string)
                           ? 'bg-emerald-100 text-emerald-800'
                           : 'bg-amber-100 text-amber-800'
                       }`}>
-                        {item.realization_status === 'realized' ? 'Terlaksana' : item.realization_status}
+                        {['realized', 'submitted'].includes(item.realization_status as string) ? 'Terlaksana' : item.realization_status}
                       </span>
                     </td>
                     <td className="py-3 px-4">

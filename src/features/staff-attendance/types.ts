@@ -1,22 +1,10 @@
 import type { 
   Staff, 
   StaffType, 
-  StaffAttendanceRecord, 
-  StaffAttendanceType, 
   StaffAttendanceStatus, 
   StaffAbsenceType,
   StaffAbsenceStatus,
   AttendanceMethod, 
-  TeachingSession, 
-  TeachingSessionStatus, 
-  TrainingSession, 
-  TrainingSessionStatus, 
-  TrainingRealizationStatus, 
-  AcademicSubstitution, 
-  TrainerSubstitution, 
-  StaffAbsenceRequest, 
-  AttendanceDevice, 
-  AttendanceDeviceLog,
   User
 } from '../../types';
 
@@ -94,7 +82,7 @@ export interface StaffScanFeedbackItem {
   attendanceType: 'daily' | 'teaching' | 'training';
   status?: StaffAttendanceStatus;
   method?: AttendanceMethod;
-  mode?: 'CHECK_IN' | 'CHECK_OUT' | 'RECORDED';
+  mode?: 'CHECK_IN' | 'CHECK_OUT' | 'RECORDED' | 'QUEUED';
   checkInAt?: string;
   checkOutAt?: string;
   lateMinutes?: number;
@@ -115,18 +103,20 @@ export interface StaffDailyFilterState {
 export interface TeachingFilterState {
   search: string;
   classroomId: string;
-  subjectId: string;
-  teacherStaffId: string;
+  subjectId?: string;
+  teacherStaffId?: string;
   status: string;
-  sessionStatus: string;
+  sessionState: string;
+  substitutionOnly?: boolean;
 }
 
 export interface TrainingFilterState {
   search: string;
   extracurricularId: string;
-  coachStaffId: string;
+  coachStaffId?: string;
   status: string;
   realizationStatus: string;
+  substitutionOnly?: boolean;
 }
 
 export interface AbsenceFilterState {

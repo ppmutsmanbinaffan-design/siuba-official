@@ -7,47 +7,11 @@
   <meta name="description" content="Portal Resmi Pondok Pesantren Utsman Bin Affan: Profil Pesantren, Visi & Misi, Program Pendidikan, Berita Terkini, Informasi PSB Santri Baru, dan Sistem Presensi Digital SIUBA." />
 
   <!-- Google Fonts: Urbanist -->
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Urbanist:ital,wght@0,300..900;1,300..900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/offline-assets/fonts/fonts.css" />
 
   <!-- Google Material Symbols Rounded -->
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
 
   <!-- Tailwind CSS CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        screens: {
-          'xs': '420px',
-          'sm': '640px',
-          'md': '768px',
-          'lg': '1024px',
-          'xl': '1280px',
-          '2xl': '1440px',
-        },
-        extend: {
-          fontFamily: {
-            sans: ['Urbanist', 'sans-serif'],
-          },
-          colors: {
-            forest: {
-              950: '#071f12',
-              900: '#0d331d',
-              800: '#14492b',
-              700: '#1c633a',
-            },
-            limeaccent: {
-              400: '#a3e635',
-              500: '#84cc16',
-              600: '#65a30d',
-            }
-          }
-        }
-      }
-    }
-  </script>
 
   <style>
     *, *::before, *::after {
@@ -123,6 +87,9 @@
       } catch (e) {}
     })();
   </script>
+  <!-- Aset lokal: halaman tetap rapi walau jaringan pondok offline -->
+  <link rel="stylesheet" href="/offline-assets/css/landing.css" />
+  <script src="/offline-assets/img-fallback.js"></script>
 </head>
 <body class="antialiased selection:bg-limeaccent-400 selection:text-forest-950">
 
@@ -2089,15 +2056,22 @@
       if (!modal || !container) return;
 
       var gv = window.__CMS_GALLERY_VIDEO__ || {};
-      var rawUrl = videoUrl || gv.video_url || 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
+      var rawUrl = videoUrl || gv.video_url || '';
       var vTitle = title || gv.title || 'Profil Pondok Pesantren Modern Utsman Bin Affan';
       var vDesc = desc || gv.desc || 'Menyaksikan suasana halaqah tahfidz, pembelajaran sains modern, dan kehidupan berasrama 24 jam.';
 
       if (titleEl) titleEl.textContent = vTitle;
       if (descEl) descEl.textContent = vDesc;
 
-      var ytId = extractYouTubeId(rawUrl);
-      if (ytId) {
+      var ytId = rawUrl ? extractYouTubeId(rawUrl) : null;
+      if (!rawUrl) {
+        // Belum ada video profil di CMS: tampilkan pesan, jangan memutar video contoh.
+        container.innerHTML = '<div class="w-full h-full rounded-xl bg-forest-950 text-white flex flex-col items-center justify-center text-center p-6 gap-2">' +
+          '<span class="material-symbols-rounded" style="font-size:44px">videocam_off</span>' +
+          '<p class="font-bold">Video profil belum tersedia</p>' +
+          '<p class="text-xs text-white/70 max-w-sm">Admin dapat menambahkan tautan video (YouTube atau file .mp4) melalui menu CMS Landing &rarr; Galeri Video.</p></div>';
+        if (ytBtn) ytBtn.classList.add('hidden');
+      } else if (ytId) {
         container.innerHTML = '<iframe class="w-full h-full rounded-xl" src="https://www.youtube.com/embed/' + ytId + '?autoplay=1&rel=0&modestbranding=1" title="' + vTitle.replace(/"/g, '&quot;') + '" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>';
         if (ytBtn) {
           ytBtn.href = 'https://www.youtube.com/watch?v=' + ytId;

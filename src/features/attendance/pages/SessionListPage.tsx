@@ -1,24 +1,13 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { 
-  Plus, 
   Search, 
-  Filter, 
   Calendar, 
   Play, 
-  Check, 
-  X, 
-  Clock, 
   MapPin, 
-  Users, 
   QrCode, 
   ClipboardCheck, 
-  ArrowRight, 
   AlertTriangle,
-  RotateCcw,
-  SlidersHorizontal,
-  ChevronRight
-} from 'lucide-react';
-import { PageHeader } from '../../../components/layout/PageHeader';
+  RotateCcw} from 'lucide-react';
 import { Card } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
 import { ResponsiveTable } from '../../../components/ui/ResponsiveTable';
@@ -26,12 +15,12 @@ import { ConfirmDialog } from '../../../components/ui/ConfirmDialog';
 import { ResponsiveModal } from '../../../components/ui/ResponsiveModal';
 import { Textarea } from '../../../components/ui/Input';
 import { attendanceApi } from '../api/attendanceApi';
-import { AttendanceSession, SessionFilterOptions, SessionStatus } from '../types';
+import { AttendanceSession, SessionStatus } from '../types';
 import { SessionStatusBadge } from '../components/SessionStatusBadge';
-import { AttendanceMethodBadge } from '../components/AttendanceMethodBadge';
 import { SessionCard } from '../components/SessionCard';
-import { INITIAL_ACTIVITIES, INITIAL_CATEGORIES } from '../../../data/initialData';
-import { formatAttendanceTime, formatIndonesianDate } from '../utils/attendanceUtils';
+import { getCachedActivities, getCachedCategories } from '../../../services/masterCache';
+import { formatAttendanceTime } from '../utils/attendanceUtils';
+import { todayLocalDate } from '../../../utils/today';
 
 interface SessionListPageProps {
   userRole?: string;
@@ -74,7 +63,7 @@ export const SessionListPage: React.FC<SessionListPageProps> = ({
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   // Filters
-  const [selectedDate, setSelectedDate] = useState<string>('2026-08-23');
+  const [selectedDate, setSelectedDate] = useState<string>(() => todayLocalDate());
   const [statusFilter, setStatusFilter] = useState<SessionStatus | 'all'>('all');
   const [categoryFilter, setCategoryFilter] = useState<number | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -278,7 +267,7 @@ export const SessionListPage: React.FC<SessionListPageProps> = ({
               className="w-full bg-white text-xs font-bold text-slate-900 px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-[#1F5C45] focus:border-[#1F5C45] focus:outline-none min-h-[40px] shadow-2xs cursor-pointer"
             >
               <option value="all">Semua Kategori</option>
-              {INITIAL_CATEGORIES.map((cat) => (
+              {getCachedCategories().map((cat) => (
                 <option key={cat.id} value={cat.id}>
                   {cat.name}
                 </option>
@@ -318,7 +307,7 @@ export const SessionListPage: React.FC<SessionListPageProps> = ({
             variant="secondary"
             size="sm"
             onClick={() => {
-              setSelectedDate('2026-08-23');
+              setSelectedDate(todayLocalDate());
               setStatusFilter('all');
               setCategoryFilter('all');
               setSearchQuery('');
@@ -332,18 +321,18 @@ export const SessionListPage: React.FC<SessionListPageProps> = ({
           {/* Mobile View: Cards Grid */}
           <div className="grid grid-cols-1 md:hidden gap-3.5">
             {sessions.map((session) => {
-              const act = INITIAL_ACTIVITIES.find((a) => a.id === session.activity_id);
+              const act = getCachedActivities().find((a) => a.id === session.activity_id);
               return (
                 <SessionCard
                   key={session.id}
                   session={session}
                   activity={act}
-                  totalEligible={session.total_participants || 40}
+                  totalEligible={session.total_participants || 0}
                   recordedCount={(session.total_present || 0) + (session.total_late || 0)}
-                  unrecordedCount={Math.max(0, (session.total_participants || 40) - ((session.total_present || 0) + (session.total_late || 0)))}
-                  onViewDetail={onNavigateToDetail}
-                  onNavigateManual={onNavigateToManual}
-                  onNavigateQr={onNavigateToQr}
+                  unrecordedCount={Math.max(0, (session.total_participants || 0) - ((session.total_present || 0) + (session.total_late || 0)))}
+                  onViewDetail={handleDetail}
+                  onNavigateManual={handleManual}
+                  onNavigateQr={handleQr}
                   onOpenSession={(sId) => setSessionToOpen(session)}
                 />
               );
@@ -484,7 +473,7 @@ export const SessionListPage: React.FC<SessionListPageProps> = ({
         variant="primary"
         isLoading={isProcessingAction}
         onConfirm={handleOpenSession}
-        onCancel={() => setSessionToOpen(null)}
+        onClose={() => setSessionToOpen(null)}
       />
 
       {/* Close Session Confirmation Dialog */}
@@ -497,7 +486,7 @@ export const SessionListPage: React.FC<SessionListPageProps> = ({
         variant="danger"
         isLoading={isProcessingAction}
         onConfirm={handleCloseSession}
-        onCancel={() => setSessionToClose(null)}
+        onClose={() => setSessionToClose(null)}
       />
 
       {/* Cancel Session Modal with Mandatory Reason */}
@@ -505,7 +494,7 @@ export const SessionListPage: React.FC<SessionListPageProps> = ({
         isOpen={Boolean(sessionToCancel)}
         onClose={() => setSessionToCancel(null)}
         title="Batalkan Sesi Absensi"
-        size="md"
+        maxWidth="md"
       >
         <div className="space-y-4">
           <p className="text-xs text-zinc-400">

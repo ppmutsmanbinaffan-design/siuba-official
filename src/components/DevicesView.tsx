@@ -2,15 +2,11 @@ import React, { useState } from 'react';
 import { 
   Cpu, 
   Radio, 
-  QrCode, 
-  Wifi, 
-  CheckCircle2, 
   XCircle, 
   MapPin, 
   Server, 
   Plus, 
   Key, 
-  RefreshCw, 
   Power, 
   Activity as ActivityIcon, 
   Link2, 
@@ -21,12 +17,9 @@ import {
   Terminal, 
   AlertTriangle, 
   Clock, 
-  Layers, 
   Search, 
-  SlidersHorizontal,
   Code,
   FileCode,
-  Sparkles,
   Award,
   X
 } from 'lucide-react';
@@ -250,17 +243,6 @@ export const DevicesView: React.FC<Props> = ({
   };
 
   // Handle Heartbeat Ping Simulation
-  const handleSimulateHeartbeat = (device: AttendanceDevice) => {
-    const now = new Date().toISOString().slice(0, 19).replace('T', ' ');
-    const updated: AttendanceDevice = {
-      ...device,
-      last_seen_at: now,
-      updated_at: now,
-    };
-    onUpdateDevice(updated);
-    onShowToast(`Heartbeat sinyal diterima dari ${device.device_code} (${now.slice(11, 19)} WIB).`, 'success');
-  };
-
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     setCopiedSecret(true);
@@ -283,11 +265,12 @@ export const DevicesView: React.FC<Props> = ({
 #define WIFI_PASSWORD   "PesantrenUtsman2026"
 
 // Local Laravel Attendance Server Gateway
-#define SERVER_BASE_URL "http://192.168.1.10:8000"
-#define ATTENDANCE_PATH "/api/v1/device/rfid/attendance"
-#define HEARTBEAT_PATH  "/api/v1/device/heartbeat"
+#define SERVER_BASE_URL "${window.location.origin}"
+#define ATTENDANCE_PATH "/api/v1/iot/rfid-tap"   // POST JSON {"uid":"...","device_id":DEVICE_CODE}
+#define HEARTBEAT_PATH  "/api/v1/iot/ping"
 
 // Device Authentication Credentials
+// Kirim header  X-DEVICE-TOKEN: DEVICE_SECRET  (atau X-GLOBAL-KEY: <NEXABSEN_GLOBAL_KEY>)
 #define DEVICE_CODE     "${device.device_code}"
 #define DEVICE_SECRET   "${secret}"
 
@@ -315,7 +298,7 @@ export const DevicesView: React.FC<Props> = ({
           <div className="flex items-center gap-2 mb-2 flex-wrap">
             <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-white/15 text-emerald-100 border border-white/20 uppercase tracking-wider flex items-center gap-1 backdrop-blur-xs">
               <Award className="w-3 h-3 text-[#C9A227]" />
-              SIUBA v1.1.3 PRODUCTION
+              SIUBA
             </span>
             <span className="text-[11px] text-emerald-100 font-bold bg-black/25 px-2.5 py-0.5 rounded-full border border-white/15 backdrop-blur-xs">
               Hardware Gateway & RFID Terminal
@@ -583,13 +566,6 @@ export const DevicesView: React.FC<Props> = ({
                 </div>
 
                 <div className="flex items-center gap-1.5">
-                  <button
-                    onClick={() => handleSimulateHeartbeat(d)}
-                    className="p-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-xl border border-emerald-200 cursor-pointer transition"
-                    title="Kirim Sinyal Ping Heartbeat"
-                  >
-                    <RefreshCw className="w-4 h-4" />
-                  </button>
 
                   <button
                     onClick={() => handleToggleActive(d)}

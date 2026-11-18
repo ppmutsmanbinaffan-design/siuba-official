@@ -1,20 +1,17 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { todayLocalDate } from '../utils/today';
 import { 
   CheckCircle, 
   Clock, 
-  XCircle, 
   Plus, 
   Search, 
   Filter, 
   Calendar, 
-  UserCheck, 
   AlertCircle, 
   FileText, 
-  ShieldCheck, 
   Check, 
   X, 
   Sparkles,
-  Info,
   CalendarCheck,
   Building,
   Home
@@ -86,10 +83,22 @@ export const ExcuseManagerView: React.FC<ExcuseManagerViewProps> = ({
   const [selectedExcuseForDetail, setSelectedExcuseForDetail] = useState<StudentExcusal | null>(null);
 
   // New Excuse Form State
+  const todayLocal = (() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  })();
   const [formStudentId, setFormStudentId] = useState<number>(safeStudents[0]?.id || 1);
   const [formType, setFormType] = useState<ExcusalType>('sick');
-  const [formStartAt, setFormStartAt] = useState<string>('2026-08-23T04:00');
-  const [formEndAt, setFormEndAt] = useState<string>('2026-08-23T18:00');
+  const [formStartAt, setFormStartAt] = useState<string>(`${todayLocal}T04:00`);
+  const [formEndAt, setFormEndAt] = useState<string>(`${todayLocal}T18:00`);
+
+  // Data santri bisa berganti setelah dimuat dari server: pastikan pilihan santri tetap valid
+  useEffect(() => {
+    if (safeStudents.length > 0 && !safeStudents.some((s) => s && s.id === Number(formStudentId))) {
+      setFormStudentId(safeStudents[0].id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [safeStudents]);
   const [formReason, setFormReason] = useState<string>('');
   const [formNotes, setFormNotes] = useState<string>('');
   const [formAutoApprove, setFormAutoApprove] = useState<boolean>(true);
@@ -107,7 +116,7 @@ export const ExcuseManagerView: React.FC<ExcuseManagerViewProps> = ({
         currentUser.permissions.includes('attendance.excuses')));
 
   // Filter Excusals
-  const todayStr = '2026-08-23';
+  const todayStr = todayLocalDate();
   const filteredExcusals = safeExcusals.filter((excuse) => {
     if (!excuse) return false;
     // Tab filter
@@ -185,7 +194,7 @@ export const ExcuseManagerView: React.FC<ExcuseManagerViewProps> = ({
             <div className="flex items-center gap-2 mb-2 flex-wrap">
               <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-white/15 text-emerald-100 border border-white/20 uppercase tracking-wider flex items-center gap-1 backdrop-blur-xs">
                 <Sparkles className="w-3 h-3 text-[#C9A227]" />
-                SIUBA v1.1.3 PRODUCTION
+                SIUBA
               </span>
               <span className="text-[11px] text-emerald-100 font-bold bg-black/25 px-2.5 py-0.5 rounded-full border border-white/15 backdrop-blur-xs">
                 Manajemen Perizinan Santri

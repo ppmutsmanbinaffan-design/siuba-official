@@ -57,6 +57,21 @@ class OfflineSyncService
             $methodStr = $item['method'] ?? 'manual';
             $statusStr = $item['status'] ?? 'present';
             $capturedAtClient = isset($item['captured_at_client']) ? Carbon::parse($item['captured_at_client']) : $serverTime;
+            // Jam perangkat dikoreksi dengan selisih jam yang diukur aplikasi (estimated_server_time),
+            // asal masuk akal: tidak di masa depan dan selisihnya < 1 hari.
+            if (!empty($item['estimated_server_time'])) {
+                try {
+                    $estimated = Carbon::parse($item['estimated_server_time']);
+                    if ($estimated->lte($serverTime->copy()->addMinute()) && abs($estimated->diffInSeconds($capturedAtClient, false)) < 86400) {
+                        $capturedAtClient = $estimated;
+                    }
+                } catch (\Throwable) {
+                    // format tidak valid → pakai jam perangkat
+                }
+            }
+            if ($capturedAtClient->gt($serverTime->copy()->addMinute())) {
+                $capturedAtClient = $serverTime->copy(); // jam perangkat di masa depan
+            }
             $installationId = $item['installation_id'] ?? null;
             $notes = $item['notes'] ?? null;
 

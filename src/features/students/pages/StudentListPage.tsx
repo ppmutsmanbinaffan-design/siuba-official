@@ -1,17 +1,15 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Student, Classroom, DormitoryRoom, UserRole } from '../../../types';
-import { studentApi, StudentListParams } from '../api/studentApi';
+import { studentApi } from '../api/studentApi';
 import { StudentTable } from '../components/StudentTable';
 import { StudentMobileCard } from '../components/StudentMobileCard';
 import { StudentFilters, StudentFilterValues } from '../components/StudentFilters';
-import { PageHeader } from '../../../components/layout/PageHeader';
-import { Input } from '../../../components/ui/Input';
 import { Button } from '../../../components/ui/Button';
 import { FilterDrawer } from '../../../components/ui/FilterDrawer';
 import { ConfirmDialog } from '../../../components/ui/ConfirmDialog';
 import { LoadingState, EmptyState } from '../../../components/ui/LoadingState';
 import { Plus, Search, Filter as FilterIcon, RotateCcw, AlertTriangle, Users, Upload } from 'lucide-react';
-import { hasPermission, can } from '../../../components/auth/PermissionGuard';
+import { hasPermission } from '../../../components/auth/PermissionGuard';
 import { authService } from '../../../services/authService';
 import { DataImportModal } from '../../../components/common/DataImportModal';
 
@@ -177,7 +175,7 @@ export const StudentListPage: React.FC<StudentListPageProps> = ({
             <div className="flex items-center gap-2 mb-2 flex-wrap">
               <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-white/15 text-emerald-100 border border-white/20 uppercase tracking-wider flex items-center gap-1 backdrop-blur-xs">
                 <Users className="w-3 h-3 text-[#C9A227]" />
-                SIUBA v1.1.3 PRODUCTION
+                SIUBA
               </span>
               <span className="text-[11px] text-emerald-100 font-bold bg-black/25 px-2.5 py-0.5 rounded-full border border-white/15 backdrop-blur-xs">
                 Master Data Santri & Akademik

@@ -15,8 +15,8 @@ export const TeachingSummaryKpi: React.FC<TeachingSummaryKpiProps> = ({ summary,
       value: summary.total_sessions,
       subtext: 'Jadwal KBM aktif',
       icon: BookOpen,
-      color: 'text-zinc-300',
-      bg: 'bg-zinc-900/80 border-zinc-800',
+      color: 'text-slate-700',
+      bg: 'bg-white border-slate-200',
       filter: 'all',
     },
     {
@@ -25,7 +25,7 @@ export const TeachingSummaryKpi: React.FC<TeachingSummaryKpiProps> = ({ summary,
       value: summary.total_present,
       subtext: 'Tepat waktu di kelas',
       icon: CheckCircle2,
-      color: 'text-emerald-400',
+      color: 'text-emerald-700',
       bg: 'bg-emerald-500/10 border-emerald-500/30',
       filter: 'present',
     },
@@ -35,7 +35,7 @@ export const TeachingSummaryKpi: React.FC<TeachingSummaryKpiProps> = ({ summary,
       value: summary.total_late,
       subtext: 'Masuk > toleransi',
       icon: Clock,
-      color: 'text-amber-400',
+      color: 'text-amber-700',
       bg: 'bg-amber-500/10 border-amber-500/30',
       filter: 'late',
     },
@@ -45,7 +45,7 @@ export const TeachingSummaryKpi: React.FC<TeachingSummaryKpiProps> = ({ summary,
       value: summary.total_substituted,
       subtext: 'Digantikan secara resmi',
       icon: Users,
-      color: 'text-cyan-400',
+      color: 'text-cyan-700',
       bg: 'bg-cyan-500/10 border-cyan-500/30',
       filter: 'substituted',
     },
@@ -55,8 +55,8 @@ export const TeachingSummaryKpi: React.FC<TeachingSummaryKpiProps> = ({ summary,
       value: summary.total_unrecorded,
       subtext: 'Menunggu presensi',
       icon: AlertTriangle,
-      color: 'text-zinc-400',
-      bg: 'bg-zinc-800/60 border-zinc-700/60',
+      color: 'text-slate-600',
+      bg: 'bg-slate-100/60 border-slate-300/60',
       filter: 'unrecorded',
     },
     {
@@ -65,7 +65,7 @@ export const TeachingSummaryKpi: React.FC<TeachingSummaryKpiProps> = ({ summary,
       value: summary.total_needs_review,
       subtext: 'Anomali status KBM',
       icon: AlertTriangle,
-      color: 'text-rose-400',
+      color: 'text-rose-700',
       bg: 'bg-rose-500/10 border-rose-500/30',
       filter: 'needs_review',
     },
@@ -79,14 +79,14 @@ export const TeachingSummaryKpi: React.FC<TeachingSummaryKpiProps> = ({ summary,
           <div
             key={c.id}
             onClick={() => onFilterClick && onFilterClick(c.filter)}
-            className={`p-3.5 sm:p-4 rounded-2xl border transition-all cursor-pointer hover:border-zinc-700 active:scale-[0.98] ${c.bg}`}
+            className={`p-3.5 sm:p-4 rounded-2xl border transition-all cursor-pointer hover:border-slate-300 active:scale-[0.98] ${c.bg}`}
           >
             <div className="flex items-center justify-between gap-1 mb-2">
-              <span className="text-[11px] font-semibold text-zinc-400 truncate">{c.label}</span>
+              <span className="text-[11px] font-semibold text-slate-600 truncate">{c.label}</span>
               <Icon className={`w-4 h-4 shrink-0 ${c.color}`} />
             </div>
-            <div className="text-xl sm:text-2xl font-black text-zinc-100 tracking-tight">{c.value}</div>
-            <div className="text-[11px] text-zinc-500 mt-1 truncate">{c.subtext}</div>
+            <div className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">{c.value}</div>
+            <div className="text-[11px] text-slate-500 mt-1 truncate">{c.subtext}</div>
           </div>
         );
       })}

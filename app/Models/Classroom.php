@@ -16,6 +16,8 @@ class Classroom extends Model
         'grade_level',
         'academic_year',
         'homeroom_teacher_id',
+        'code',
+        'capacity',
         'is_active',
     ];
 

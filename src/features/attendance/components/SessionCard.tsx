@@ -1,9 +1,9 @@
 import React from 'react';
-import { Clock, MapPin, Users, CheckCircle2, AlertCircle, ArrowRight, QrCode, ClipboardCheck, Radio, Play, Check } from 'lucide-react';
-import { AttendanceSession, Activity, AttendanceMethod } from '../types';
+import { Clock, MapPin, ArrowRight, QrCode, ClipboardCheck, Play } from 'lucide-react';
+import { AttendanceSession, Activity } from '../types';
 import { SessionStatusBadge } from './SessionStatusBadge';
 import { AttendanceMethodBadge } from './AttendanceMethodBadge';
-import { formatAttendanceTime, formatIndonesianDate } from '../utils/attendanceUtils';
+import { formatAttendanceTime } from '../utils/attendanceUtils';
 
 interface SessionCardProps {
   session: AttendanceSession;

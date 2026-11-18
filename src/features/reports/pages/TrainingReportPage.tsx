@@ -1,20 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { useServerStaffReportData } from '../useServerStaffReportData';
 import { 
-  Award, 
   Search, 
-  Calendar, 
-  Filter, 
-  Download, 
-  Printer, 
-  Eye, 
-  CheckCircle2, 
-  Clock, 
-  AlertCircle, 
-  UserCheck,
-  FileSpreadsheet,
-  Layers,
-  ChevronRight
-} from 'lucide-react';
+  Eye} from 'lucide-react';
 import { 
   User, 
   DailyTrainingReportItem, 
@@ -30,6 +18,7 @@ import { ReportPagination } from '../components/ReportPagination';
 import { ReportDetailModal } from '../components/ReportDetailModal';
 import { ReportPrintView } from '../components/ReportPrintView';
 import { ActiveFilterChip, PaginationState, TrainingReportSubView } from '../types';
+import { todayLocalDate } from '../../../utils/today';
 
 interface Props {
   currentUser: User;
@@ -44,12 +33,13 @@ export const TrainingReportPage: React.FC<Props> = ({
   onBackToHub,
   onShowToast,
 }) => {
-  const todayStr = new Date().toISOString().substring(0, 10);
+  const todayStr = todayLocalDate();
   const firstDayOfMonth = todayStr.substring(0, 7) + '-01';
 
   const [subView, setSubView] = useState<TrainingReportSubView>('session_list');
   const [dateFrom, setDateFrom] = useState<string>(initialFilters.date_from || firstDayOfMonth);
   const [dateTo, setDateTo] = useState<string>(initialFilters.date_to || todayStr);
+  const { version: serverDataVersion, loading: serverDataLoading, error: serverDataError } = useServerStaffReportData(dateFrom, dateTo, onShowToast);
   const [selectedStaffId, setSelectedStaffId] = useState<string>(initialFilters.staff_id || 'ALL');
   const [selectedEkskulId, setSelectedEkskulId] = useState<string>(initialFilters.extracurricular_id || 'ALL');
   const [selectedStatus, setSelectedStatus] = useState<string>(initialFilters.status || 'ALL');
@@ -62,20 +52,29 @@ export const TrainingReportPage: React.FC<Props> = ({
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
 
+  // Pelatih = staf yang punya penugasan ekskul (banyak ustadz/guru juga melatih), plus staf berjenis pelatih
   const trainers = useMemo(() => {
-    return StaffIdentityResolver.getStaffList().filter((s) => s.is_active && s.staff_type === 'trainer');
-  }, []);
+    let assigned = new Set<number>();
+    try {
+      const raw = localStorage.getItem('siuba_extracurricular_staff_assignments');
+      assigned = new Set((raw ? JSON.parse(raw) : []).map((a: any) => Number(a.staff_id)));
+    } catch {
+      /* cache rusak */
+    }
+    return StaffIdentityResolver.getStaffList().filter((s) => s.is_active && (s.staff_type === 'trainer' || assigned.has(Number(s.id))));
+  }, [serverDataVersion]);
 
   const ekskuls = useMemo(() => {
     return TrainingSessionService.getExtracurriculars();
-  }, []);
+  }, [serverDataVersion]);
 
   const queryFilters: StaffAnalyticsFilters = useMemo(() => ({
     date_from: dateFrom,
+    _server_version: serverDataVersion,
     date_to: dateTo,
     staff_id: selectedStaffId,
     extracurricular_id: selectedEkskulId === 'ALL' ? undefined : Number(selectedEkskulId),
-  }), [dateFrom, dateTo, selectedStaffId, selectedEkskulId]);
+  }), [dateFrom, dateTo, serverDataVersion, selectedStaffId, selectedEkskulId]);
 
   const dailyData = useMemo(() => {
     if (subView !== 'session_list') return [];
@@ -261,7 +260,7 @@ export const TrainingReportPage: React.FC<Props> = ({
           <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
           <head><meta charset="utf-8"/><title>${title}</title></head>
           <body>
-            <h2>Pondok Pesantren Utsman Bin Affan</h2>
+            <h2>{getInstitution().name}</h2>
             <h3>${title}</h3>
             <p>Periode: ${dateFrom} s/d ${dateTo}</p>
             <table border="1">${thead}<tbody>${tbody}</tbody></table>
@@ -312,6 +311,11 @@ export const TrainingReportPage: React.FC<Props> = ({
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6" id="training-report-page">
+      {(serverDataLoading || serverDataError) && (
+        <div className={`mb-3 p-2.5 rounded-xl text-xs font-semibold border ${serverDataError ? 'bg-rose-50 border-rose-200 text-rose-800' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
+          {serverDataError || 'Memuat data laporan dari server…'}
+        </div>
+      )}
       <ReportHeader
         categoryName="D. Pelatih Ekskul"
         title="Laporan Pelatih & Ekstrakurikuler"

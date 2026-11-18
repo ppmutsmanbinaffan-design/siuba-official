@@ -1,5 +1,5 @@
 import React from 'react';
-import { Clock, MessageSquare, AlertTriangle, MoreVertical, CheckCircle2 } from 'lucide-react';
+import { Clock, CheckCircle2 } from 'lucide-react';
 import { AttendanceRecord, AttendanceSessionParticipant, AttendanceStatus } from '../types';
 import { AttendanceStatusBadge } from './AttendanceStatusBadge';
 import { AttendanceMethodBadge } from './AttendanceMethodBadge';

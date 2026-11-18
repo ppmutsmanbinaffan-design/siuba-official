@@ -15,7 +15,7 @@ class ActivityFactory extends Factory
     {
         $name = $this->faker->words(3, true);
         return [
-            'activity_category_id' => 1,
+            'activity_category_id' => fn () => \App\Models\ActivityCategory::firstOrCreate(['code' => 'IBADAH'], ['name' => 'Ibadah'])->id,
             'code' => strtoupper(Str::slug($name)),
             'name' => ucfirst($name),
             'description' => $this->faker->sentence(),

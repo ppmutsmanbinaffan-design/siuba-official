@@ -1,29 +1,20 @@
 import React, { useState } from 'react';
+import { getInstitution } from '../services/institutionService';
+import { todayLocalDate } from '../utils/today';
 import { 
   Calendar, 
   Clock, 
   MapPin, 
-  Users, 
   Plus, 
   Search, 
-  Filter, 
-  CheckCircle2, 
-  XCircle, 
-  AlertCircle, 
   Layers, 
-  FileText, 
   ShieldCheck, 
   UserPlus, 
-  ArrowRight, 
   Check, 
   X, 
-  RefreshCw, 
   UserCheck, 
   Award, 
-  ExternalLink,
-  ShieldAlert,
-  Tag
-} from 'lucide-react';
+  ShieldAlert} from 'lucide-react';
 import { 
   Activity, 
   ActivityParticipantRule, 
@@ -79,7 +70,7 @@ interface EventsManagerViewProps {
   onUpdateRegistrationStatus: (registrationId: number, status: EventRegistration['status']) => void;
   onAddParticipantRule: (rule: Partial<ActivityParticipantRule>) => void;
   onRemoveParticipantRule: (ruleId: number) => void;
-  onCreateEventDispensations: (updatedExcusals: StudentExcusal[]) => void;
+  onCreateEventDispensations: (updatedExcusals: StudentExcusal[]) => Promise<boolean> | void;
 }
 
 export const EventsManagerView: React.FC<EventsManagerViewProps> = ({
@@ -148,17 +139,17 @@ export const EventsManagerView: React.FC<EventsManagerViewProps> = ({
   const [newName, setNewName] = useState('');
   const [newDesc, setNewDesc] = useState('');
   const [newType, setNewType] = useState<EventType>('seminar');
-  const [newStartAt, setNewStartAt] = useState('2026-08-25 08:00');
-  const [newEndAt, setNewEndAt] = useState('2026-08-25 12:00');
+  const [newStartAt, setNewStartAt] = useState(`${todayLocalDate()} 08:00`);
+  const [newEndAt, setNewEndAt] = useState(`${todayLocalDate()} 12:00`);
   const [newLocation, setNewLocation] = useState('Aula Utama Pesantren');
   const [newCapacity, setNewCapacity] = useState<number>(100);
 
   // New Session Form State
   const [sessionName, setSessionName] = useState('');
-  const [sessionStartAt, setSessionStartAt] = useState('2026-08-25 08:00');
+  const [sessionStartAt, setSessionStartAt] = useState(`${todayLocalDate()} 08:00`);
   const [sessionPresentUntil, setSessionPresentUntil] = useState('08:15');
   const [sessionLateUntil, setSessionLateUntil] = useState('08:30');
-  const [sessionEndAt, setSessionEndAt] = useState('2026-08-25 10:00');
+  const [sessionEndAt, setSessionEndAt] = useState(`${todayLocalDate()} 10:00`);
 
   // New Rule Form State
   const [ruleType, setRuleType] = useState<ActivityParticipantRuleType>('classroom');
@@ -208,7 +199,7 @@ export const EventsManagerView: React.FC<EventsManagerViewProps> = ({
 
   // Dynamic Rule Preview for Selected Event Activity
   const resolvedDynamic = ActivityParticipantService.resolveParticipants({
-    activity: currentActivity,
+    activity: currentActivity as Activity,
     students: safeStudents,
     dormitoryRooms: safeDormitoryRooms,
     extracurricularMembers: safeExtracurricularMembers,
@@ -344,17 +335,17 @@ export const EventsManagerView: React.FC<EventsManagerViewProps> = ({
       student_number: st.student_number,
       classroom_name: st.classroom_name || '-',
       status: 'approved',
-      registered_at: new Date().toISOString().slice(0, 10),
+      registered_at: todayLocalDate(),
       registration_source: 'admin_assignment',
       approved_by: currentUser.name,
-      approved_at: new Date().toISOString().slice(0, 10),
+      approved_at: todayLocalDate(),
     });
 
     setShowAddRegistrationModal(false);
   };
 
   // Handle Event Dispensation Creation
-  const handleGenerateDispensations = () => {
+  const handleGenerateDispensations = async () => {
     if (!selectedEvent) return;
 
     const confirmedParticipants = resolvedDynamic.students;
@@ -370,8 +361,12 @@ export const EventsManagerView: React.FC<EventsManagerViewProps> = ({
       existingExcusals: excusals,
     });
 
-    onCreateEventDispensations(updatedExcusals);
-    alert(`Berhasil membuat ${createdCount} dispensasi resmi untuk peserta event "${selectedEvent.name}". Presensi KBM santri tidak akan tercatat Alpha!`);
+    if (createdCount === 0) {
+      alert('Semua peserta sudah memiliki dispensasi untuk event ini.');
+      return;
+    }
+    // Disimpan ke server; notifikasi berhasil/gagal ditampilkan oleh aplikasi
+    await onCreateEventDispensations(updatedExcusals);
   };
 
   return (
@@ -383,7 +378,7 @@ export const EventsManagerView: React.FC<EventsManagerViewProps> = ({
             <div className="flex items-center gap-2 mb-2 flex-wrap">
               <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-white/15 text-emerald-100 border border-white/20 uppercase tracking-wider flex items-center gap-1 backdrop-blur-xs">
                 <Award className="w-3 h-3 text-[#C9A227]" />
-                SIUBA v1.1.3 PRODUCTION
+                SIUBA
               </span>
               <span className="text-[11px] text-emerald-100 font-bold bg-black/25 px-2.5 py-0.5 rounded-full border border-white/15 backdrop-blur-xs">
                 Manajemen Event & Kegiatan Khusus
@@ -563,7 +558,7 @@ export const EventsManagerView: React.FC<EventsManagerViewProps> = ({
                     {getStatusBadge(selectedEvent.status)}
                   </div>
                   <h2 className="text-xl font-black text-slate-900 tracking-tight">{selectedEvent.name}</h2>
-                  <p className="text-xs text-slate-500 mt-1 leading-relaxed">{selectedEvent.description || 'Kegiatan resmi santri Pesantren Utsman Bin Affan.'}</p>
+                  <p className="text-xs text-slate-500 mt-1 leading-relaxed">{selectedEvent.description || `Kegiatan resmi santri ${getInstitution().name}.`}</p>
                 </div>
 
                 <div className="flex items-center gap-2 shrink-0">

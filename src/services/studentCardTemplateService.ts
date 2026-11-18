@@ -1,3 +1,4 @@
+import { apiClient } from './apiClient';
 import { 
   StudentCardTemplate, 
   StudentCardTemplateElement, 
@@ -6,6 +7,37 @@ import {
 } from '../types';
 
 const STORAGE_KEY = 'siuba_student_card_templates';
+
+// ===== Sinkron ke server: desain kartu sama di semua komputer (dulu hanya di browser ini) =====
+let pushTimer: ReturnType<typeof setTimeout> | null = null;
+function schedulePush(templates: unknown): void {
+  if (pushTimer) clearTimeout(pushTimer);
+  pushTimer = setTimeout(() => {
+    apiClient.put('/settings/card-templates', { templates }).catch((err: any) => {
+      window.dispatchEvent(new CustomEvent('siuba:card-templates-sync-error', { detail: err?.message || 'Gagal menyimpan desain kartu ke server.' }));
+    });
+  }, 800);
+}
+function persistTemplates(templates: unknown): void {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(templates));
+  schedulePush(templates);
+}
+
+/** Ambil desain kartu dari server. Bila server masih kosong, desain di browser ini dikirim ke server. */
+export async function syncCardTemplatesFromServer(): Promise<boolean> {
+  try {
+    const res: any = await apiClient.get('/settings/card-templates');
+    if (Array.isArray(res?.data) && res.data.length > 0) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(res.data));
+      return true;
+    }
+    const local = localStorage.getItem(STORAGE_KEY);
+    if (local) schedulePush(JSON.parse(local));
+  } catch {
+    /* offline: pakai desain di browser */
+  }
+  return false;
+}
 
 // CR80 / ID-1 Standard Specifications
 export const CR80_SPECS = {
@@ -746,7 +778,7 @@ export class StudentCardTemplateService {
       }
     }
     // Seed default templates
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_CARD_TEMPLATES));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_CARD_TEMPLATES)); // seed lokal, tidak dikirim ke server
     return DEFAULT_CARD_TEMPLATES;
   }
 
@@ -758,13 +790,6 @@ export class StudentCardTemplateService {
     return templates.find((t) => t.id === id) || null;
   }
 
-  /**
-   * Get the active default template
-   */
-  public static getDefaultTemplate(): StudentCardTemplate {
-    const templates = this.getTemplates();
-    return templates.find((t) => t.is_default && t.is_active) || templates[0] || DEFAULT_CARD_TEMPLATES[0];
-  }
 
   /**
    * Save / Update template
@@ -799,7 +824,7 @@ export class StudentCardTemplateService {
         templates.push(updated);
       }
 
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(templates));
+      persistTemplates(templates);
       return { success: true, template: updated };
     } catch (e: any) {
       return { success: false, error: e.message || 'Gagal menyimpan template kartu' };
@@ -818,7 +843,7 @@ export class StudentCardTemplateService {
       t.is_default = t.id === id;
     });
 
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(templates));
+    persistTemplates(templates);
     return true;
   }
 
@@ -846,7 +871,7 @@ export class StudentCardTemplateService {
 
     const templates = this.getTemplates();
     templates.push(duplicated);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(templates));
+    persistTemplates(templates);
     return duplicated;
   }
 
@@ -865,7 +890,7 @@ export class StudentCardTemplateService {
       if (other) other.is_default = true;
     }
 
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(templates));
+    persistTemplates(templates);
     return true;
   }
 
@@ -888,7 +913,7 @@ export class StudentCardTemplateService {
     }
 
     const filtered = templates.filter((t) => t.id !== id);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
+    persistTemplates(filtered);
     return { success: true };
   }
 
@@ -1050,22 +1075,7 @@ export class StudentCardTemplateService {
     });
   }
 
-  /**
-   * Unit Conversion Helpers
-   */
-  public static mmToPx(mm: number, dpi: number = 300): number {
-    return Math.round((mm / CR80_SPECS.MM_TO_INCH) * dpi);
-  }
 
-  public static pxToMm(px: number, dpi: number = 300): number {
-    return Number(((px / dpi) * CR80_SPECS.MM_TO_INCH).toFixed(2));
-  }
 
-  public static ptToMm(pt: number): number {
-    return Number(((pt / CR80_SPECS.PT_PER_INCH) * CR80_SPECS.MM_TO_INCH).toFixed(2));
-  }
 
-  public static mmToPt(mm: number): number {
-    return Number(((mm / CR80_SPECS.MM_TO_INCH) * CR80_SPECS.PT_PER_INCH).toFixed(2));
-  }
 }

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { todayLocalDate } from '../utils/today';
 import { 
   AcademicSessionContext, 
   AttendanceRecord, 
@@ -10,26 +11,16 @@ import {
   Teacher 
 } from '../types';
 import { 
-  Activity, 
-  AlertCircle, 
   BookOpen, 
   CheckCircle2, 
   Clock, 
-  Filter, 
-  GraduationCap, 
   Search, 
-  Sparkles, 
-  Users,
   Award,
   Calendar,
   Eye,
   X,
   UserCheck,
-  Check,
-  Flame,
-  Layers,
-  ChevronRight
-} from 'lucide-react';
+  Check} from 'lucide-react';
 
 interface Props {
   sessions?: AttendanceSession[];
@@ -61,7 +52,7 @@ export const KbmMonitoringView: React.FC<Props> = ({
   const safeTeachers = teachers || [];
   const safeLessonPeriods = lessonPeriods || [];
 
-  const [selectedDate, setSelectedDate] = useState<string>('2026-08-24');
+  const [selectedDate, setSelectedDate] = useState<string>(todayLocalDate());
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [filterClassroom, setFilterClassroom] = useState<number | 'all'>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
@@ -115,7 +106,7 @@ export const KbmMonitoringView: React.FC<Props> = ({
             <div className="flex items-center gap-2 mb-2 flex-wrap">
               <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-white/15 text-emerald-100 border border-white/20 uppercase tracking-wider flex items-center gap-1 backdrop-blur-xs">
                 <Award className="w-3 h-3 text-[#C9A227]" />
-                SIUBA v1.1.3 PRODUCTION
+                SIUBA
               </span>
               <span className="text-[11px] text-emerald-100 font-bold bg-black/25 px-2.5 py-0.5 rounded-full border border-white/15 backdrop-blur-xs">
                 Pengawasan KBM Akademik & Presensi
@@ -470,13 +461,13 @@ export const KbmMonitoringView: React.FC<Props> = ({
                         {status === 'present' || isPresent ? (
                           <span className="px-2.5 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-black rounded-md border border-emerald-200 flex items-center gap-1">
                             <Check className="w-3 h-3 text-emerald-600" />
-                            Hadir {record?.recorded_at ? `(${record.recorded_at.slice(11, 16)})` : ''}
+                            Hadir {record?.check_in_at ? `(${new Date(record.check_in_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })})` : ''}
                           </span>
                         ) : status === 'sick' ? (
                           <span className="px-2.5 py-0.5 bg-amber-100 text-amber-800 text-[10px] font-black rounded-md border border-amber-200">
                             Sakit
                           </span>
-                        ) : status === 'excused' ? (
+                        ) : status === 'permission' || status === 'dispensation' ? (
                           <span className="px-2.5 py-0.5 bg-blue-100 text-blue-800 text-[10px] font-black rounded-md border border-blue-200">
                             Izin
                           </span>

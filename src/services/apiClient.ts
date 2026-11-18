@@ -47,6 +47,33 @@ export interface PaginatedResult<T> {
   pagination: PaginationMeta;
 }
 
+/**
+ * Selisih jam perangkat vs server (ms), diukur dari header X-Server-Time di setiap respons.
+ * Dipakai untuk mengoreksi waktu absensi yang dicatat offline (jam HP sering tidak tepat).
+ */
+const CLOCK_KEY = 'siuba_offline_metadata';
+let lastClockSave = 0;
+function recordServerClock(header: string | null, sentAt: number, receivedAt: number) {
+  const serverMs = Number(header);
+  if (!header || !Number.isFinite(serverMs) || serverMs <= 0) return;
+  const rtt = receivedAt - sentAt;
+  if (rtt > 3000) return; // jaringan lambat: ukuran tidak akurat
+  if (receivedAt - lastClockSave < 5 * 60 * 1000) return;
+  lastClockSave = receivedAt;
+  const offset = Math.round(serverMs - (sentAt + rtt / 2));
+  try {
+    const meta = JSON.parse(localStorage.getItem(CLOCK_KEY) || '{}');
+    localStorage.setItem(CLOCK_KEY, JSON.stringify({
+      ...meta,
+      clock_offset_ms: offset,
+      clock_measured_at: new Date(receivedAt).toISOString(),
+      server_time_reference: new Date(serverMs).toISOString(),
+    }));
+  } catch {
+    /* penyimpanan penuh */
+  }
+}
+
 export class ApiClientError extends Error {
   public status: number;
   public code: string;
@@ -73,6 +100,23 @@ export class ApiClientError extends Error {
     this.details = params.details;
     this.isNetworkError = params.isNetworkError || false;
   }
+}
+
+/**
+ * True jika error disebabkan server tidak terjangkau (offline / jaringan putus).
+ * Hanya kondisi ini yang boleh memakai fallback data lokal (mode offline PWA).
+ * Error dari server (403, 409, 422, 500, ...) harus ditampilkan, BUKAN diam-diam disimpan di browser.
+ */
+export function isOfflineError(err: unknown): boolean {
+  if (err instanceof ApiClientError) return err.isNetworkError;
+  return err instanceof TypeError; // fetch gagal total (misal DNS / server mati)
+}
+
+/** Ubah error server menjadi hasil gagal yang bisa ditampilkan UI absensi. */
+export function resultFromApiError(err: unknown): { success: false; code: any; message: string } {
+  const e = err as ApiClientError;
+  const code = e?.status === 403 ? 'UNAUTHORIZED' : (e?.code && e.code !== 'HTTP_ERROR' ? e.code : 'SERVER_ERROR');
+  return { success: false, code, message: e?.message || 'Terjadi kesalahan pada server.' };
 }
 
 class ApiClientService {
@@ -122,37 +166,23 @@ class ApiClientService {
 
     // Check client-side connectivity first
     if (!navigator.onLine || ServerConnectivityService.getState() === 'SERVER_OFFLINE') {
-      if (options.method && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(options.method.toUpperCase())) {
-        try {
-          const bodyPayload = options.body ? JSON.parse(options.body as string) : {};
-          OfflineStorageService.addPendingAttendance({
-            sessionId: bodyPayload.attendance_session_id || bodyPayload.sessionId || 1,
-            studentId: bodyPayload.student_id || bodyPayload.studentId || 0,
-            studentNumber: bodyPayload.student_number || bodyPayload.studentNumber || 'UNKNOWN',
-            studentName: bodyPayload.student_name || bodyPayload.studentName || 'Santri Offline',
-            status: bodyPayload.status || 'present',
-            method: bodyPayload.verification_method || bodyPayload.method || 'manual',
-            operatorId: bodyPayload.operator_id || 1,
-            operatorName: bodyPayload.operator_name || 'System Operator',
-          });
-        } catch {
-          // Silent offline cache fallback
-        }
-      }
-
+      // Catatan: dulu SEMUA permintaan ubah data (simpan pengaturan, tambah kelas, dll.) saat offline diubah menjadi
+      // "absensi tertunda" palsu (santri #0, sesi #1). Kini hanya pencatatan absensi yang diantre (lihat attendanceApi).
       throw new ApiClientError({
         status: 0,
         code: 'NETWORK_OFFLINE',
-        message: 'Koneksi server lokal terputus. Data disimpan secara offline dan akan disinkronkan saat server kembali online.',
+        message: 'Koneksi ke server terputus. Absensi santri tetap bisa dicatat dan akan dikirim otomatis saat server kembali terhubung; perubahan lain perlu diulang saat online.',
         isNetworkError: true,
       });
     }
 
     try {
+      const sentAt = Date.now();
       const response = await fetch(url, {
         ...options,
         headers,
       });
+      recordServerClock(response.headers.get('X-Server-Time'), sentAt, Date.now());
 
       const responseRequestId = response.headers.get('X-Request-ID') || undefined;
 
@@ -165,7 +195,14 @@ class ApiClientService {
 
       // Handle 401 Unauthorized
       if (response.status === 401) {
+        const hadToken = Boolean(this.getToken());
         this.setToken(null);
+        // Sesi yang sedang berjalan ditolak server (berakhir/dicabut): beri tahu authService agar kembali ke login
+        if (hadToken && typeof window !== 'undefined' && !String(url).includes('/auth/login')) {
+          window.dispatchEvent(new CustomEvent('siuba:session-expired', {
+            detail: { message: json?.error?.message || json?.message || 'Sesi Anda telah berakhir. Silakan login kembali.' },
+          }));
+        }
         throw new ApiClientError({
           status: 401,
           code: json?.error?.code || 'UNAUTHENTICATED',

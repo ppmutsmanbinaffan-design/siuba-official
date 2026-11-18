@@ -1,29 +1,20 @@
 import React, { useMemo, useState } from 'react';
+import { getInstitution } from '../services/institutionService';
 import { 
   Users, 
   Calendar, 
   Clock, 
   CheckCircle2, 
-  AlertTriangle, 
   XCircle, 
   ArrowRight, 
-  Radio, 
   ClipboardCheck, 
-  Building, 
   Sparkles,
-  Play,
-  Check,
-  TrendingUp,
-  Activity as ActivityIcon,
   ShieldAlert,
   FileText,
-  Zap,
-  Lock,
-  Unlock,
   ChevronRight,
   QrCode,
   Search,
-  Filter
+  AlertCircle,
 } from 'lucide-react';
 import { 
   Activity, 
@@ -34,6 +25,7 @@ import {
   StudentExcusal 
 } from '../types';
 import { AttendanceSummaryService } from '../services/attendanceSummaryService';
+import { todayLocalDate } from '../utils/today';
 
 interface DashboardViewProps {
   students: Student[];
@@ -69,7 +61,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   
   // Today's stats calculation
   const todaySummary = useMemo(() => {
-    return AttendanceSummaryService.calculateTodaySummary(safeSessions, safeParticipants, safeRecords, '2026-08-23');
+    return AttendanceSummaryService.calculateTodaySummary(safeSessions, safeParticipants, safeRecords, todayLocalDate());
   }, [safeSessions, safeParticipants, safeRecords]);
 
   // "BUTUH PERHATIAN" items
@@ -118,11 +110,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               SISTEM OPERASIONAL SIUBA
             </span>
             <span className="text-emerald-100 bg-white/15 px-3 py-0.5 rounded-full text-xs font-mono border border-white/20">
-              Minggu, 23 Agustus 2026
+              {new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
             </span>
           </div>
           <h2 className="text-2xl lg:text-3xl font-black tracking-tight text-white">
-            Pondok Pesantren Modern Utsman Bin Affan
+            {getInstitution().name}
           </h2>
           <p className="text-xs sm:text-sm text-emerald-100/90 max-w-2xl leading-relaxed">
             Sistem Absensi Santri Pesantren Terintegrasi (SIUBA). Dirancang dengan arsitektur <em>Fast, Simple, Mobile-Friendly, Safe & Auditable</em> untuk pencatatan kehadiran santri secara akurat dan presisi.

@@ -1,3 +1,4 @@
+import { apiClient } from './apiClient';
 import { AuditLog, AuditLogEvent, User } from '../types';
 
 const STORAGE_KEY_AUDIT_LOGS = 'siuba_audit_logs';
@@ -16,112 +17,8 @@ const REDACTED_KEYS = [
   'remember_token'
 ];
 
-/**
- * Pre-seeded realistic audit trail events for SIUBA Pesantren
- */
-const INITIAL_AUDIT_LOGS: AuditLog[] = [
-  {
-    id: 101,
-    user_id: 1,
-    user_name: 'KH. Abdullah Syukri (Super Admin)',
-    role: 'Super Admin',
-    event: 'role_changed',
-    auditable_type: 'UserRoleAssignment',
-    auditable_id: 4,
-    auditable_name: 'Ust. Ahmad Dahlan',
-    old_values: { role: 'Guru', permissions: ['view_attendance', 'record_class'] },
-    new_values: { role: 'Wali Kelas & Pembina Asrama', permissions: ['view_attendance', 'record_class', 'approve_excusal', 'manage_room'] },
-    reason: 'Promosi SK Pengurus Tahun Ajaran Baru 2026/2027',
-    ip_address: '192.168.1.15',
-    user_agent_summary: 'Chrome 122 on macOS / LAN Internal',
-    created_at: new Date(Date.now() - 48 * 3600 * 1000).toISOString()
-  },
-  {
-    id: 102,
-    user_id: 2,
-    user_name: 'Ust. Zulkifli (Admin Kesantrian)',
-    role: 'Admin',
-    event: 'device_secret_rotated',
-    auditable_type: 'AttendanceDevice',
-    auditable_id: 3,
-    auditable_name: 'ESP32 RFID Reader - Gerbang Asrama Putra (DEV-ASR-01)',
-    old_values: { secret_hash: 'sha256:7f83b1657ff1fc53b92dc18148a1d65dfc2d4b1fa3d677284addd200126d9069', status: 'active' },
-    new_values: { secret_hash: 'sha256:5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8', status: 'active' },
-    reason: 'Rotasi berkala token perangkat terminal IoT sesuai SOP Keamanan',
-    ip_address: '192.168.1.18',
-    user_agent_summary: 'Firefox 123 on Linux Desktop / LAN Internal',
-    created_at: new Date(Date.now() - 36 * 3600 * 1000).toISOString()
-  },
-  {
-    id: 103,
-    user_id: 3,
-    user_name: 'Ust. Muhammad Ilyas (Petugas Asrama)',
-    role: 'Musyrif',
-    event: 'attendance_corrected',
-    auditable_type: 'AttendanceRecord',
-    auditable_id: 1254,
-    auditable_name: 'Ahmad Fauzi (NIS: UBA260001) - Sholat Subuh Berjamaah',
-    old_values: { status: 'absent', source: 'automatic', notes: 'Auto-Alpha Penutupan Sesi' },
-    new_values: { status: 'sick', source: 'operator', notes: 'Koreksi: Santri dirawat di Poskestren sejak malam' },
-    reason: 'Surat Keterangan Dokter Poskestren No. 44/SKD/VIII/2026',
-    ip_address: '192.168.1.42',
-    user_agent_summary: 'SIUBA PWA Mobile / Android 14',
-    created_at: new Date(Date.now() - 14 * 3600 * 1000).toISOString()
-  },
-  {
-    id: 104,
-    user_id: 1,
-    user_name: 'KH. Abdullah Syukri (Super Admin)',
-    role: 'Super Admin',
-    event: 'qr_regenerated',
-    auditable_type: 'Student',
-    auditable_id: 12,
-    auditable_name: 'Farhan Ramadhan (NIS: UBA260012)',
-    old_values: { qr_token_hash: 'sha256:d8578edf8458ce06fbc5bb76a58c5ca4... [REDACTED]' },
-    new_values: { qr_token_hash: 'sha256:9f83ca4628c61456a02fb191a329... [REDACTED]' },
-    reason: 'Kartu santri fisik hilang dan ditemukan orang lain, token lama direvokasi',
-    ip_address: '192.168.1.15',
-    user_agent_summary: 'Chrome 122 on macOS / LAN Internal',
-    created_at: new Date(Date.now() - 8 * 3600 * 1000).toISOString()
-  },
-  {
-    id: 105,
-    user_id: 1,
-    user_name: 'KH. Abdullah Syukri (Super Admin)',
-    role: 'Super Admin',
-    event: 'backup_created',
-    auditable_type: 'SystemBackup',
-    auditable_id: 'bkp_20260823_040000',
-    auditable_name: 'siuba_full_backup_20260823_040000.sql.gz',
-    old_values: null,
-    new_values: { 
-      filename: 'siuba_full_backup_20260823_040000.sql.gz', 
-      size: '14.8 MB', 
-      checksum_sha256: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
-      destination: 'NAS Local Synology + External SSD'
-    },
-    reason: 'Otomatisasi Cron Job Harian Backup Pukul 04:00 WIB',
-    ip_address: '127.0.0.1 (CLI Cron)',
-    user_agent_summary: 'Laravel Scheduler Service / Linux Kernel 6.1',
-    created_at: new Date(Date.now() - 4 * 3600 * 1000).toISOString()
-  },
-  {
-    id: 106,
-    user_id: 2,
-    user_name: 'Ust. Zulkifli (Admin Kesantrian)',
-    role: 'Admin',
-    event: 'offline_conflict_resolved',
-    auditable_type: 'OfflineSyncBatch',
-    auditable_id: 'sync_client_9942',
-    auditable_name: 'Batch Sinkronisasi 14 Record Petugas Lapangan',
-    old_values: { conflict_policy: 'HUMAN_DECISION_PENDING', pending_count: 14 },
-    new_values: { auto_alpha_overwritten: 3, manual_attendance_retained: 11, status: 'RESOLVED_AUTO' },
-    reason: 'Resolusi otomatis Auto-Alpha versus data riil tap offline saat listrik padam',
-    ip_address: '192.168.1.18',
-    user_agent_summary: 'Firefox 123 on Linux Desktop / LAN Internal',
-    created_at: new Date(Date.now() - 2 * 3600 * 1000).toISOString()
-  }
-];
+/** Id entri contoh yang dulu otomatis dimasukkan ke log audit; dibersihkan dari cache browser lama. */
+const LEGACY_DEMO_AUDIT_IDS = new Set([101, 102, 103, 104, 105, 106]);
 
 export class AuditService {
   private static logs: AuditLog[] = [];
@@ -131,14 +28,14 @@ export class AuditService {
     if (this.initialized) return;
     try {
       const stored = localStorage.getItem(STORAGE_KEY_AUDIT_LOGS);
-      if (stored) {
-        this.logs = JSON.parse(stored);
-      } else {
-        this.logs = [...INITIAL_AUDIT_LOGS];
+      const parsed: AuditLog[] = stored ? JSON.parse(stored) : [];
+      // Buang entri contoh lama (bukan kejadian nyata)
+      this.logs = (Array.isArray(parsed) ? parsed : []).filter((l) => !LEGACY_DEMO_AUDIT_IDS.has(Number(l.id)));
+      if (stored && this.logs.length !== parsed.length) {
         localStorage.setItem(STORAGE_KEY_AUDIT_LOGS, JSON.stringify(this.logs));
       }
     } catch {
-      this.logs = [...INITIAL_AUDIT_LOGS];
+      this.logs = [];
     }
     this.initialized = true;
   }
@@ -228,6 +125,25 @@ export class AuditService {
   /**
    * Get all logs with optional filtering
    */
+  /** Log audit dari server (sumber utama); digabung dengan log lokal perangkat ini. */
+  private static serverLogs: AuditLog[] = [];
+
+  /**
+   * Ambil log audit dari server. Gagal diam-diam bila offline / tidak berhak — log lokal tetap tampil.
+   * @returns true bila berhasil memuat dari server
+   */
+  public static async syncFromServer(): Promise<boolean> {
+    try {
+      const res: any = await apiClient.get<AuditLog[]>('/audit-logs', { limit: 500 });
+      const list = Array.isArray(res?.data) ? res.data : [];
+      // Id server diberi awalan negatif agar tidak bentrok dengan id log lokal (Date.now()).
+      this.serverLogs = list.map((l: AuditLog) => ({ ...l, id: -Math.abs(Number(l.id)) }));
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   public static getLogs(filter?: {
     event?: AuditLogEvent | 'ALL';
     auditable_type?: string | 'ALL';
@@ -237,7 +153,7 @@ export class AuditService {
     endDate?: string;
   }): AuditLog[] {
     this.init();
-    let result = [...this.logs];
+    let result = [...this.serverLogs, ...this.logs].sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
 
     if (!filter) return result;
 
@@ -282,12 +198,13 @@ export class AuditService {
    */
   public static getAuditStats() {
     this.init();
-    const total = this.logs.length;
-    const corrections = this.logs.filter(l => l.event === 'attendance_corrected').length;
-    const roleChanges = this.logs.filter(l => l.event === 'role_changed' || l.event === 'permission_changed').length;
-    const deviceEvents = this.logs.filter(l => l.event === 'device_secret_rotated' || l.event === 'device_created' || l.event === 'device_disabled').length;
-    const backups = this.logs.filter(l => l.event === 'backup_created' || l.event === 'restore_completed').length;
-    const qrRfidChanges = this.logs.filter(l => l.event === 'qr_regenerated' || l.event === 'rfid_assigned' || l.event === 'rfid_removed').length;
+    const all = [...this.serverLogs, ...this.logs];
+    const total = all.length;
+    const corrections = all.filter(l => l.event === 'attendance_corrected').length;
+    const roleChanges = all.filter(l => l.event === 'role_changed' || l.event === 'permission_changed').length;
+    const deviceEvents = all.filter(l => l.event === 'device_secret_rotated' || l.event === 'device_created' || l.event === 'device_disabled').length;
+    const backups = all.filter(l => l.event === 'backup_created' || l.event === 'restore_completed').length;
+    const qrRfidChanges = all.filter(l => l.event === 'qr_regenerated' || l.event === 'rfid_assigned' || l.event === 'rfid_removed').length;
 
     return {
       total,
@@ -299,28 +216,4 @@ export class AuditService {
     };
   }
 
-  /**
-   * Clear all audit logs (Super Admin Only with reason)
-   */
-  public static clearLogs(user: User, reason: string): boolean {
-    if (user.role !== 'Super Admin') return false;
-    this.logs = [];
-    try {
-      localStorage.removeItem(STORAGE_KEY_AUDIT_LOGS);
-    } catch {}
-    
-    // Log the purge itself
-    this.log({
-      event: 'security_setting_changed',
-      auditable_type: 'AuditRetentionEngine',
-      auditable_id: 'ALL_LOGS',
-      auditable_name: 'Pembersihan Arsip Audit Log',
-      old_values: { action: 'purge_logs' },
-      new_values: { status: 'cleared', retention_cycle: 'reset' },
-      reason: reason || 'Pembersihan audit log manual oleh Super Admin',
-      user
-    });
-
-    return true;
-  }
 }

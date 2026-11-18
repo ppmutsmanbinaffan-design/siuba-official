@@ -1,21 +1,11 @@
 import { 
-  Activity, 
   ActivityCategory, 
-  AttendanceDevice, 
   AttendanceRecord, 
   AttendanceSession, 
   AttendanceSessionParticipant, 
-  Classroom, 
-  Dormitory, 
-  DormitoryRoom, 
-  EventRegistration, 
-  Extracurricular, 
-  ExtracurricularMember, 
-  SpecialEvent, 
-  Student, 
-  StudentExcusal, 
   User 
 } from '../types';
+import { todayLocalDate } from '../utils/today';
 
 export interface FilterCriteria {
   startDate?: string;
@@ -216,7 +206,7 @@ export class AttendanceMetricService {
     sessions: AttendanceSession[],
     participants: AttendanceSessionParticipant[],
     records: AttendanceRecord[],
-    dateStr: string = '2026-08-23'
+    dateStr: string = todayLocalDate()
   ) {
     const prayerNames = ['Subuh', 'Dzuhur', 'Ashar', 'Maghrib', 'Isya'];
     const results: Record<string, MetricSummary & { sessionCount: number }> = {};
@@ -290,103 +280,5 @@ export class AttendanceMetricService {
     });
   }
 
-  /**
-   * Get Student Individual Attendance Profile
-   */
-  static getStudentProfileAnalytics(
-    studentId: number,
-    sessions: AttendanceSession[],
-    participants: AttendanceSessionParticipant[],
-    records: AttendanceRecord[],
-    categories: ActivityCategory[]
-  ) {
-    const studentParticipants = participants.filter((p) => p.student_id === studentId);
-    const sessionIds = new Set(studentParticipants.map((p) => p.attendance_session_id));
-    const studentSessions = sessions.filter((s) => sessionIds.has(s.id) && s.status !== 'cancelled');
 
-    const overallMetrics = this.calculateMetrics(studentSessions, studentParticipants, records, { studentId });
-
-    const categoryBreakdown = categories.map((cat) => {
-      const catSessions = studentSessions.filter(
-        (s) => s.activity_category_id === cat.id || (s.category_name && s.category_name.toLowerCase() === cat.name.toLowerCase())
-      );
-      const metrics = this.calculateMetrics(catSessions, studentParticipants, records, { studentId });
-      return {
-        categoryName: cat.name,
-        metrics,
-      };
-    });
-
-    // Missed Sessions List
-    const studentRecords = records.filter((r) => r.student_id === studentId);
-    const recordMap = new Map(studentRecords.map((r) => [r.attendance_session_id, r]));
-
-    const missedSessions = studentSessions
-      .map((s) => {
-        const rec = recordMap.get(s.id);
-        return {
-          session: s,
-          record: rec,
-          status: rec ? rec.status : 'unrecorded',
-        };
-      })
-      .filter((item) => item.status === 'absent' || item.status === 'late' || item.status === 'permission' || item.status === 'sick');
-
-    return {
-      overallMetrics,
-      categoryBreakdown,
-      missedSessions,
-    };
-  }
-
-  /**
-   * Check Data Quality Integrity Audit for Admin
-   */
-  static runDataQualityAudit(
-    sessions: AttendanceSession[],
-    participants: AttendanceSessionParticipant[],
-    records: AttendanceRecord[]
-  ) {
-    const issues: Array<{
-      id: string;
-      type: 'closed_unrecorded' | 'orphan_record' | 'empty_session';
-      title: string;
-      description: string;
-      severity: 'high' | 'medium';
-    }> = [];
-
-    // 1. Closed session with unrecorded participants
-    const closedSessions = sessions.filter((s) => s.status === 'closed');
-    closedSessions.forEach((s) => {
-      const sParticipants = participants.filter((p) => p.attendance_session_id === s.id && p.eligibility_status !== 'ineligible');
-      const sRecords = records.filter((r) => r.attendance_session_id === s.id);
-
-      if (sParticipants.length > sRecords.length) {
-        const diff = sParticipants.length - sRecords.length;
-        issues.push({
-          id: `dq_unrec_${s.id}`,
-          type: 'closed_unrecorded',
-          title: `Sesi Ditutup Belum Lengkap: ${s.activity_name}`,
-          description: `Sesi #${s.id} berstatus Ditutup tetapi masih memiliki ${diff} santri tanpa catatan presensi (seharusnya diauto-finalize Alpha).`,
-          severity: 'high',
-        });
-      }
-    });
-
-    // 2. Empty session without eligible participants
-    sessions.forEach((s) => {
-      const sParticipants = participants.filter((p) => p.attendance_session_id === s.id);
-      if (sParticipants.length === 0 && s.status !== 'draft') {
-        issues.push({
-          id: `dq_empty_${s.id}`,
-          type: 'empty_session',
-          title: `Sesi Tanpa Peserta Eligible: ${s.activity_name}`,
-          description: `Sesi #${s.id} tidak memiliki santri terdaftar namun berstatus ${s.status.toUpperCase()}.`,
-          severity: 'medium',
-        });
-      }
-    });
-
-    return issues;
-  }
 }

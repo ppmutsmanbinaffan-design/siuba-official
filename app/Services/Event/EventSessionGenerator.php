@@ -30,7 +30,7 @@ class EventSessionGenerator
             ['code' => $activityCode],
             [
                 'name' => "Event: {$event->name}",
-                'activity_category_id' => 1,
+                'activity_category_id' => \App\Models\ActivityCategory::firstOrCreate(['code' => 'EVENT'], ['name' => 'Event Khusus'])->id,
                 'allow_manual' => true,
                 'allow_qr' => true,
                 'allow_rfid' => true,

@@ -4,23 +4,19 @@ import {
   Plus, 
   Trash2, 
   UserCheck, 
-  Users, 
   Copy, 
   Search, 
-  Filter, 
-  Sparkles,
   CheckCircle2,
   AlertCircle,
   Award,
   ChevronDown,
   Check,
   Building,
-  Clock,
-  Shield,
   Layers,
   MapPin
 } from 'lucide-react';
 import { Activity, DutyRoster, Student, User } from '../types';
+import { todayLocalDate } from '../utils/today';
 
 interface DutyRosterManagerViewProps {
   activities?: Activity[];
@@ -43,7 +39,7 @@ export const DutyRosterManagerView: React.FC<DutyRosterManagerViewProps> = ({
   const safeDutyRosters = dutyRosters || [];
   const safeStudents = students || [];
 
-  const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().slice(0, 10));
+  const [selectedDate, setSelectedDate] = useState<string>(todayLocalDate());
   const [selectedActivityId, setSelectedActivityId] = useState<number | 'all'>('all');
   const [selectedRoleFilter, setSelectedRoleFilter] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -159,7 +155,7 @@ export const DutyRosterManagerView: React.FC<DutyRosterManagerViewProps> = ({
             <div className="flex items-center gap-2 mb-1.5 flex-wrap">
               <span className="bg-white/15 border border-white/20 text-emerald-100 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1 backdrop-blur-xs">
                 <Award className="w-3 h-3 text-[#C9A227]" />
-                SIUBA v1.1.3 PRODUCTION
+                SIUBA
               </span>
               <span className="text-[11px] text-emerald-100 font-bold bg-black/25 px-2.5 py-0.5 rounded-full border border-white/15 backdrop-blur-xs">
                 Duty Roster & Piket Asrama Santri
@@ -292,7 +288,7 @@ export const DutyRosterManagerView: React.FC<DutyRosterManagerViewProps> = ({
                                 </span>
                               </div>
                               <p className="text-[11px] text-slate-500 truncate mt-0.5">
-                                Kategori: {act.category_code || 'KEBERSIHAN'} • Peserta Roster
+                                Kategori: {act.category_name || act.category_code || '-'} • Peserta Roster
                               </p>
                             </div>
                             {isSelected && (
@@ -460,7 +456,7 @@ export const DutyRosterManagerView: React.FC<DutyRosterManagerViewProps> = ({
                       </td>
                       <td className="py-3 px-4">
                         <span className="font-bold text-slate-800 block">{actObj?.name || item.activity_name}</span>
-                        <span className="text-[10px] text-slate-400 font-mono">{actObj?.category_code || 'KEBERSIHAN'}</span>
+                        <span className="text-[10px] text-slate-400 font-mono">{actObj?.category_name || actObj?.category_code || '-'}</span>
                       </td>
                       <td className="py-3 px-4 font-mono text-slate-600 text-[11px] font-semibold">{item.date}</td>
                       <td className="py-3 px-4">
@@ -526,7 +522,7 @@ export const DutyRosterManagerView: React.FC<DutyRosterManagerViewProps> = ({
                 >
                   {rosterActivities.map((act) => (
                     <option key={act.id} value={act.id}>
-                      {act.name} ({act.category_code})
+                      {act.name} ({act.category_name || act.category_code || '-'})
                     </option>
                   ))}
                 </select>

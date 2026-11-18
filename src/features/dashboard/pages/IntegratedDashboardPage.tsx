@@ -1,26 +1,18 @@
 import React, { useState, useMemo } from 'react';
+import { useServerStaffReportData } from '../../reports/useServerStaffReportData';
+import { todayLocalDate, shiftLocalDate } from '../../../utils/today';
+import { getInstitution } from '../../../services/institutionService';
 import { 
   Calendar, 
   RefreshCw, 
-  Filter, 
   Layers, 
   Users, 
   Briefcase, 
   BookOpen, 
-  Award, 
-  AlertTriangle, 
-  CheckCircle2, 
-  ChevronRight,
-  TrendingUp,
-  Clock,
-  Sparkles,
-  ArrowRight,
-  SlidersHorizontal
-} from 'lucide-react';
+  Award} from 'lucide-react';
 import { 
   User, 
   Student, 
-  Staff, 
   AttendanceSession, 
   AttendanceSessionParticipant, 
   AttendanceRecord, 
@@ -81,9 +73,10 @@ export const IntegratedDashboardPage: React.FC<Props> = ({
   onNavigateTab,
   onShowToast,
 }) => {
-  const [selectedDate, setSelectedDate] = useState<string>(
-    () => new Date().toISOString().substring(0, 10)
-  );
+  const [selectedDate, setSelectedDate] = useState<string>(() => todayLocalDate());
+  // Ringkasan SDM/mengajar/melatih dihitung dari data server tanggal ini (dulu dari data browser / data contoh)
+  // 7 hari sampai tanggal terpilih: grafik tren SDM butuh data 6 hari sebelumnya juga
+  const { version: staffDataVersion } = useServerStaffReportData(shiftLocalDate(-6, selectedDate), selectedDate);
   const [activeDomain, setActiveDomain] = useState<DashboardActiveDomain>('all');
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -95,7 +88,7 @@ export const IntegratedDashboardPage: React.FC<Props> = ({
   // 1. Fetch Staff Integrated Metrics (Daily, Teaching, Training, Operational Lists)
   const staffDashboardData = useMemo(() => {
     return StaffAnalyticsQueryService.getIntegratedDashboardData(selectedDate, currentUser);
-  }, [selectedDate, currentUser]);
+  }, [selectedDate, currentUser, staffDataVersion]);
 
   // 2. Fetch Student Authoritative Metrics for Selected Date
   const studentMetrics = useMemo(() => {
@@ -255,11 +248,7 @@ export const IntegratedDashboardPage: React.FC<Props> = ({
   };
 
   const handleDatePreset = (preset: 'today' | 'yesterday') => {
-    const d = new Date();
-    if (preset === 'yesterday') {
-      d.setDate(d.getDate() - 1);
-    }
-    setSelectedDate(d.toISOString().substring(0, 10));
+    setSelectedDate(preset === 'yesterday' ? shiftLocalDate(-1) : todayLocalDate());
   };
 
   return (
@@ -276,7 +265,7 @@ export const IntegratedDashboardPage: React.FC<Props> = ({
             </span>
           </div>
           <p className="text-xs sm:text-sm text-emerald-100/90">
-            Ringkasan operasional kegiatan dan presensi Pondok Pesantren Utsman Bin Affan.
+            Ringkasan operasional kegiatan dan presensi {getInstitution().name}.
           </p>
         </div>
 
@@ -288,7 +277,7 @@ export const IntegratedDashboardPage: React.FC<Props> = ({
               onClick={() => handleDatePreset('today')}
               type="button"
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                selectedDate === new Date().toISOString().substring(0, 10)
+                selectedDate === todayLocalDate()
                   ? 'bg-white text-[#12372A] shadow-xs'
                   : 'text-emerald-100 hover:text-white'
               }`}
@@ -299,7 +288,7 @@ export const IntegratedDashboardPage: React.FC<Props> = ({
               onClick={() => handleDatePreset('yesterday')}
               type="button"
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                selectedDate !== new Date().toISOString().substring(0, 10)
+                selectedDate !== todayLocalDate()
                   ? 'bg-white text-[#12372A] shadow-xs'
                   : 'text-emerald-100 hover:text-white'
               }`}
@@ -469,21 +458,21 @@ export const IntegratedDashboardPage: React.FC<Props> = ({
 
         {canViewStaff && (activeDomain === 'all' || activeDomain === 'sdm_daily') && (
           <StaffTrendChart
-            trends={staffDashboardData.trends.daily_presence_trend}
+            trends={staffDashboardData.trends.daily}
             onSelectDate={(d) => setSelectedDate(d)}
           />
         )}
 
         {canViewTeaching && (activeDomain === 'all' || activeDomain === 'teaching') && (
           <TeachingTrendChart
-            trends={staffDashboardData.trends.teaching_trend}
+            trends={staffDashboardData.trends.teaching}
             onSelectDate={(d) => setSelectedDate(d)}
           />
         )}
 
         {(activeDomain === 'all' || activeDomain === 'training') && (
           <TrainingTrendChart
-            trends={staffDashboardData.trends.training_trend}
+            trends={staffDashboardData.trends.training}
             onSelectDate={(d) => setSelectedDate(d)}
           />
         )}

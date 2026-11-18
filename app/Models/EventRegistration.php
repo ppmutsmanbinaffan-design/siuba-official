@@ -39,4 +39,9 @@ class EventRegistration extends Model
     {
         return $this->belongsTo(Student::class);
     }
+
+    public function approver(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(User::class, 'approved_by');
+    }
 }

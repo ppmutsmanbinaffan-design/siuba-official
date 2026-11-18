@@ -7,33 +7,26 @@ import {
   IdCard, 
   Sliders, 
   Save, 
-  Download, 
   CheckCircle2, 
-  Cpu, 
-  Globe, 
   Wifi, 
-  Clock, 
-  ShieldCheck, 
   Sparkles, 
   HardDrive, 
   Layers, 
   Building, 
-  Bell, 
   Radio, 
   Smartphone, 
-  Trash2, 
   Activity, 
-  ExternalLink, 
   Key, 
-  FileCode, 
   Eye, 
   EyeOff, 
   Terminal, 
   ArrowRight,
-  HelpCircle,
   RotateCcw
 } from 'lucide-react';
 import { isDevelopmentToolsEnabled } from '../utils/devTools';
+import { apiClient } from '../services/apiClient';
+import { applyServerAttendanceRules } from '../services/attendanceRulesService';
+import { setInstitutionCache } from '../services/institutionService';
 
 interface Props {
   onResetData?: () => void;
@@ -54,6 +47,11 @@ interface SystemConfigState {
   trustedProxies: string;
 
   // Institute Profile
+  foundationName: string;
+  shortName: string;
+  leaderName: string;
+  leaderTitle: string;
+  city: string;
   instituteName: string;
   instituteSlogan: string;
   instituteAddress: string;
@@ -94,11 +92,16 @@ const DEFAULT_CONFIG: SystemConfigState = {
   corsOrigins: 'http://192.168.1.*, http://localhost:8000',
   trustedProxies: '192.168.1.1, 127.0.0.1',
 
-  instituteName: 'Pesantren Modern Utsman Bin Affan',
+  foundationName: 'Yayasan Pendidikan Islam Utsman Bin Affan',
+  shortName: 'Utsman Bin Affan',
+  leaderName: '',
+  leaderTitle: 'Pimpinan Pondok',
+  city: '',
+  instituteName: 'Pondok Pesantren Utsman Bin Affan',
   instituteSlogan: 'Sistem Informasi Manajemen Presensi & Disiplin Santri',
-  instituteAddress: 'Jl. Pesantren No. 01, Cisauk, Tangerang, Banten 15345',
-  institutePhone: '+62 21 7564890',
-  instituteEmail: 'sekretariat@siuba.pesantren.id',
+  instituteAddress: '',
+  institutePhone: '',
+  instituteEmail: '',
   activeAcademicYear: '2026/2027',
   activeSemester: 'Ganjil',
   timezone: 'Asia/Jakarta (WIB)',
@@ -124,6 +127,13 @@ const DEFAULT_CONFIG: SystemConfigState = {
 
 const STORAGE_KEY = 'siuba_system_config_v1';
 
+/** Kolom yang diatur lewat file .env di server: hanya ditampilkan (baca saja) dari info server sebenarnya. */
+const READONLY_KEYS: (keyof SystemConfigState)[] = [
+  'serverHostIp', 'serverPort', 'mqttPort', 'localDomain', 'allowCors', 'corsOrigins', 'trustedProxies',
+  'timezone', 'dbDriver', 'dbConnectionPool', 'dbLockTimeoutSeconds', 'cacheDriver', 'autoBackupDaily',
+  'appEnv', 'appDebug', 'logLevel',
+];
+
 export const SettingsView: React.FC<Props> = ({ 
   onResetData,
   onNavigateToReset,
@@ -145,6 +155,63 @@ export const SettingsView: React.FC<Props> = ({
   });
 
   const [isSaved, setIsSaved] = useState<boolean>(true);
+  const [serverInfo, setServerInfo] = useState<any>(null);
+
+  // Muat pengaturan & info server sebenarnya
+  useEffect(() => {
+    (async () => {
+      try {
+        const res: any = await apiClient.get('/settings');
+        const i = res?.data?.institution || {};
+        const a = res?.data?.attendance || {};
+        setConfig((prev) => ({
+          ...prev,
+          instituteName: i.name ?? prev.instituteName,
+          instituteSlogan: i.slogan ?? prev.instituteSlogan,
+          instituteAddress: i.address ?? '',
+          institutePhone: i.phone ?? '',
+          instituteEmail: i.email ?? '',
+          activeAcademicYear: i.active_academic_year ?? prev.activeAcademicYear,
+          activeSemester: i.active_semester ?? prev.activeSemester,
+          timeFormat: i.time_format ?? prev.timeFormat,
+          foundationName: i.foundation_name ?? '',
+          shortName: i.short_name ?? '',
+          leaderName: i.leader_name ?? '',
+          leaderTitle: i.leader_title ?? 'Pimpinan Pondok',
+          city: i.city ?? '',
+          lateToleranceMinutes: a.late_tolerance_minutes ?? prev.lateToleranceMinutes,
+          autoCloseSessionMinutes: a.auto_close_session_minutes ?? prev.autoCloseSessionMinutes,
+          rfidDebounceSeconds: a.rfid_debounce_seconds ?? prev.rfidDebounceSeconds,
+          allowSelfExcusal: a.allow_self_excusal ?? prev.allowSelfExcusal,
+          enableKioskFullscreen: a.enable_kiosk_fullscreen ?? prev.enableKioskFullscreen,
+          enableAudioChime: a.enable_audio_chime ?? prev.enableAudioChime,
+        } as SystemConfigState));
+      } catch (err: any) {
+        if (onShowToast) onShowToast(err?.message || 'Gagal memuat pengaturan dari server.', 'error');
+      }
+      try {
+        const info: any = await apiClient.get('/settings/system-info');
+        const d = info?.data || {};
+        setServerInfo(d);
+        let port = '';
+        try { port = new URL(d.app_url).port || (d.app_url?.startsWith('https') ? '443' : '80'); } catch { /* app_url kosong */ }
+        setConfig((prev) => ({
+          ...prev,
+          serverHostIp: (d.server_ips && d.server_ips[0]) || d.server_hostname || prev.serverHostIp,
+          serverPort: port || prev.serverPort,
+          localDomain: d.app_url || prev.localDomain,
+          timezone: d.timezone || prev.timezone,
+          dbDriver: `${d.db_driver} ${d.db_version} (database: ${d.db_database})`,
+          cacheDriver: d.cache_driver as any,
+          appEnv: d.app_env as any,
+          appDebug: !!d.app_debug,
+          logLevel: (d.log_level || 'debug') as any,
+        }));
+      } catch {
+        /* tanpa hak system.settings: info server tidak ditampilkan */
+      }
+    })();
+  }, []);
   const [isTestingPing, setIsTestingPing] = useState<boolean>(false);
   const [pingResult, setPingResult] = useState<{ latency: number; status: 'ok' | 'error'; timestamp: string } | null>(null);
   const [isFlushingCache, setIsFlushingCache] = useState<string | null>(null);
@@ -157,113 +224,111 @@ export const SettingsView: React.FC<Props> = ({
   };
 
   const handleConfigChange = <K extends keyof SystemConfigState>(key: K, value: SystemConfigState[K]) => {
+    if (READONLY_KEYS.includes(key)) {
+      showToast('Nilai ini diatur di file .env server (bukan dari halaman ini). Ubah .env lalu jalankan php artisan optimize:clear.', 'info');
+      return;
+    }
     setConfig(prev => ({ ...prev, [key]: value }));
     setIsSaved(false);
   };
 
-  const handleSaveConfig = () => {
+  const handleSaveConfig = async () => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
+      const inst: any = await apiClient.put('/settings/institution', {
+        name: config.instituteName,
+        slogan: config.instituteSlogan,
+        address: config.instituteAddress,
+        phone: config.institutePhone,
+        email: config.instituteEmail || null,
+        active_academic_year: config.activeAcademicYear,
+        active_semester: config.activeSemester,
+        time_format: config.timeFormat,
+        foundation_name: config.foundationName,
+        short_name: config.shortName,
+        leader_name: config.leaderName,
+        leader_title: config.leaderTitle,
+        city: config.city,
+      });
+      await apiClient.put('/settings/attendance', {
+        late_tolerance_minutes: config.lateToleranceMinutes,
+        auto_close_session_minutes: config.autoCloseSessionMinutes,
+        rfid_debounce_seconds: config.rfidDebounceSeconds,
+        allow_self_excusal: config.allowSelfExcusal,
+        enable_kiosk_fullscreen: config.enableKioskFullscreen,
+        enable_audio_chime: config.enableAudioChime,
+      });
+      applyServerAttendanceRules({
+        late_tolerance_minutes: config.lateToleranceMinutes,
+        auto_close_session_minutes: config.autoCloseSessionMinutes,
+        rfid_debounce_seconds: config.rfidDebounceSeconds,
+        allow_self_excusal: config.allowSelfExcusal,
+        enable_kiosk_fullscreen: config.enableKioskFullscreen,
+        enable_audio_chime: config.enableAudioChime,
+      });
+      if (inst?.data) setInstitutionCache(inst.data);
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(config)); } catch { /* cache saja */ }
       setIsSaved(true);
-      showToast('✓ Pengaturan sistem dan lingkungan berhasil disimpan ke penyimpanan lokal server!', 'success');
-    } catch (e) {
-      showToast('Gagal menyimpan konfigurasi: ' + String(e), 'error');
+      showToast('✓ Pengaturan tersimpan di server dan berlaku untuk semua perangkat.', 'success');
+    } catch (e: any) {
+      const fieldMsg = e?.fieldErrors ? (Object.values(e.fieldErrors).flat()[0] as string | undefined) : undefined;
+      showToast('Gagal menyimpan pengaturan: ' + (fieldMsg || e?.message || String(e)), 'error');
     }
   };
 
   const handleResetToDefault = () => {
-    if (window.confirm('Apakah Anda yakin ingin mengembalikan seluruh pengaturan ke konfigurasi default pabrik?')) {
-      setConfig(DEFAULT_CONFIG);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_CONFIG));
-      setIsSaved(true);
-      showToast('Konfigurasi sistem berhasil dikembalikan ke standar default.', 'info');
+    if (window.confirm('Kembalikan identitas lembaga & aturan absensi ke nilai bawaan? Perubahan baru berlaku setelah Anda menekan Simpan.')) {
+      setConfig((prev) => {
+        const next: any = { ...prev };
+        (Object.keys(DEFAULT_CONFIG) as (keyof SystemConfigState)[]).forEach((k) => {
+          if (!READONLY_KEYS.includes(k)) next[k] = DEFAULT_CONFIG[k];
+        });
+        return next;
+      });
+      setIsSaved(false);
+      showToast('Nilai bawaan dimuat. Tekan Simpan untuk menerapkannya.', 'info');
     }
   };
 
-  const handleTestPing = () => {
+  // Uji koneksi sungguhan ke server
+  const handleTestPing = async () => {
     setIsTestingPing(true);
     setPingResult(null);
-    setTimeout(() => {
-      const simulatedLatency = (Math.random() * 2 + 1.2).toFixed(1);
-      setPingResult({
-        latency: parseFloat(simulatedLatency),
-        status: 'ok',
-        timestamp: new Date().toLocaleTimeString('id-ID')
-      });
+    const t0 = performance.now();
+    try {
+      await apiClient.get('/settings/system-info');
+      const latency = Math.round((performance.now() - t0) * 10) / 10;
+      setPingResult({ latency, status: 'ok', timestamp: new Date().toLocaleTimeString('id-ID') });
+      showToast(`✓ Server merespons dalam ${latency} ms`, 'success');
+    } catch (err: any) {
+      setPingResult({ latency: 0, status: 'error', timestamp: new Date().toLocaleTimeString('id-ID') });
+      showToast(`Server tidak merespons: ${err?.message || 'koneksi gagal'}`, 'error');
+    } finally {
       setIsTestingPing(false);
-      showToast(`✓ Koneksi server LAN terverifikasi responsif (${simulatedLatency} ms)`, 'success');
-    }, 800);
+    }
   };
 
-  const handleFlushCache = (cacheType: string) => {
+  const handleFlushCache = async (cacheType: string) => {
     setIsFlushingCache(cacheType);
-    setTimeout(() => {
+    try {
+      if (cacheType === 'PWA Storage Buffer') {
+        // Cache di browser ini saja (data akan dimuat ulang dari server); sesi login tidak dihapus
+        Object.keys(localStorage)
+          .filter((k) => k.startsWith('siuba_') && /cache|snapshot|_master|records|sessions/.test(k))
+          .forEach((k) => localStorage.removeItem(k));
+        if ('caches' in window) {
+          const names = await caches.keys();
+          await Promise.all(names.map((n) => caches.delete(n)));
+        }
+        showToast('✓ Cache di browser ini dibersihkan. Muat ulang halaman untuk mengambil data terbaru.', 'success');
+      } else {
+        const res: any = await apiClient.post('/settings/clear-cache', { type: cacheType === 'Route & View Cache' ? 'app' : 'data' });
+        showToast(`✓ ${res?.message || 'Cache server dibersihkan.'}`, 'success');
+      }
+    } catch (err: any) {
+      showToast(`Gagal membersihkan cache: ${err?.message || err}`, 'error');
+    } finally {
       setIsFlushingCache(null);
-      showToast(`✓ Cache "${cacheType}" berhasil dibersihkan dan di-refresh!`, 'success');
-    }, 1000);
-  };
-
-  const handleExportEnvFile = () => {
-    const envContent = `# ========================================================
-# SIUBA PRESENSI PESANTREN - ENVIRONMENT CONFIGURATION
-# Generated At: ${new Date().toISOString()}
-# Host: ${config.serverHostIp}:${config.serverPort}
-# ========================================================
-
-APP_NAME="SIUBA Pesantren"
-APP_ENV=${config.appEnv}
-APP_KEY=base64:7K5jQ9uX+W8L8Z3o7nN1Q8A7b6C5D4e3F2g1H0j9K8=
-APP_DEBUG=${config.appDebug ? 'true' : 'false'}
-APP_URL=${config.localDomain}
-APP_TIMEZONE="${config.timezone}"
-LOG_LEVEL=${config.logLevel}
-
-# --- INSTITUTION PROFILE ---
-INSTITUTE_NAME="${config.instituteName}"
-INSTITUTE_SLOGAN="${config.instituteSlogan}"
-INSTITUTE_ADDRESS="${config.instituteAddress}"
-INSTITUTE_PHONE="${config.institutePhone}"
-INSTITUTE_EMAIL="${config.instituteEmail}"
-ACTIVE_ACADEMIC_YEAR="${config.activeAcademicYear}"
-ACTIVE_SEMESTER="${config.activeSemester}"
-
-# --- LOCAL LAN & HARDWARE ---
-LAN_HOST_IP=${config.serverHostIp}
-LAN_HTTP_PORT=${config.serverPort}
-MQTT_BROKER_PORT=${config.mqttPort}
-CORS_ALLOWED_ORIGINS="${config.corsOrigins}"
-TRUSTED_PROXIES="${config.trustedProxies}"
-
-# --- ATTENDANCE & RFID RULES ---
-ATTENDANCE_LATE_TOLERANCE_MINUTES=${config.lateToleranceMinutes}
-ATTENDANCE_AUTO_CLOSE_MINUTES=${config.autoCloseSessionMinutes}
-RFID_TAP_DEBOUNCE_SECONDS=${config.rfidDebounceSeconds}
-ALLOW_SELF_EXCUSAL=${config.allowSelfExcusal ? 'true' : 'false'}
-ENABLE_KIOSK_FULLSCREEN=${config.enableKioskFullscreen ? 'true' : 'false'}
-ENABLE_AUDIO_CHIME=${config.enableAudioChime ? 'true' : 'false'}
-
-# --- DATABASE & STORAGE ---
-DB_CONNECTION=mysql
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_DATABASE=siuba_production
-DB_USERNAME=siuba_admin
-DB_POOL_MAX=${config.dbConnectionPool}
-DB_LOCK_TIMEOUT=${config.dbLockTimeoutSeconds}
-CACHE_DRIVER=${config.cacheDriver}
-AUTO_BACKUP_DAILY=${config.autoBackupDaily ? 'true' : 'false'}
-`;
-
-    const blob = new Blob([envContent], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `.env.${config.appEnv}.backup`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    showToast('File konfigurasi .env berhasil diunduh.', 'success');
+    }
   };
 
   return (
@@ -304,14 +369,6 @@ AUTO_BACKUP_DAILY=${config.autoBackupDaily ? 'true' : 'false'}
 
           {/* Quick Action Top Buttons */}
           <div className="flex flex-wrap items-center gap-2.5 self-start lg:self-center">
-            <button
-              id="btn-export-env"
-              onClick={handleExportEnvFile}
-              className="px-4 py-2.5 rounded-2xl bg-white/15 hover:bg-white/25 text-white text-xs font-bold transition flex items-center gap-2 border border-white/20 backdrop-blur-xs cursor-pointer shadow-xs active:scale-95"
-            >
-              <Download className="w-4 h-4 text-amber-300" />
-              <span>Export .ENV</span>
-            </button>
 
             <button
               id="btn-save-settings"
@@ -391,6 +448,20 @@ AUTO_BACKUP_DAILY=${config.autoBackupDaily ? 'true' : 'false'}
       {/* ========================================================================= */}
       {/* TAB 1: SERVER & KONEKTIVITAS LAN                                          */}
       {/* ========================================================================= */}
+      {(activeTab === 'server' || activeTab === 'database' || activeTab === 'environment') && (
+        <div className="p-3.5 rounded-2xl bg-sky-50 border border-sky-200 text-sky-900 text-xs font-semibold leading-relaxed">
+          Nilai di tab ini adalah <b>keadaan server yang sebenarnya</b> dan hanya bisa dibaca. Untuk mengubahnya, edit file
+          <code className="mx-1 px-1 bg-white rounded">.env</code> di folder aplikasi lalu jalankan
+          <code className="mx-1 px-1 bg-white rounded">php artisan optimize:clear</code>.
+          {serverInfo && (
+            <span className="block mt-1 font-mono text-[11px] text-sky-800">
+              PHP {serverInfo.php_version} • Laravel {serverInfo.laravel_version} • {serverInfo.db_driver} {serverInfo.db_version} •
+              cache {serverInfo.cache_driver} • kunci IoT {serverInfo.iot_key_configured ? 'sudah diisi' : 'BELUM diisi (NEXABSEN_GLOBAL_KEY)'}
+            </span>
+          )}
+        </div>
+      )}
+
       {activeTab === 'server' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Server Config Bento */}
@@ -585,6 +656,30 @@ AUTO_BACKUP_DAILY=${config.autoBackupDaily ? 'true' : 'false'}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-slate-700 dark:text-zinc-300">
+                Nama Yayasan (baris atas kop laporan)
+              </label>
+              <input
+                type="text"
+                value={config.foundationName}
+                onChange={(e) => handleConfigChange('foundationName', e.target.value)}
+                className="w-full px-3.5 py-2.5 rounded-2xl border border-slate-200 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700 dark:text-zinc-300">
+                Nama Singkat (halaman login & menu)
+              </label>
+              <input
+                type="text"
+                value={config.shortName}
+                onChange={(e) => handleConfigChange('shortName', e.target.value)}
+                className="w-full px-3.5 py-2.5 rounded-2xl border border-slate-200 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700 dark:text-zinc-300">
                 Nama Resmi Pesantren / Lembaga
               </label>
               <input
@@ -603,6 +698,42 @@ AUTO_BACKUP_DAILY=${config.autoBackupDaily ? 'true' : 'false'}
                 type="text"
                 value={config.instituteSlogan}
                 onChange={(e) => handleConfigChange('instituteSlogan', e.target.value)}
+                className="w-full px-3.5 py-2.5 rounded-2xl border border-slate-200 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700 dark:text-zinc-300">
+                Nama Pimpinan (penanda tangan laporan)
+              </label>
+              <input
+                type="text"
+                value={config.leaderName}
+                onChange={(e) => handleConfigChange('leaderName', e.target.value)}
+                className="w-full px-3.5 py-2.5 rounded-2xl border border-slate-200 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700 dark:text-zinc-300">
+                Jabatan Pimpinan
+              </label>
+              <input
+                type="text"
+                value={config.leaderTitle}
+                onChange={(e) => handleConfigChange('leaderTitle', e.target.value)}
+                className="w-full px-3.5 py-2.5 rounded-2xl border border-slate-200 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700 dark:text-zinc-300">
+                Kota (tempat penandatanganan)
+              </label>
+              <input
+                type="text"
+                value={config.city}
+                onChange={(e) => handleConfigChange('city', e.target.value)}
                 className="w-full px-3.5 py-2.5 rounded-2xl border border-slate-200 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
             </div>
@@ -758,7 +889,7 @@ AUTO_BACKUP_DAILY=${config.autoBackupDaily ? 'true' : 'false'}
                 className="w-full accent-emerald-700 cursor-pointer"
               />
               <span className="text-[10px] text-slate-500 block">
-                Santri yang hadir setelah toleransi akan otomatis berstatus <strong>Terlambat</strong>.
+                Santri yang hadir setelah toleransi akan otomatis berstatus <strong>Terlambat</strong>. Berlaku untuk sesi KBM baru dan kegiatan yang tidak punya toleransi sendiri.
               </span>
             </div>
 
@@ -781,7 +912,7 @@ AUTO_BACKUP_DAILY=${config.autoBackupDaily ? 'true' : 'false'}
                 className="w-full accent-emerald-700 cursor-pointer"
               />
               <span className="text-[10px] text-slate-500 block">
-                Cron scheduler akan menutup sesi dan menandai santri yang belum hadir sebagai <strong>Alpa</strong>.
+                Penjadwal (dicek tiap 5 menit) menutup sesi yang masih dibuka dan menandai santri yang belum hadir sebagai <strong>Alpa</strong> (atau sesuai izin yang disetujui). Isi 0 untuk menonaktifkan. Di Windows, pasang dulu penjadwal lewat <code>pasang-penjadwal-windows.bat</code>.
               </span>
             </div>
 
@@ -804,7 +935,7 @@ AUTO_BACKUP_DAILY=${config.autoBackupDaily ? 'true' : 'false'}
                 className="w-full accent-emerald-700 cursor-pointer"
               />
               <span className="text-[10px] text-slate-500 block">
-                Mencegah santri men-tap kartu RFID 2x berturut-turut pada alat scanner terminal.
+                Tap ulang kartu yang sama dalam rentang ini diabaikan (layar alat menampilkan &quot;Tunggu Sebentar&quot;). Isi 0 untuk menonaktifkan.
               </span>
             </div>
 
@@ -814,7 +945,7 @@ AUTO_BACKUP_DAILY=${config.autoBackupDaily ? 'true' : 'false'}
                   Izinkan Pengajuan Izin / Sakit Mandiri
                 </label>
                 <span className="text-[10px] text-slate-500">
-                  Wali santri / musyrif dapat menginput surat izin sebelum sesi dimulai.
+                  Guru, wali kelas &amp; petugas absensi (bukan petugas perizinan) boleh menginput surat izin; statusnya menunggu persetujuan. Bila dimatikan, hanya petugas perizinan yang bisa menginput.
                 </span>
               </div>
               <input
@@ -831,7 +962,7 @@ AUTO_BACKUP_DAILY=${config.autoBackupDaily ? 'true' : 'false'}
                   Audio Chime Suara Konfirmasi (Beep)
                 </label>
                 <span className="text-[10px] text-slate-500">
-                  Mainkan bunyi nada konfirmasi sukses/gagal saat scan kartu QR/RFID.
+                  Mainkan bunyi nada konfirmasi sukses/gagal saat scan kartu QR/RFID (bawaan semua perangkat; tetap bisa dimatikan di halaman scanner).
                 </span>
               </div>
               <input
@@ -848,7 +979,7 @@ AUTO_BACKUP_DAILY=${config.autoBackupDaily ? 'true' : 'false'}
                   Mode Kiosk Layar Penuh pada Terminal
                 </label>
                 <span className="text-[10px] text-slate-500">
-                  Otomatis sembunyikan bilah URL browser saat membuka scanner di pos gerbang.
+                  Halaman scanner masuk layar penuh pada sentuhan/klik pertama (browser tidak mengizinkan layar penuh tanpa interaksi).
                 </span>
               </div>
               <input

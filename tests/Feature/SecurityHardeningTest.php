@@ -24,6 +24,8 @@ class SecurityHardeningTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // Jam tetap agar sesi harian otomatis (06:00-22:00) selalu berlaku
+        $this->travelTo(\Illuminate\Support\Carbon::today()->setTime(7, 0));
         $this->seed(RolePermissionSeeder::class);
         config([
             'services.nexabsen.key' => self::IOT_KEY,

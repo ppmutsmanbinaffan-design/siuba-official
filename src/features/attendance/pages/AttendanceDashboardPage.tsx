@@ -1,25 +1,17 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { 
-  Activity, 
   Calendar, 
-  Clock, 
   QrCode, 
   ClipboardCheck, 
   Radio, 
   RefreshCw, 
   Search, 
-  Filter, 
-  Play, 
-  CheckCircle2, 
   AlertCircle, 
   ArrowRight, 
-  Eye,
-  SlidersHorizontal,
   ChevronRight,
   TrendingUp,
   Sparkles
 } from 'lucide-react';
-import { PageHeader } from '../../../components/layout/PageHeader';
 import { Card } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
 import { Badge } from '../../../components/ui/Badge';
@@ -28,8 +20,9 @@ import { AttendanceSession, AttendanceTodayKpi, OpenSessionMonitoringData } from
 import { SessionSummaryKpi } from '../components/SessionSummaryKpi';
 import { SessionCard } from '../components/SessionCard';
 import { OpenSessionMonitoringCard } from '../components/OpenSessionMonitoringCard';
-import { INITIAL_ACTIVITIES } from '../../../data/initialData';
+import { getCachedActivities } from '../../../services/masterCache';
 import { formatIndonesianDate } from '../utils/attendanceUtils';
+import { todayLocalDate } from '../../../utils/today';
 
 interface AttendanceDashboardPageProps {
   onNavigateToSessions: () => void;
@@ -60,7 +53,7 @@ export const AttendanceDashboardPage: React.FC<AttendanceDashboardPageProps> = (
       const [kpiData, monitoringData, sessionsData] = await Promise.all([
         attendanceApi.getTodayKpi(),
         attendanceApi.getOpenSessionsMonitoring(),
-        attendanceApi.getSessions({ date: '2026-08-23' }),
+        attendanceApi.getSessions({ date: todayLocalDate() }),
       ]);
       setKpi(kpiData);
       setOpenSessions(monitoringData);
@@ -95,7 +88,7 @@ export const AttendanceDashboardPage: React.FC<AttendanceDashboardPageProps> = (
             <div className="flex items-center gap-2 mb-2 flex-wrap">
               <span className="bg-white/15 border border-white/20 text-emerald-100 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1 backdrop-blur-xs">
                 <Sparkles className="w-3 h-3 text-[#C9A227]" />
-                SIUBA v1.1.3 PRODUCTION
+                SIUBA
               </span>
               <span className="text-[11px] text-emerald-100 font-bold bg-black/25 px-2.5 py-0.5 rounded-full border border-white/15 backdrop-blur-xs">
                 Pusat Kendali Presensi Santri
@@ -113,7 +106,7 @@ export const AttendanceDashboardPage: React.FC<AttendanceDashboardPageProps> = (
           <div className="flex flex-wrap items-center gap-2.5 self-start md:self-auto">
             <div className="flex items-center gap-2 bg-black/25 text-emerald-100 border border-white/15 px-3 py-2 rounded-xl text-xs font-semibold backdrop-blur-xs">
               <Calendar className="w-4 h-4 text-[#EADAA2]" />
-              <span>{formatIndonesianDate('2026-08-23')}</span>
+              <span>{formatIndonesianDate(todayLocalDate())}</span>
             </div>
 
             <button
@@ -330,7 +323,7 @@ export const AttendanceDashboardPage: React.FC<AttendanceDashboardPageProps> = (
         {/* Sessions Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
           {filteredSessions.map((session) => {
-            const act = INITIAL_ACTIVITIES.find((a) => a.id === session.activity_id);
+            const act = getCachedActivities().find((a) => a.id === session.activity_id);
             return (
               <SessionCard
                 key={session.id}

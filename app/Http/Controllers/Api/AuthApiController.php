@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Support\SecurityPolicy;
+use Illuminate\Support\Facades\RateLimiter;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
@@ -28,6 +30,32 @@ class AuthApiController extends Controller
             ], 422);
         }
 
+        // Penguncian per akun setelah beberapa kali gagal (Kebijakan Keamanan)
+        $lockKey = 'login-account:' . sha1(mb_strtolower($username));
+        $maxAttempts = max(1, SecurityPolicy::int('max_login_attempts_before_lockout', 5));
+        if (RateLimiter::tooManyAttempts($lockKey, $maxAttempts)) {
+            $minutes = (int) ceil(RateLimiter::availableIn($lockKey) / 60);
+
+            return response()->json([
+                'success' => false,
+                'message' => "Akun dikunci sementara karena terlalu banyak percobaan login gagal. Coba lagi dalam {$minutes} menit.",
+            ], 429);
+        }
+        $failed = function () use ($lockKey, $username) {
+            RateLimiter::hit($lockKey, max(1, SecurityPolicy::int('lockout_duration_minutes', 15)) * 60);
+            try {
+                // Dicatat untuk Keamanan & Audit (jumlah login gagal hari ini); kata sandi tidak pernah disimpan
+                \App\Services\Security\AuditService::log(event: 'auth.login_failed', newValues: ['username' => mb_substr($username, 0, 100)], reason: 'Login gagal');
+            } catch (\Throwable) {
+                // pencatatan tidak boleh mengganggu respons login
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Username atau password tidak sesuai.'
+            ], 401);
+        };
+
         // 1. Query real database User by username OR email
         $user = User::where('username', $username)
             ->orWhere('email', $username)
@@ -35,19 +63,14 @@ class AuthApiController extends Controller
 
         // 2. User not found -> 401
         if (!$user) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Username atau password tidak sesuai.'
-            ], 401);
+            return $failed();
         }
 
         // 3. Verify password hash against database
         if (!Hash::check($password, $user->password)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Username atau password tidak sesuai.'
-            ], 401);
+            return $failed();
         }
+        RateLimiter::clear($lockKey);
 
         // 4. Verify account is active -> 403
         if (!$user->is_active) {
@@ -62,8 +85,10 @@ class AuthApiController extends Controller
             'last_login_at' => now(),
         ]);
 
-        // 6. Issue real Laravel Sanctum token
-        $user->tokens()->delete();
+        // 6. Issue real Laravel Sanctum token (sesi lain diakhiri bila kebijakan melarang sesi ganda)
+        if (!SecurityPolicy::bool('allow_concurrent_sessions')) {
+            $user->tokens()->delete();
+        }
         $token = $user->createToken('siuba-web')->plainTextToken;
 
         // 7. Load Spatie roles and permissions
@@ -162,9 +187,11 @@ class AuthApiController extends Controller
         $username = trim((string) $request->input('username', ''));
 
         $request->validate([
-            'password' => ['required', 'string', Password::min(8)],
+            'password' => ['required', 'string', SecurityPolicy::passwordRule()],
         ], [
-            'password.min' => 'Password minimal 8 karakter.',
+            'password.min' => SecurityPolicy::passwordHint(),
+            'password.numbers' => SecurityPolicy::passwordHint(),
+            'password.symbols' => SecurityPolicy::passwordHint(),
         ]);
 
         // Find user by ID or by username
@@ -297,7 +324,7 @@ class AuthApiController extends Controller
             'name' => 'sometimes|string|max:150',
             'email' => ['sometimes', 'nullable', 'email', 'max:191', Rule::unique('users', 'email')->ignore($user->id)],
             'is_active' => 'sometimes|boolean',
-            'password' => ['nullable', 'string', Password::min(8)],
+            'password' => ['nullable', 'string', SecurityPolicy::passwordRule()],
         ]);
 
         // Cek hak ubah role SEBELUM menyimpan apa pun (dulu data tersimpan dulu baru ditolak)
@@ -379,12 +406,14 @@ class AuthApiController extends Controller
             // username harus BARU: endpoint ini tidak lagi bisa menimpa akun yang sudah ada
             'username' => 'required|string|max:60|alpha_dash|unique:users,username',
             'email' => 'required|email|max:191|unique:users,email',
-            'password' => ['required', 'string', Password::min(8)],
+            'password' => ['required', 'string', SecurityPolicy::passwordRule()],
         ], [
             'username.unique' => 'Username sudah digunakan.',
             'email.unique' => 'Email sudah digunakan.',
             'password.required' => 'Password wajib diisi (minimal 8 karakter).',
-            'password.min' => 'Password minimal 8 karakter.',
+            'password.min' => SecurityPolicy::passwordHint(),
+            'password.numbers' => SecurityPolicy::passwordHint(),
+            'password.symbols' => SecurityPolicy::passwordHint(),
         ]);
 
         $requestedRoles = $this->extractRolesFromRequest($request);

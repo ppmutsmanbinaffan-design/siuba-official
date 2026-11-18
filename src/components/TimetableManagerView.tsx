@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { todayLocalDate } from '../utils/today';
 import { 
   AcademicSchedule, 
   AcademicScheduleConflictError, 
@@ -13,15 +14,12 @@ import {
   AlertTriangle, 
   CalendarCheck, 
   Clock, 
-  Copy, 
-  Download, 
   Filter, 
   Grid, 
   List, 
   Plus, 
   Sparkles, 
   Trash2, 
-  Upload,
   Award,
   Calendar,
   BookOpen,
@@ -29,9 +27,6 @@ import {
   GraduationCap,
   MapPin,
   X,
-  Layers,
-  CheckCircle2,
-  Settings,
   Edit2,
   Coffee,
   Check
@@ -94,7 +89,7 @@ export const TimetableManagerView: React.FC<Props> = ({
 
   const [selectedClassroom, setSelectedClassroom] = useState<number>(safeClassrooms[0]?.id || 1);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [targetDate, setTargetDate] = useState<string>('2026-08-24'); // Monday
+  const [targetDate, setTargetDate] = useState<string>(todayLocalDate());
 
   // Modals
   const [showAddModal, setShowAddModal] = useState(false);
@@ -272,7 +267,7 @@ export const TimetableManagerView: React.FC<Props> = ({
           <div className="flex items-center gap-2 mb-2 flex-wrap">
             <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-white/15 text-emerald-100 border border-white/20 uppercase tracking-wider flex items-center gap-1 backdrop-blur-xs">
               <Award className="w-3 h-3 text-[#C9A227]" />
-              SIUBA v1.1.3 PRODUCTION
+              SIUBA
             </span>
             <span className="text-[11px] text-emerald-100 font-bold bg-black/25 px-2.5 py-0.5 rounded-full border border-white/15 backdrop-blur-xs">
               Jadwal Pelajaran KBM & Generator Sesi

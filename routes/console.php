@@ -7,6 +7,7 @@ use App\Services\System\RestoreService;
 use App\Services\System\SystemHealthService;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Schedule;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
@@ -32,20 +33,30 @@ Artisan::command('system:audit-integrity', function () {
     }
 })->purpose('Audit seluruh integritas data, relasi presensi, dan keunikan kredensial IoT');
 
-Artisan::command('system:backup {--type=database} {--notes=}', function () {
+Artisan::command('system:backup {--type=database} {--notes=} {--if-older-than= : Lewati bila backup terakhir lebih baru dari N jam}', function () {
     $type = $this->option('type') ?: 'database';
-    $notes = $this->option('notes') ?: 'Manual CLI Backup';
+    $notes = $this->option('notes') ?: 'Backup otomatis';
+    $hours = $this->option('if-older-than');
+    if ($hours !== null && $hours !== '') {
+        $last = SystemBackup::where('status', 'verified')->latest('created_at')->first();
+        if ($last && $last->created_at->gt(now()->subHours((int) $hours))) {
+            $this->line("Backup terakhir {$last->created_at->diffForHumans()} — tidak perlu backup baru.");
+            return 0;
+        }
+    }
 
     $this->info("Menjalankan backup sistem ({$type})...");
     try {
         $backup = BackupService::createBackup($type, $notes);
         $this->info("✓ Backup Berhasil Terverifikasi: {$backup->backup_id}");
-        $this->line("  File     : {$backup->filename}");
+        $this->line("  File     : storage/app/backups/{$backup->filename}");
         $this->line("  Ukuran   : " . round($backup->size / 1024, 2) . " KB");
-        $this->line("  SHA-256  : {$backup->checksum}");
+        $this->line("  Isi      : {$backup->notes}");
     } catch (\Throwable $e) {
         $this->error("✗ Backup Gagal: " . $e->getMessage());
+        return 1;
     }
+    return 0;
 })->purpose('Membuat berkas cadangan database/metadata terverifikasi');
 
 Artisan::command('system:restore {--backup-id=} {--reason=}', function () {
@@ -122,3 +133,74 @@ Artisan::command('siuba:device-deactivate {code}', function () {
     $updated ? $this->info('✓ Perangkat dinonaktifkan.') : $this->error('Perangkat tidak ditemukan.');
     return $updated ? 0 : 1;
 })->purpose('Nonaktifkan perangkat RFID (tap dari alat ini akan ditolak)');
+
+Artisan::command('attendance:auto-close {--minutes= : Abaikan pengaturan dan pakai N menit}', function () {
+    $minutes = $this->option('minutes');
+    $result = app(\App\Services\Attendance\SessionService::class)->autoCloseExpired($minutes !== null && $minutes !== '' ? (int) $minutes : null);
+    if ($result['closed'] === 0) {
+        $this->line('Tidak ada sesi yang perlu ditutup otomatis.');
+        return 0;
+    }
+    $this->info("✓ {$result['closed']} sesi ditutup otomatis; {$result['finalized']} peserta ditandai Alpa / sesuai izin.");
+    foreach ($result['sessions'] as $code) {
+        $this->line("  - {$code}");
+    }
+    return 0;
+})->purpose('Tutup sesi absensi yang sudah lewat waktu selesai + N menit (Pengaturan → Aturan Absensi → Auto-Close)');
+
+Artisan::command('siuba:bersihkan-aset', function () {
+    // Paket update (ZIP) menambah berkas index-*.js/css baru tetapi tidak menghapus yang lama.
+    // Hapus berkas aset yang tidak lagi dirujuk public/app.html.
+    $html = @file_get_contents(public_path('app.html')) ?: '';
+    $used = [];
+    if (preg_match_all('#/assets/([A-Za-z0-9_\-]+\.(?:js|css))#', $html, $m)) {
+        $used = array_unique($m[1]);
+    }
+    if (count($used) < 2) {
+        $this->warn('Berkas app.html tidak merujuk aset yang dikenali; tidak ada yang dihapus.');
+        return 0;
+    }
+    $removed = 0;
+    foreach (array_merge(glob(public_path('assets/index-*.js')) ?: [], glob(public_path('assets/index-*.css')) ?: []) as $file) {
+        if (!in_array(basename($file), $used, true) && @unlink($file)) {
+            $removed++;
+        }
+    }
+    $this->line($removed ? "✓ {$removed} berkas aset lama dihapus." : 'Tidak ada aset lama.');
+    return 0;
+})->purpose('Hapus berkas tampilan (JS/CSS) lama yang tertinggal dari update sebelumnya');
+
+Artisan::command('trainer:generate {--date= : Tanggal (YYYY-MM-DD), bawaan hari ini}', function () {
+    $date = $this->option('date') ? \Carbon\Carbon::parse($this->option('date')) : today();
+    $r = \App\Http\Controllers\Api\TrainerApiController::generateFor($date);
+    if (!empty($r['is_holiday'])) {
+        $this->line("Tanggal {$r['date']} libur ({$r['holiday_name']}); sesi latihan tidak dibuat.");
+        return 0;
+    }
+    $this->info("✓ {$r['date']}: {$r['sessions_created']} sesi latihan dibuat, {$r['sessions_existing']} sudah ada (dari {$r['schedules_found']} jadwal).");
+    return 0;
+})->purpose('Buat sesi latihan ekskul dari jadwal mingguan');
+
+Artisan::command('trainer:finalize {--date= : Tanggal (YYYY-MM-DD), bawaan kemarin}', function () {
+    $date = $this->option('date') ?: today()->subDay()->toDateString();
+    $n = \App\Http\Controllers\Api\TrainerApiController::finalizeFor($date);
+    $this->info("✓ {$date}: {$n} sesi latihan tanpa presensi pelatih ditandai alpa.");
+    return 0;
+})->purpose('Tandai alpa pelatih yang tidak presensi pada sesi latihan yang sudah lewat');
+
+// Bersihkan log perangkat > 60 hari setiap malam (butuh cron: * * * * * php artisan schedule:run)
+Schedule::command('model:prune', ['--model' => [\App\Models\AttendanceDeviceLog::class, \App\Models\AuditLog::class]])->dailyAt('02:15');
+
+// Backup database harian (bila server memakai cron / Task Scheduler). Di XAMPP, start-siuba-offline.bat juga
+// membuat backup saat aplikasi dinyalakan bila backup terakhir lebih dari 20 jam lalu.
+Schedule::command('system:backup', ['--notes' => 'Backup harian terjadwal', '--if-older-than' => 20])->dailyAt('01:30');
+
+// Tanda penjadwal hidup (ditampilkan di Maintenance Hub → Status)
+Schedule::call(fn () => \App\Services\System\SystemHealthService::recordSchedulerHeartbeat())->everyMinute()->name('siuba-heartbeat')->withoutOverlapping();
+
+// Tutup otomatis sesi absensi yang sudah lewat waktu selesai + N menit (0 = nonaktif)
+Schedule::command('attendance:auto-close')->everyFiveMinutes()->withoutOverlapping();
+
+// Sesi latihan ekskul hari ini dibuat otomatis dari jadwal mingguan; latihan kemarin difinalisasi
+Schedule::command('trainer:generate')->dailyAt('00:20')->withoutOverlapping();
+Schedule::command('trainer:finalize')->dailyAt('00:40')->withoutOverlapping();

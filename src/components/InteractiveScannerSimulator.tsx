@@ -5,15 +5,9 @@ import {
   Clock, 
   CheckCircle2, 
   AlertTriangle, 
-  XCircle, 
   Sparkles, 
   Send, 
-  Scan, 
-  RefreshCw,
-  Cpu,
-  User,
-  ShieldAlert
-} from 'lucide-react';
+  Scan} from 'lucide-react';
 import { 
   Activity, 
   AttendanceDevice, 
@@ -27,7 +21,7 @@ import {
 } from '../types';
 import { AttendanceEngine } from '../services/attendanceEngine';
 import { RfidAttendanceService } from '../services/rfidAttendanceService';
-import { StudentIdentityService } from '../services/studentIdentityService';
+import { todayLocalDate } from '../utils/today';
 
 interface ScannerSimulatorProps {
   sessions: AttendanceSession[];
@@ -69,7 +63,7 @@ export const InteractiveScannerSimulator: React.FC<ScannerSimulatorProps> = ({
   const [selectedDeviceId, setSelectedDeviceId] = useState<number>(devices[0]?.id || 1);
 
   // Time Machine state
-  const [simulatedTimeStr, setSimulatedTimeStr] = useState<string>('2026-08-23 04:25:00');
+  const [simulatedTimeStr, setSimulatedTimeStr] = useState<string>(() => `${todayLocalDate()} 04:25:00`);
   const [selectedStudentId, setSelectedStudentId] = useState<number>(students[0]?.id || 1);
   const [selectedMethod, setSelectedMethod] = useState<AttendanceMethod>('rfid');
 
@@ -174,7 +168,7 @@ export const InteractiveScannerSimulator: React.FC<ScannerSimulatorProps> = ({
             <div className="flex items-center gap-2 mb-2 flex-wrap">
               <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-white/15 text-emerald-100 border border-white/20 uppercase tracking-wider flex items-center gap-1 backdrop-blur-xs">
                 <Sparkles className="w-3 h-3 text-[#C9A227]" />
-                SIUBA v1.1.3 PRODUCTION
+                SIUBA
               </span>
               <span className="text-[11px] text-emerald-100 font-bold bg-black/25 px-2.5 py-0.5 rounded-full border border-white/15 backdrop-blur-xs">
                 Hardware Emulation & Testing Node
@@ -339,21 +333,21 @@ export const InteractiveScannerSimulator: React.FC<ScannerSimulatorProps> = ({
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   <button
-                    onClick={() => setSimulatedTimeStr('2026-08-23 04:25:00')}
+                    onClick={() => setSimulatedTimeStr(`${todayLocalDate()} 04:25:00`)}
                     className="p-3 text-left rounded-2xl bg-emerald-50 border border-emerald-200 hover:border-emerald-400 text-xs transition-all cursor-pointer shadow-2xs"
                   >
                     <p className="font-black text-emerald-800">04:25:00 WIB</p>
                     <p className="text-[10px] text-emerald-700 font-medium mt-0.5">Tepat Waktu (Hadir)</p>
                   </button>
                   <button
-                    onClick={() => setSimulatedTimeStr('2026-08-23 04:38:00')}
+                    onClick={() => setSimulatedTimeStr(`${todayLocalDate()} 04:38:00`)}
                     className="p-3 text-left rounded-2xl bg-amber-50 border border-amber-200 hover:border-amber-400 text-xs transition-all cursor-pointer shadow-2xs"
                   >
                     <p className="font-black text-amber-800">04:38:00 WIB</p>
                     <p className="text-[10px] text-amber-700 font-medium mt-0.5">Terlambat +8 Menit</p>
                   </button>
                   <button
-                    onClick={() => setSimulatedTimeStr('2026-08-23 05:10:00')}
+                    onClick={() => setSimulatedTimeStr(`${todayLocalDate()} 05:10:00`)}
                     className="p-3 text-left rounded-2xl bg-rose-50 border border-rose-200 hover:border-rose-400 text-xs transition-all cursor-pointer shadow-2xs"
                   >
                     <p className="font-black text-rose-800">05:10:00 WIB</p>

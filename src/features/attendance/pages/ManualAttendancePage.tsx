@@ -2,19 +2,12 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { 
   ClipboardCheck, 
   Search, 
-  Filter, 
-  CheckCircle2, 
-  Clock, 
   AlertCircle, 
   Users, 
-  Sparkles, 
   RefreshCw, 
   CheckCheck, 
   XCircle, 
-  ArrowLeft,
-  ChevronDown
-} from 'lucide-react';
-import { PageHeader } from '../../../components/layout/PageHeader';
+  ArrowLeft} from 'lucide-react';
 import { Card } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
 import { ResponsiveTable } from '../../../components/ui/ResponsiveTable';
@@ -34,7 +27,7 @@ import { AttendanceActionMenu } from '../components/AttendanceActionMenu';
 import { ParticipantAttendanceCard } from '../components/ParticipantAttendanceCard';
 import { AttendanceCorrectionModal } from '../components/AttendanceCorrectionModal';
 import { PersonAvatar } from '../../../components/common/PersonAvatar';
-import { INITIAL_CLASSROOMS, INITIAL_USERS } from '../../../data/initialData';
+import { getCachedClassrooms } from '../../../services/masterCache';
 import { AudioFeedbackService } from '../../../services/audioFeedbackService';
 import { formatAttendanceTime } from '../utils/attendanceUtils';
 
@@ -65,6 +58,7 @@ export const ManualAttendancePage: React.FC<ManualAttendancePageProps> = ({
   // Bulk Action Dialog
   const [bulkAction, setBulkAction] = useState<AttendanceStatus | null>(null);
   const [isProcessingBulk, setIsProcessingBulk] = useState<boolean>(false);
+  const [offlineNotice, setOfflineNotice] = useState<string | null>(null);
 
   // Correction Modal
   const [recordToCorrect, setRecordToCorrect] = useState<AttendanceRecord | null>(null);
@@ -129,6 +123,7 @@ export const ManualAttendancePage: React.FC<ManualAttendancePageProps> = ({
       });
 
       if (res.success) {
+        setOfflineNotice(/antrean offline/i.test(res.message || '') ? res.message : null);
         if (status === 'present') {
           AudioFeedbackService.playSuccess();
         } else if (status === 'late') {
@@ -171,6 +166,8 @@ export const ManualAttendancePage: React.FC<ManualAttendancePageProps> = ({
         notes: `Pencatatan massal ${bulkAction.toUpperCase()} oleh ${currentUser.name}`,
       });
 
+      const bulkMsg = (res as any)?.messages?.find?.((m: string) => /antrean offline/i.test(m));
+      setOfflineNotice(bulkMsg || null);
       AudioFeedbackService.playSuccess();
       setBulkAction(null);
       await loadSessionData();
@@ -236,6 +233,12 @@ export const ManualAttendancePage: React.FC<ManualAttendancePageProps> = ({
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
+      {offlineNotice && (
+        <div id="manual-offline-notice" className="rounded-2xl border border-amber-300 bg-amber-50 text-amber-900 px-4 py-3 text-sm font-medium flex items-start justify-between gap-3">
+          <span>{offlineNotice} Lihat status antrean di menu Pusat Sinkronisasi.</span>
+          <button type="button" onClick={() => setOfflineNotice(null)} className="text-amber-700 font-bold">×</button>
+        </div>
+      )}
       {/* Brand Header Card */}
       <div className="bg-gradient-to-br from-[#12372A] via-[#1a4a39] to-[#12372A] text-white rounded-3xl p-6 sm:p-8 shadow-xl border border-[#1f5c45]/40 relative overflow-hidden flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
         <div className="absolute right-0 top-0 bottom-0 w-1/3 bg-radial from-white/10 to-transparent pointer-events-none" />
@@ -392,7 +395,7 @@ export const ManualAttendancePage: React.FC<ManualAttendancePageProps> = ({
             className="bg-white text-xs font-bold text-slate-900 px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-[#1F5C45] focus:border-[#1F5C45] focus:outline-none min-h-[40px] shadow-2xs cursor-pointer"
           >
             <option value="all">Semua Kelas</option>
-            {INITIAL_CLASSROOMS.map((c) => (
+            {getCachedClassrooms().map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
               </option>
@@ -564,7 +567,7 @@ export const ManualAttendancePage: React.FC<ManualAttendancePageProps> = ({
         variant={bulkAction === 'present' ? 'primary' : 'danger'}
         isLoading={isProcessingBulk}
         onConfirm={handleBulkSubmit}
-        onCancel={() => setBulkAction(null)}
+        onClose={() => setBulkAction(null)}
       />
 
       {/* Correction Modal */}

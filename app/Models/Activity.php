@@ -19,6 +19,13 @@ class Activity extends Model
         'name',
         'description',
         'location',
+        'participant_type',
+        'participant_target_id',
+        'participant_gender',
+        'default_start_time',
+        'default_present_until',
+        'default_late_until',
+        'default_end_time',
         'attendance_enabled',
         'allow_manual',
         'allow_qr',
@@ -59,5 +66,15 @@ class Activity extends Model
             AttendanceMethod::RFID => $this->allow_rfid,
             default => false,
         };
+    }
+
+    public function participantRules(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(ActivityParticipantRule::class);
+    }
+
+    public function supervisors(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(ActivitySupervisor::class);
     }
 }

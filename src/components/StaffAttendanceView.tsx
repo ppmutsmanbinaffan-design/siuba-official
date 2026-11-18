@@ -1,9 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { apiClient, isOfflineError } from '../services/apiClient';
+import { StaffAttendanceApi, mergeServerDailyRecords } from '../features/staff-attendance/api/staffAttendanceApi';
+import { staffApi } from '../features/staff/api/staffApi';
+import { ensureLegacyDataPreserved } from '../services/localDataGuard';
 import { 
   Users, 
   UserCheck, 
   Clock, 
-  AlertTriangle, 
   CheckCircle, 
   Calendar, 
   BookOpen, 
@@ -18,21 +21,13 @@ import {
   Filter, 
   CheckSquare, 
   XSquare, 
-  ShieldCheck, 
-  ArrowRight,
   RefreshCw,
   LogOut,
   LogIn,
   Layers,
-  ChevronRight,
-  Briefcase,
   History,
   Trash2,
-  Lock,
   Check,
-  X,
-  AlertCircle,
-  Sparkles,
   ChevronDown
 } from 'lucide-react';
 import { 
@@ -53,13 +48,17 @@ import { StaffAttendanceService } from '../services/staffAttendanceService';
 import { StaffAttendanceMetricService } from '../services/staffAttendanceMetricService';
 import { StaffWorkScheduleResolver } from '../services/staffWorkScheduleResolver';
 import { AudioFeedbackService } from '../services/audioFeedbackService';
+import { todayLocalDate } from '../utils/today';
+import { TeachingAttendanceModule } from '../features/staff-attendance/pages/TeachingAttendanceModule';
+import { TrainerAttendanceView } from './TrainerAttendanceView';
+import { StaffOfflineQueuePanel } from '../features/staff-attendance/offline/StaffOfflineQueuePanel';
 
 interface StaffAttendanceViewProps {
   currentUser?: User;
   sessions?: AttendanceSession[];
 }
 
-type TabType = 'DASHBOARD' | 'DAILY' | 'LEAVE' | 'SCHEDULES' | 'MASTER' | 'REPORTS' | 'ROADMAP';
+type TabType = 'DASHBOARD' | 'DAILY' | 'TEACHING' | 'TRAINING' | 'LEAVE' | 'SCHEDULES' | 'MASTER' | 'REPORTS';
 
 export const StaffAttendanceView: React.FC<StaffAttendanceViewProps> = ({
   currentUser = { id: 1, name: 'Admin', role: 'admin', email: 'admin@pesantren.id', username: 'admin', is_active: true },
@@ -67,7 +66,7 @@ export const StaffAttendanceView: React.FC<StaffAttendanceViewProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<TabType>('DASHBOARD');
   const [isTabDropdownOpen, setIsTabDropdownOpen] = useState<boolean>(false);
-  const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().substring(0, 10));
+  const [selectedDate, setSelectedDate] = useState<string>(todayLocalDate());
   const [staffList, setStaffList] = useState<Staff[]>([]);
   const [records, setRecords] = useState<StaffAttendanceRecord[]>([]);
   const [absenceRequests, setAbsenceRequests] = useState<StaffAbsenceRequest[]>([]);
@@ -127,8 +126,8 @@ export const StaffAttendanceView: React.FC<StaffAttendanceViewProps> = ({
   const [absenceStaffId, setAbsenceStaffId] = useState<number>(1);
   const [absenceType, setAbsenceType] = useState<'permission' | 'sick' | 'leave' | 'official_duty'>('permission');
   const [absenceReason, setAbsenceReason] = useState<string>('');
-  const [absenceStartDate, setAbsenceStartDate] = useState<string>(new Date().toISOString().substring(0, 10));
-  const [absenceEndDate, setAbsenceEndDate] = useState<string>(new Date().toISOString().substring(0, 10));
+  const [absenceStartDate, setAbsenceStartDate] = useState<string>(todayLocalDate());
+  const [absenceEndDate, setAbsenceEndDate] = useState<string>(todayLocalDate());
   const [absenceAutoApprove, setAbsenceAutoApprove] = useState<boolean>(true);
 
   // Schedule Modal
@@ -141,17 +140,51 @@ export const StaffAttendanceView: React.FC<StaffAttendanceViewProps> = ({
   const [scheduleEndAt, setScheduleEndAt] = useState<string>('16:00');
   const [scheduleIsWorkDay, setScheduleIsWorkDay] = useState<boolean>(true);
 
-  // Load Data
-  const refreshData = () => {
+  // Load Data — ambil dari server (MySQL), simpan ke cache lokal agar perhitungan ringkasan tetap jalan.
+  // Jika server tidak terjangkau, tampilkan data cache terakhir.
+  const reloadLocalState = () => {
     setStaffList(StaffIdentityResolver.getStaffList());
     setRecords(StaffAttendanceService.getRecords());
     setAbsenceRequests(StaffAttendanceService.getAbsenceRequests());
     setSchedules(StaffWorkScheduleResolver.getSchedules());
   };
 
+  const refreshData = async () => {
+    try {
+      const [staffRes, dailyRes, absRes]: any[] = await Promise.all([
+        apiClient.get('/staff', { per_page: 500 }),
+        apiClient.get('/staff-attendance/daily', { date: selectedDate }),
+        apiClient.get('/staff-attendance/absences'),
+      ]);
+      if (ensureLegacyDataPreserved()) {
+        const staff = Array.isArray(staffRes?.data) ? staffRes.data : [];
+        localStorage.setItem('siuba_staff_master', JSON.stringify(staff));
+        localStorage.setItem('siuba_master_staff', JSON.stringify(staff));
+        mergeServerDailyRecords(Array.isArray(dailyRes?.data) ? dailyRes.data : [], [selectedDate]);
+        localStorage.setItem('siuba_staff_absence_requests', JSON.stringify(Array.isArray(absRes?.data) ? absRes.data : []));
+      }
+    } catch (err: any) {
+      if (!isOfflineError(err)) console.warn('Gagal memuat data presensi SDM dari server:', err?.message);
+    }
+    reloadLocalState();
+  };
+
+  const errMsg = (err: any) => err?.fieldErrors && Object.values(err.fieldErrors).flat()[0]
+    ? String(Object.values(err.fieldErrors).flat()[0])
+    : err?.message || String(err);
+
   useEffect(() => {
     refreshData();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDate]);
+
+  // Pastikan pilihan SDM di form selalu menunjuk SDM yang ada (id dari server bisa berbeda dengan data contoh)
+  useEffect(() => {
+    if (staffList.length === 0) return;
+    if (!staffList.some((st) => st.id === absenceStaffId)) setAbsenceStaffId(staffList[0].id);
+    if (!staffList.some((st) => st.id === manualStaffId)) setManualStaffId(staffList[0].id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [staffList]);
 
   // Metrics Calculation
   const dailySummary = useMemo(() => {
@@ -174,7 +207,7 @@ export const StaffAttendanceView: React.FC<StaffAttendanceViewProps> = ({
   }, [records, staffList, selectedDate, filterType, searchQuery]);
 
   // Handle Fast Scan Terminal (QR / RFID / NIP)
-  const handleProcessScan = (method: 'qr' | 'rfid' | 'manual', overrideInput?: string) => {
+  const handleProcessScan = async (method: 'qr' | 'rfid' | 'manual', overrideInput?: string) => {
     const input = overrideInput || scannerInput;
     if (!input.trim()) return;
 
@@ -182,13 +215,23 @@ export const StaffAttendanceView: React.FC<StaffAttendanceViewProps> = ({
     setScanFeedback(null);
 
     try {
-      const res = StaffAttendanceService.recordDailyScan({
-        identifier: input.trim(),
+      const id = input.trim();
+      const known = staffList.find((st) =>
+        method === 'qr' ? st.qr_token === id
+          : method === 'rfid' ? (st.rfid_uid || '').replace(/[^0-9A-F]/gi, '').toUpperCase() === id.replace(/[^0-9A-F]/gi, '').toUpperCase()
+          : st.staff_number === id || st.qr_token === id || String(st.id) === id);
+      const res = await StaffAttendanceApi.recordDailyScan({
+        identifier: id,
         method,
         operatorName: currentUser?.name || 'Admin',
+        staffName: known?.name,
       });
 
-      if (res.success) {
+      if (res.mode === 'QUEUED') {
+        AudioFeedbackService.playSuccess();
+        setScanFeedback({ success: true, message: res.message, mode: 'DISIMPAN OFFLINE' });
+        setScannerInput('');
+      } else if (res.success) {
         AudioFeedbackService.playSuccess();
         setScanFeedback({ success: true, message: res.message, mode: res.mode });
         setScannerInput('');
@@ -223,23 +266,28 @@ export const StaffAttendanceView: React.FC<StaffAttendanceViewProps> = ({
   };
 
   // Save Manual Attendance
-  const handleSaveManualAttendance = (e: React.FormEvent) => {
+  const handleSaveManualAttendance = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!manualReason.trim()) {
       alert('Alasan pencatatan manual wajib diisi.');
       return;
     }
 
-    const res = StaffAttendanceService.recordManualAttendance({
-      staffId: manualStaffId,
-      attendanceDate: selectedDate,
-      action: manualAction,
-      checkInTime: manualAction === 'check_in' || manualAction === 'both' ? manualCheckInTime : undefined,
-      checkOutTime: manualAction === 'check_out' || manualAction === 'both' ? manualCheckOutTime : undefined,
-      status: manualStatus,
-      reason: manualReason,
-      operatorName: currentUser?.name || 'Admin'
-    });
+    let res: { success: boolean; message: string };
+    try {
+      const r: any = await apiClient.post('/staff-attendance/daily/manual', {
+        staff_id: manualStaffId,
+        date: selectedDate,
+        action: manualAction,
+        check_in_time: manualAction === 'check_in' || manualAction === 'both' ? manualCheckInTime : undefined,
+        check_out_time: manualAction === 'check_out' || manualAction === 'both' ? manualCheckOutTime : undefined,
+        status: manualStatus,
+        reason: manualReason,
+      });
+      res = { success: !!r?.data?.success, message: r?.data?.message || 'Tersimpan.' };
+    } catch (err: any) {
+      res = { success: false, message: isOfflineError(err) ? 'Server offline: presensi manual belum bisa disimpan.' : errMsg(err) };
+    }
 
     if (res.success) {
       setShowManualModal(false);
@@ -261,7 +309,7 @@ export const StaffAttendanceView: React.FC<StaffAttendanceViewProps> = ({
   };
 
   // Submit Correction
-  const handleSubmitCorrection = (e: React.FormEvent) => {
+  const handleSubmitCorrection = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedRecord || !correctionReason.trim()) {
       alert('Alasan koreksi wajib diisi.');
@@ -271,14 +319,19 @@ export const StaffAttendanceView: React.FC<StaffAttendanceViewProps> = ({
     const newCheckIn = correctionCheckIn ? `${selectedRecord.attendance_date}T${correctionCheckIn}:00+07:00` : selectedRecord.check_in_at || undefined;
     const newCheckOut = correctionCheckOut ? `${selectedRecord.attendance_date}T${correctionCheckOut}:00+07:00` : selectedRecord.check_out_at || undefined;
 
-    const res = StaffAttendanceService.correctRecord({
-      recordId: selectedRecord.id,
-      newStatus: correctionStatus,
-      newCheckIn,
-      newCheckOut,
-      reason: correctionReason,
-      operatorName: currentUser?.name || 'Admin'
-    });
+    let res: { success: boolean; message: string };
+    try {
+      await apiClient.post(`/staff-attendance/records/${selectedRecord.id}/correct`, {
+        status: correctionStatus,
+        check_in_at: newCheckIn,
+        check_out_at: newCheckOut,
+        late_minutes: ['present', 'permission', 'sick', 'leave', 'official_duty', 'absent'].includes(correctionStatus) ? 0 : undefined,
+        notes: correctionReason,
+      });
+      res = { success: true, message: 'ok' };
+    } catch (err: any) {
+      res = { success: false, message: isOfflineError(err) ? 'Server offline: koreksi belum bisa disimpan.' : errMsg(err) };
+    }
 
     if (res.success) {
       setShowCorrectionModal(false);
@@ -333,7 +386,7 @@ export const StaffAttendanceView: React.FC<StaffAttendanceViewProps> = ({
   };
 
   // Save Staff (Create or Update)
-  const handleSaveStaff = (e: React.FormEvent) => {
+  const handleSaveStaff = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!staffFormName.trim() || !staffFormNumber.trim()) {
       alert('Nama SDM dan Nomor Induk/NIP wajib diisi.');
@@ -342,8 +395,18 @@ export const StaffAttendanceView: React.FC<StaffAttendanceViewProps> = ({
 
     const operator = currentUser?.name || 'Admin';
 
+    const callServer = async (fn: () => Promise<any>): Promise<{ success: boolean; message: string; staff?: any }> => {
+      try {
+        const staff = await fn();
+        return { success: true, message: 'ok', staff };
+      } catch (err: any) {
+        return { success: false, message: isOfflineError(err) ? 'Server offline: data SDM belum bisa disimpan.' : errMsg(err) };
+      }
+    };
+    void operator;
+
     if (editingStaff) {
-      const res = StaffIdentityResolver.updateStaff(editingStaff.id, {
+      const res = await callServer(() => staffApi.updateStaff(editingStaff.id, {
         name: staffFormName.trim(),
         gender: staffFormGender,
         staff_type: staffFormType,
@@ -354,7 +417,7 @@ export const StaffAttendanceView: React.FC<StaffAttendanceViewProps> = ({
         email: staffFormEmail.trim() || undefined,
         rfid_uid: staffFormRfid.trim() || null,
         requires_daily_attendance: staffFormRequiresDaily,
-      }, operator);
+      } as any));
 
       if (res.success) {
         setShowStaffModal(false);
@@ -364,7 +427,7 @@ export const StaffAttendanceView: React.FC<StaffAttendanceViewProps> = ({
         alert(`Gagal: ${res.message}`);
       }
     } else {
-      const res = StaffIdentityResolver.createStaff({
+      const res = await callServer(() => staffApi.createStaff({
         staff_number: staffFormNumber.trim().toUpperCase(),
         name: staffFormName.trim(),
         gender: staffFormGender,
@@ -378,7 +441,7 @@ export const StaffAttendanceView: React.FC<StaffAttendanceViewProps> = ({
         requires_daily_attendance: staffFormRequiresDaily,
         is_active: true,
         join_date: selectedDate
-      }, operator);
+      } as any));
 
       if (res.success) {
         setShowStaffModal(false);
@@ -391,7 +454,7 @@ export const StaffAttendanceView: React.FC<StaffAttendanceViewProps> = ({
   };
 
   // Deactivate Staff
-  const handleDeactivateStaff = (staff: Staff) => {
+  const handleDeactivateStaff = async (staff: Staff) => {
     const reason = prompt(`Masukkan alasan penonaktifan untuk ${staff.name}:`);
     if (reason === null) return;
     if (!reason.trim()) {
@@ -399,7 +462,12 @@ export const StaffAttendanceView: React.FC<StaffAttendanceViewProps> = ({
       return;
     }
 
-    const res = StaffIdentityResolver.deactivateStaff(staff.id, reason, currentUser?.name || 'Admin');
+    let res = { success: true, message: '' };
+    try {
+      await staffApi.updateStaff(staff.id, { is_active: false } as any);
+    } catch (err: any) {
+      res = { success: false, message: errMsg(err) };
+    }
     if (res.success) {
       refreshData();
       alert(`Staff ${staff.name} berhasil dinonaktifkan.`);
@@ -416,12 +484,21 @@ export const StaffAttendanceView: React.FC<StaffAttendanceViewProps> = ({
   };
 
   // Save Assign RFID
-  const handleSaveAssignRfid = (e: React.FormEvent) => {
+  const handleSaveAssignRfid = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!targetStaffForRfid) return;
 
+    const setRfid = async (uid: string | null) => {
+      try {
+        await staffApi.updateStaff(targetStaffForRfid.id, { rfid_uid: uid } as any);
+        return { success: true, message: '' };
+      } catch (err: any) {
+        return { success: false, message: errMsg(err) };
+      }
+    };
+
     if (!rfidInputValue.trim()) {
-      const res = StaffIdentityResolver.removeRfidUid(targetStaffForRfid.id, currentUser?.name || 'Admin');
+      const res = await setRfid(null);
       if (res.success) {
         setShowAssignRfidModal(false);
         refreshData();
@@ -432,7 +509,7 @@ export const StaffAttendanceView: React.FC<StaffAttendanceViewProps> = ({
       return;
     }
 
-    const res = StaffIdentityResolver.assignRfidUid(targetStaffForRfid.id, rfidInputValue.trim(), currentUser?.name || 'Admin');
+    const res = await setRfid(rfidInputValue.trim());
     if (res.success) {
       setShowAssignRfidModal(false);
       refreshData();
@@ -443,22 +520,26 @@ export const StaffAttendanceView: React.FC<StaffAttendanceViewProps> = ({
   };
 
   // Submit Absence Request
-  const handleSubmitAbsence = (e: React.FormEvent) => {
+  const handleSubmitAbsence = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!absenceReason.trim()) {
       alert('Alasan permohonan izin/cuti wajib diisi.');
       return;
     }
 
-    const res = StaffAttendanceService.createAbsenceRequest({
+    const created = await StaffAttendanceApi.createAbsenceRequest({
       staffId: absenceStaffId,
       type: absenceType,
-      startAt: `${absenceStartDate}T07:00:00+07:00`,
-      endAt: `${absenceEndDate}T16:00:00+07:00`,
+      startAt: `${absenceStartDate}T00:00:00`,
+      endAt: `${absenceEndDate}T23:59:00`,
       reason: absenceReason,
       operatorName: currentUser?.name || 'Admin',
-      autoApprove: absenceAutoApprove
     });
+    let res = { success: created.success, message: created.message };
+    if (created.success && absenceAutoApprove && created.request?.id) {
+      const approved = await StaffAttendanceApi.approveAbsenceRequest({ id: created.request.id, approverName: currentUser?.name || 'Admin', notes: 'Disetujui saat input' });
+      if (!approved.success) res = { success: true, message: `Tersimpan, tetapi belum disetujui: ${approved.message}` };
+    }
 
     if (res.success) {
       setShowAbsenceModal(false);
@@ -471,11 +552,11 @@ export const StaffAttendanceView: React.FC<StaffAttendanceViewProps> = ({
   };
 
   // Approve Absence
-  const handleApproveAbsence = (req: StaffAbsenceRequest) => {
+  const handleApproveAbsence = async (req: StaffAbsenceRequest) => {
     const notes = prompt('Catatan persetujuan (opsional):', 'Disetujui');
     if (notes === null) return;
 
-    const res = StaffAttendanceService.approveAbsenceRequest(req.id, currentUser?.name || 'Admin', notes);
+    const res = await StaffAttendanceApi.approveAbsenceRequest({ id: req.id, approverName: currentUser?.name || 'Admin', notes });
     if (res.success) {
       refreshData();
       alert(res.message);
@@ -485,7 +566,7 @@ export const StaffAttendanceView: React.FC<StaffAttendanceViewProps> = ({
   };
 
   // Reject Absence
-  const handleRejectAbsence = (req: StaffAbsenceRequest) => {
+  const handleRejectAbsence = async (req: StaffAbsenceRequest) => {
     const notes = prompt('Alasan penolakan (wajib):', 'Tidak memenuhi kriteria');
     if (notes === null) return;
     if (!notes.trim()) {
@@ -493,7 +574,7 @@ export const StaffAttendanceView: React.FC<StaffAttendanceViewProps> = ({
       return;
     }
 
-    const res = StaffAttendanceService.rejectAbsenceRequest(req.id, currentUser?.name || 'Admin', notes);
+    const res = await StaffAttendanceApi.rejectAbsenceRequest({ id: req.id, approverName: currentUser?.name || 'Admin', rejectionReason: notes });
     if (res.success) {
       refreshData();
       alert(res.message);
@@ -515,33 +596,38 @@ export const StaffAttendanceView: React.FC<StaffAttendanceViewProps> = ({
   };
 
   // Save Schedule
-  const handleSaveSchedule = (e: React.FormEvent) => {
+  const handleSaveSchedule = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingSchedule) return;
 
-    const res = StaffWorkScheduleResolver.updateSchedule(editingSchedule.id, {
+    // Disimpan di server: langsung berlaku untuk perhitungan terlambat presensi SDM
+    const res = await StaffWorkScheduleResolver.saveDayToServer(editingSchedule.id, {
       check_in_open_at: scheduleCheckInOpen,
       scheduled_start_at: scheduleStartAt,
       late_after: scheduleLateAfter,
       check_out_open_at: scheduleCheckOutOpen,
       scheduled_end_at: scheduleEndAt,
       is_working_day: scheduleIsWorkDay
-    }, currentUser?.name || 'Admin');
+    });
 
     if (res.success) {
       setShowScheduleModal(false);
       refreshData();
-      alert(`Jadwal kerja hari ${editingSchedule.day_of_week.toUpperCase()} berhasil diperbarui.`);
+      alert(`Jadwal kerja hari ${({ monday: 'Senin', tuesday: 'Selasa', wednesday: 'Rabu', thursday: 'Kamis', friday: 'Jumat', saturday: 'Sabtu', sunday: 'Ahad' } as Record<string, string>)[editingSchedule.day_of_week] || editingSchedule.day_of_week} disimpan di server dan langsung berlaku untuk presensi SDM.`);
     } else {
       alert(`Gagal: ${res.message}`);
     }
   };
 
   // Idempotent Daily Finalization
-  const handleFinalizeDaily = () => {
+  const handleFinalizeDaily = async () => {
     if (confirm(`Apakah Anda yakin ingin memfinalisasi kehadiran SDM tanggal ${selectedDate}? Staff yang belum hadir dan tidak memiliki izin resmi akan otomatis ditandai Alpha.`)) {
-      const res = StaffAttendanceService.finalizeDailyAttendance(selectedDate, currentUser?.name || 'Admin');
-      alert(res.message);
+      try {
+        const r: any = await apiClient.post('/staff-attendance/daily/finalize', { date: selectedDate });
+        alert(r?.message || 'Finalisasi selesai.');
+      } catch (err: any) {
+        alert(isOfflineError(err) ? 'Server offline: finalisasi belum bisa dijalankan.' : errMsg(err));
+      }
       refreshData();
     }
   };
@@ -553,7 +639,7 @@ export const StaffAttendanceView: React.FC<StaffAttendanceViewProps> = ({
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className="bg-white/15 border border-white/20 text-emerald-100 text-xs font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider backdrop-blur-xs">
-              SIUBA v1.1.1 Production
+              SIUBA
             </span>
             <span className="text-xs text-emerald-100/90 font-medium">Master SDM & Presensi Harian Pegawai/Guru</span>
           </div>
@@ -568,11 +654,12 @@ export const StaffAttendanceView: React.FC<StaffAttendanceViewProps> = ({
           const STAFF_TABS = [
             { id: 'DASHBOARD' as TabType, label: 'Dashboard & Scanner', desc: 'Ringkasan presensi harian & fast scanning RFID/QR', icon: Layers, badge: 'Live Fast-Tap' },
             { id: 'DAILY' as TabType, label: 'Kehadiran Hari Ini', desc: 'Daftar absensi pegawai, log tap, jam masuk & pulang', icon: UserCheck, badge: `${dailySummary.present + dailySummary.late}/${dailySummary.total_staff} Hadir` },
+            { id: 'TEACHING' as TabType, label: 'Presensi Mengajar (KBM)', desc: 'Kehadiran guru per jam pelajaran, jurnal mengajar & guru pengganti', icon: BookOpen, badge: 'KBM' },
+            { id: 'TRAINING' as TabType, label: 'Presensi Melatih (Ekskul)', desc: 'Kehadiran pelatih & pembina ekskul, inval & jurnal latihan', icon: Award, badge: 'Ekskul' },
             { id: 'LEAVE' as TabType, label: 'Izin, Sakit & Cuti', desc: 'Pengajuan & verifikasi dispensasi kerja SDM', icon: FileText, badge: `${absenceRequests.length} Pengajuan` },
             { id: 'SCHEDULES' as TabType, label: 'Jadwal Kerja', desc: 'Pengaturan shift reguler, piket & asrama', icon: Clock, badge: '5 Shift Kerja' },
             { id: 'MASTER' as TabType, label: 'Master SDM & Kartu', desc: 'Database profil ustadz, guru & cetak kartu RFID/QR', icon: Users, badge: `${staffList.length} Pegawai` },
             { id: 'REPORTS' as TabType, label: 'Rekap & Laporan', desc: 'Rekapitulasi bulanan, ekspor Excel & cetak PDF', icon: Download, badge: 'Laporan Resmi' },
-            { id: 'ROADMAP' as TabType, label: 'Roadmap v1.1.2 & v1.1.3', desc: 'Fitur baru & peningkatan modul presensi SDM', icon: Sparkles, badge: 'Pembaruan' },
           ];
           const currentTabInfo = STAFF_TABS.find(t => t.id === activeTab) || STAFF_TABS[0];
           const CurrentTabIcon = currentTabInfo.icon;
@@ -801,7 +888,9 @@ export const StaffAttendanceView: React.FC<StaffAttendanceViewProps> = ({
             {/* Scan Feedback Banner */}
             {scanFeedback && (
               <div className={`mt-4 p-3.5 rounded-lg text-xs font-medium flex items-center gap-2.5 ${
-                scanFeedback.success 
+                scanFeedback.mode === 'DISIMPAN OFFLINE'
+                  ? 'bg-amber-50 text-amber-900 border border-amber-200'
+                  : scanFeedback.success 
                   ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' 
                   : 'bg-rose-50 text-rose-800 border border-rose-200'
               }`}>
@@ -813,6 +902,8 @@ export const StaffAttendanceView: React.FC<StaffAttendanceViewProps> = ({
               </div>
             )}
           </div>
+
+          <StaffOfflineQueuePanel onSynced={() => void refreshData()} />
 
           {/* Quick Staff Tapping Grid */}
           <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
@@ -1086,6 +1177,14 @@ export const StaffAttendanceView: React.FC<StaffAttendanceViewProps> = ({
       {/* ========================================================================= */}
       {/* TAB 3: IZIN, SAKIT, CUTI & DINAS SDM */}
       {/* ========================================================================= */}
+      {activeTab === 'TEACHING' && (
+        <TeachingAttendanceModule currentUser={currentUser as User} staffList={staffList} />
+      )}
+
+      {activeTab === 'TRAINING' && (
+        <TrainerAttendanceView currentUser={currentUser as User} embedded />
+      )}
+
       {activeTab === 'LEAVE' && (
         <div className="space-y-6">
           <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
@@ -1195,7 +1294,7 @@ export const StaffAttendanceView: React.FC<StaffAttendanceViewProps> = ({
                 <div key={sch.id} className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 hover:border-teal-300 transition flex flex-col justify-between">
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <span className="font-bold text-slate-800 capitalize">{sch.day_of_week}</span>
+                      <span className="font-bold text-slate-800">{({ monday: 'Senin', tuesday: 'Selasa', wednesday: 'Rabu', thursday: 'Kamis', friday: 'Jumat', saturday: 'Sabtu', sunday: 'Ahad' } as Record<string, string>)[sch.day_of_week] || sch.day_of_week}</span>
                       {sch.is_working_day ? (
                         <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-semibold">
                           Hari Kerja
@@ -1345,12 +1444,15 @@ export const StaffAttendanceView: React.FC<StaffAttendanceViewProps> = ({
                             <Radio className="w-3.5 h-3.5" />
                           </button>
                           <button
-                            onClick={() => {
-                              const res = StaffIdentityResolver.regenerateQrToken(s.id, currentUser?.name || 'Admin');
-                              if (res.success) {
-                                alert(`QR Token baru untuk ${s.name}: ${res.new_token}`);
-                                refreshData();
+                            onClick={async () => {
+                              if (!confirm(`Buat QR baru untuk ${s.name}? QR lama tidak bisa dipakai lagi.`)) return;
+                              try {
+                                const r: any = await apiClient.post(`/staff/${s.id}/regenerate-qr`, {});
+                                alert(`QR Token baru untuk ${s.name}: ${r?.data?.qr_token}`);
+                              } catch (err: any) {
+                                alert(errMsg(err));
                               }
+                              refreshData();
                             }}
                             title="Regenerate QR Token"
                             className="p-1 hover:bg-slate-100 text-slate-700 hover:text-amber-700 rounded"
@@ -1413,73 +1515,13 @@ export const StaffAttendanceView: React.FC<StaffAttendanceViewProps> = ({
             </div>
 
             <div className="mt-4 p-4 rounded-xl bg-slate-50 text-xs text-slate-700 leading-relaxed border border-slate-200">
-              <p className="font-bold text-slate-800 mb-1.5">Standar Metrik Kehadiran SDM (SIUBA v1.1.1):</p>
+              <p className="font-bold text-slate-800 mb-1.5">Standar Metrik Kehadiran SDM:</p>
               <ul className="list-disc pl-5 space-y-1 text-slate-700">
                 <li><strong>Daily Attendance Rate</strong> = (Hadir Tepat Waktu + Terlambat) / Total SDM Wajib Hadir × 100%</li>
                 <li><strong>Punctuality Rate</strong> = Hadir Tepat Waktu / (Hadir Tepat Waktu + Terlambat) × 100%</li>
                 <li><strong>Absence Reconciliation</strong> = Pengajuan Izin/Sakit/Cuti/Dinas yang disetujui otomatis disinkronkan ke status harian.</li>
                 <li><strong>Security & Privacy</strong> = Kredensial sensitif seperti QR Token Opaque dan RFID UID dilindungi dan tidak dicetak pada rekap publik.</li>
               </ul>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* TAB 7: ROADMAP ARCHITECTURE NOTICE */}
-      {/* ========================================================================= */}
-      {activeTab === 'ROADMAP' && (
-        <div className="space-y-6">
-          <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-6">
-            <div>
-              <span className="text-xs font-semibold uppercase tracking-wider text-teal-700 bg-teal-50 px-2.5 py-1 rounded-full border border-teal-200">
-                Arsitektur & Phasing Rilis SIUBA SDM
-              </span>
-              <h3 className="text-xl font-bold text-slate-800 mt-2">Pemisahan Domain: Kehadiran Harian ≠ Mengajar (KBM) ≠ Pelatih Ekskul</h3>
-              <p className="text-xs text-slate-700 mt-1 leading-relaxed">
-                Untuk menjamin stabilitas, integritas data, dan ketaatan arsitektural rilis, SIUBA memisahkan domain kehadiran SDM menjadi fase berjenjang:
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="p-4 rounded-xl border-2 border-teal-600 bg-teal-50/40">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="px-2 py-0.5 rounded bg-teal-700 text-white font-bold text-[10px]">
-                    v1.1.1 — PRODUCTION
-                  </span>
-                  <CheckCircle className="w-4 h-4 text-teal-700" />
-                </div>
-                <h4 className="font-bold text-slate-800 text-sm">Master SDM & Presensi Harian</h4>
-                <p className="text-xs text-slate-700 mt-1 leading-relaxed">
-                  Fokus pada kehadiran gerbang harian, check-in, check-out, jadwal kerja per hari, grace period toleransi keterlambatan, cuti/izin, serta audit trail riwayat koreksi.
-                </p>
-              </div>
-
-              <div className="p-4 rounded-xl border border-slate-200 bg-slate-50">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="px-2 py-0.5 rounded bg-slate-700 text-white font-bold text-[10px]">
-                    v1.1.2 — PLANNED
-                  </span>
-                  <BookOpen className="w-4 h-4 text-slate-700" />
-                </div>
-                <h4 className="font-bold text-slate-800 text-sm">Presensi Mengajar Guru (KBM)</h4>
-                <p className="text-xs text-slate-700 mt-1 leading-relaxed">
-                  Pencatatan jam mengajar riil guru di kelas per jadwal sesi mata pelajaran, validasi guru pengganti (inval), dan integrasi ke buku nilai/jurnal kelas.
-                </p>
-              </div>
-
-              <div className="p-4 rounded-xl border border-slate-200 bg-slate-50">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="px-2 py-0.5 rounded bg-slate-700 text-white font-bold text-[10px]">
-                    v1.1.3 — PLANNED
-                  </span>
-                  <Award className="w-4 h-4 text-slate-700" />
-                </div>
-                <h4 className="font-bold text-slate-800 text-sm">Presensi Pelatih Ekstrakurikuler</h4>
-                <p className="text-xs text-slate-700 mt-1 leading-relaxed">
-                  Pencatatan kehadiran pelatih/pembina ekstrakurikuler berbasis sesi latihan, penugasan khusus, dan rekonsiliasi honorarium pelatih eksternal.
-                </p>
-              </div>
             </div>
           </div>
         </div>

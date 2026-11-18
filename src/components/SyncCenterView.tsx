@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { pushPendingAttendance } from '../services/offlineQueueSync';
+import { apiClient } from '../services/apiClient';
 import { 
   Wifi, 
   WifiOff, 
@@ -8,7 +10,6 @@ import {
   AlertTriangle, 
   Smartphone, 
   Database, 
-  HardDrive, 
   Layers, 
   Clock, 
   ShieldCheck, 
@@ -19,22 +20,14 @@ import {
   X,
   Radio,
   ArrowRight,
-  Info,
   Search,
-  Filter,
-  PlusCircle,
   Eye,
   Zap,
-  Cpu,
-  Upload,
-  Activity,
   CheckCheck,
   ChevronRight,
-  Shield,
   Sparkles,
   BookOpen,
   HelpCircle,
-  Lightbulb,
   PlayCircle
 } from 'lucide-react';
 import { 
@@ -49,14 +42,12 @@ import {
   PendingAttendanceItem,
   CachedPreparedSession,
   ClientInstallation,
-  DatabaseBackupMeta,
-  ServerConnectivityState,
-  AttendanceStatus
-} from '../types';
+  ServerConnectivityState} from '../types';
 import { OfflineStorageService } from '../services/offlineStorageService';
 import { ServerConnectivityService } from '../services/serverConnectivityService';
-import { OfflineSyncService } from '../services/offlineSyncService';
-import { LocalBackupService } from '../services/localBackupService';
+import { BackupCenterTab } from '../features/maintenance/components/BackupCenterTab';
+import { DeviceReadinessPanel } from './DeviceReadinessPanel';
+import { StaffOfflineQueuePanel } from '../features/staff-attendance/offline/StaffOfflineQueuePanel';
 
 interface SyncCenterViewProps {
   sessions?: AttendanceSession[];
@@ -99,11 +90,7 @@ export const SyncCenterView: React.FC<SyncCenterViewProps> = ({
 }) => {
   const safeSessions = sessions || [];
   const safeParticipants = participants?.length ? participants : (sessionParticipants || []);
-  const safeRecords = records || [];
-  const safeHistories = recordHistories || [];
   const safeStudents = students || [];
-  const safeExcusals = excusals || [];
-  const safeDevices = devices || [];
 
   const [activeTab, setActiveTab] = useState<'queue' | 'prepare' | 'conflicts' | 'backup' | 'deployment' | 'tutorial'>('queue');
   const [connectivityState, setConnectivityState] = useState<ServerConnectivityState>('SERVER_ONLINE');
@@ -112,11 +99,9 @@ export const SyncCenterView: React.FC<SyncCenterViewProps> = ({
   const [preparedSessions, setPreparedSessions] = useState<CachedPreparedSession[]>([]);
   const [installation, setInstallation] = useState<ClientInstallation>(OfflineStorageService.getInstallation());
   const [storageMetrics, setStorageMetrics] = useState(OfflineStorageService.getStorageMetrics());
-  const [backupHistory, setBackupHistory] = useState<DatabaseBackupMeta[]>(LocalBackupService.getBackupHistory());
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const [deviceNameInput, setDeviceNameInput] = useState<string>(installation.device_name);
   const [isEditingDeviceName, setIsEditingDeviceName] = useState<boolean>(false);
-  const [restoreTestResult, setRestoreTestResult] = useState<string | null>(null);
 
   // Filter and Search states for Queue
   const [queueSearchQuery, setQueueSearchQuery] = useState<string>('');
@@ -124,7 +109,7 @@ export const SyncCenterView: React.FC<SyncCenterViewProps> = ({
   const [selectedQueueItem, setSelectedQueueItem] = useState<PendingAttendanceItem | null>(null);
 
   // Category filter for Prepare Sessions
-  const [prepareCategoryFilter, setPrepareCategoryFilter] = useState<string>('ALL');
+  const [] = useState<string>('ALL');
 
   // Tutorial Interactive State
   const [selectedTutorialStep, setSelectedTutorialStep] = useState<number>(1);
@@ -142,7 +127,6 @@ export const SyncCenterView: React.FC<SyncCenterViewProps> = ({
     setPreparedSessions(OfflineStorageService.getPreparedSessions());
     setStorageMetrics(OfflineStorageService.getStorageMetrics());
     setInstallation(OfflineStorageService.getInstallation());
-    setBackupHistory(LocalBackupService.getBackupHistory());
   };
 
   useEffect(() => {
@@ -208,171 +192,73 @@ export const SyncCenterView: React.FC<SyncCenterViewProps> = ({
     onShowToast('Cache offline sesi berhasil dihapus', 'info');
   };
 
-  const handleSyncAllPending = () => {
-    if (connectivityState === 'SERVER_OFFLINE') {
-      onShowToast('Tidak dapat sinkronisasi: Server sedang offline / terputus.', 'error');
-      return;
-    }
-
+  // Kirim antrean ke SERVER (dulu hanya diproses ke data browser lalu tertimpa data server)
+  const handleSyncAllPending = async () => {
     const itemsToSync = (pendingItems || []).filter(p => p && (p.sync_status === 'pending' || p.sync_status === 'failed'));
     if (itemsToSync.length === 0) {
       onShowToast('Tidak ada antrean absensi pending untuk disinkronkan.', 'info');
       return;
     }
-
     setIsSyncing(true);
-
-    setTimeout(() => {
-      const { batchResponse, updatedRecords, updatedHistories, updatedParticipants } = OfflineSyncService.processSyncBatch(
-        itemsToSync,
-        safeSessions,
-        safeParticipants,
-        safeRecords,
-        safeHistories,
-        safeStudents,
-        currentUser
-      );
-
-      if (onUpdateRecords) onUpdateRecords(updatedRecords);
-      if (onApplySyncedRecords) onApplySyncedRecords(updatedRecords);
-      if (onUpdateRecordHistories) onUpdateRecordHistories(updatedHistories);
-      if (onUpdateParticipants) onUpdateParticipants(updatedParticipants);
-
+    try {
+      const r = await pushPendingAttendance({ includeFailed: true });
       refreshLocalState();
-      setIsSyncing(false);
-
-      if (batchResponse.conflict_count > 0) {
-        onShowToast(
-          `Sinkronisasi selesai: ${batchResponse.success_count} berhasil, ${batchResponse.conflict_count} konflik perlu ditinjau.`,
-          'info'
-        );
-      } else if (batchResponse.failed_count > 0) {
-        onShowToast(
-          `Sinkronisasi selesai: ${batchResponse.success_count} berhasil, ${batchResponse.failed_count} gagal validasi.`,
-          'error'
-        );
+      if (r.offline) {
+        onShowToast('Server belum terjangkau. Antrean tetap tersimpan dan akan dikirim otomatis saat server kembali online.', 'error');
+      } else if (r.conflict > 0) {
+        onShowToast(`Sinkronisasi selesai: ${r.success} berhasil, ${r.conflict} konflik perlu ditinjau.`, 'info');
+      } else if (r.failed > 0) {
+        onShowToast(`Sinkronisasi selesai: ${r.success} berhasil, ${r.failed} gagal (lihat keterangan di daftar).`, 'error');
       } else {
-        onShowToast(
-          `Semua ${batchResponse.success_count} absensi offline berhasil disinkronkan ke server!`,
-          'success'
-        );
+        onShowToast(`Semua ${r.success} absensi offline berhasil dikirim ke server.`, 'success');
       }
-    }, 600);
+      if (r.success > 0 && onApplySyncedRecords) onApplySyncedRecords([]);
+    } finally {
+      setIsSyncing(false);
+    }
   };
 
-  const handleResolveConflict = (item: PendingAttendanceItem, decision: 'ACCEPT_OFFLINE' | 'KEEP_SERVER') => {
-    const result = OfflineSyncService.resolveConflict(
-      item,
-      decision,
-      safeRecords,
-      safeHistories,
-      safeParticipants,
-      currentUser
-    );
-
-    if (onUpdateRecords) onUpdateRecords(result.updatedRecords);
-    if (onUpdateRecordHistories) onUpdateRecordHistories(result.updatedHistories);
-    if (onUpdateParticipants) onUpdateParticipants(result.updatedParticipants);
-
-    refreshLocalState();
-    onShowToast(result.message, 'success');
+  // Konflik = data sudah diatur operator di server. Terima offline → koreksi di server; pertahankan server → tandai selesai.
+  const resolveOne = async (item: PendingAttendanceItem, decision: 'ACCEPT_OFFLINE' | 'KEEP_SERVER') => {
+    if (decision === 'ACCEPT_OFFLINE') {
+      if (!item.server_attendance_id) throw new Error('ID absensi server tidak diketahui.');
+      await apiClient.post(`/attendance/records/${item.server_attendance_id}/correct`, {
+        new_status: item.requested_status,
+        reason: `Konflik sinkron offline: data dari perangkat ${item.device_context?.device_name || 'offline'} diterima`,
+      });
+    }
+    OfflineStorageService.updatePendingRecord(item.local_id, { sync_status: 'synced', conflict_message: decision === 'KEEP_SERVER' ? 'Data server dipertahankan' : 'Data offline diterima' } as any);
   };
 
-  const handleBatchResolveAllConflicts = (decision: 'ACCEPT_OFFLINE' | 'KEEP_SERVER') => {
+  const handleResolveConflict = async (item: PendingAttendanceItem, decision: 'ACCEPT_OFFLINE' | 'KEEP_SERVER') => {
+    try {
+      await resolveOne(item, decision);
+      refreshLocalState();
+      onShowToast(decision === 'ACCEPT_OFFLINE' ? 'Data offline diterapkan ke server.' : 'Data server dipertahankan.', 'success');
+      if (onApplySyncedRecords) onApplySyncedRecords([]);
+    } catch (err: any) {
+      onShowToast(err?.message || 'Gagal menyelesaikan konflik.', 'error');
+    }
+  };
+
+  const handleBatchResolveAllConflicts = async (decision: 'ACCEPT_OFFLINE' | 'KEEP_SERVER') => {
     const conflicts = (pendingItems || []).filter(p => p && p.sync_status === 'conflict');
     if (conflicts.length === 0) {
       onShowToast('Tidak ada konflik yang perlu diselesaikan.', 'info');
       return;
     }
-
-    let lastUpdatedRecords = safeRecords;
-    let lastUpdatedHistories = safeHistories;
-    let lastUpdatedParticipants = safeParticipants;
-
-    conflicts.forEach(item => {
-      const result = OfflineSyncService.resolveConflict(
-        item,
-        decision,
-        lastUpdatedRecords,
-        lastUpdatedHistories,
-        lastUpdatedParticipants,
-        currentUser
-      );
-      lastUpdatedRecords = result.updatedRecords;
-      lastUpdatedHistories = result.updatedHistories;
-      lastUpdatedParticipants = result.updatedParticipants;
-    });
-
-    if (onUpdateRecords) onUpdateRecords(lastUpdatedRecords);
-    if (onUpdateRecordHistories) onUpdateRecordHistories(lastUpdatedHistories);
-    if (onUpdateParticipants) onUpdateParticipants(lastUpdatedParticipants);
-
-    refreshLocalState();
-    onShowToast(`✓ Berhasil menyelesaikan ${conflicts.length} konflik (${decision === 'ACCEPT_OFFLINE' ? 'Terima Data Offline' : 'Pertahankan Data Server'}).`, 'success');
-  };
-
-  // Create simulated offline attendance item for demonstration/testing
-  const handleAddSampleOfflineRecord = () => {
-    if (safeStudents.length === 0 || safeSessions.length === 0) {
-      onShowToast('Dibutuhkan minimal 1 data santri dan 1 sesi aktif untuk simulasi.', 'error');
-      return;
+    let ok = 0;
+    for (const item of conflicts) {
+      try {
+        await resolveOne(item, decision);
+        ok++;
+      } catch {
+        /* lanjut ke berikutnya */
+      }
     }
-
-    const randomStudent = safeStudents[Math.floor(Math.random() * safeStudents.length)];
-    const activeSession = safeSessions.find(s => s.status !== 'cancelled') || safeSessions[0];
-
-    const newItem: PendingAttendanceItem = {
-      local_id: 'local_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
-      client_request_id: 'req_' + Math.random().toString(36).substring(2, 14) + Date.now(),
-      session_id: activeSession.id,
-      activity_name: activeSession.activity_name,
-      student_id: randomStudent.id,
-      student_name: randomStudent.name,
-      student_number: randomStudent.student_number,
-      classroom_name: randomStudent.classroom || 'Kelas Santri',
-      requested_status: 'present',
-      attendance_method: 'rfid_card',
-      captured_at_client: new Date().toISOString(),
-      client_installation_id: installation.installation_id,
-      operator_id: currentUser.id,
-      operator_name: currentUser.name,
-      sync_status: 'pending',
-      retry_count: 0
-    };
-
-    OfflineStorageService.addPendingRecord(newItem);
     refreshLocalState();
-    onShowToast(`✓ Simulasi absensi offline santri "${randomStudent.name}" berhasil ditambahkan ke antrean!`, 'success');
-  };
-
-  const handleCreateBackup = () => {
-    const { meta, jsonContent } = LocalBackupService.createDatabaseBackup({
-      students: safeStudents,
-      sessions: safeSessions,
-      participants: safeParticipants,
-      records: safeRecords,
-      excusals: safeExcusals,
-      devices: safeDevices,
-      operatorName: currentUser.name
-    });
-
-    LocalBackupService.downloadBackupFile(meta.filename, jsonContent);
-    refreshLocalState();
-    onShowToast(`Backup database "${meta.filename}" berhasil dibuat dan diunduh.`, 'success');
-  };
-
-  const handleSimulateRestoreTest = () => {
-    const samplePayload = JSON.stringify({
-      meta: { app: 'SIUBA', version: 'v1.10.0', created_at: new Date().toISOString() },
-      data: { students: safeStudents, sessions: safeSessions, records: safeRecords }
-    });
-
-    const res = LocalBackupService.validateRestorePayload(samplePayload);
-    setRestoreTestResult(
-      res.valid 
-        ? `Integritas Valid: ${res.counts?.students} santri, ${res.counts?.sessions} sesi, ${res.counts?.records} catatan kehadiran siap dipulihkan.`
-        : `Verifikasi Gagal: ${res.message}`
-    );
+    if (onApplySyncedRecords) onApplySyncedRecords([]);
+    onShowToast(`✓ ${ok} dari ${conflicts.length} konflik diselesaikan (${decision === 'ACCEPT_OFFLINE' ? 'Terima Data Offline' : 'Pertahankan Data Server'}).`, ok === conflicts.length ? 'success' : 'error');
   };
 
   const pendingCount = (pendingItems || []).filter(p => p && (p.sync_status === 'pending' || p.sync_status === 'syncing')).length;
@@ -427,7 +313,7 @@ export const SyncCenterView: React.FC<SyncCenterViewProps> = ({
                 Pusat Sinkronisasi & PWA Offline-First
               </h1>
               <p className="text-xs text-emerald-100/90 mt-1 max-w-3xl leading-relaxed">
-                Ketahanan Jaringan LAN Pesantren &bull; Antrean Absensi Offline Idempotent &bull; Resolusi Konflik Mutasi &bull; Manajemen Snapshot Backup Lokal
+                Ketahanan Jaringan LAN Pesantren &bull; Antrean Absensi Offline Idempotent &bull; Resolusi Konflik Mutasi &bull; Backup Database Server
               </p>
             </div>
           </div>
@@ -507,7 +393,7 @@ export const SyncCenterView: React.FC<SyncCenterViewProps> = ({
           { id: 'prepare', label: `Siapkan Sesi Offline (${preparedSessions.length})`, icon: Layers },
           { id: 'conflicts', label: `Resolusi Konflik (${conflictCount})`, icon: AlertTriangle, alert: conflictCount > 0 },
           { id: 'backup', label: 'Backup & Pemulihan Database', icon: Database },
-          { id: 'deployment', label: 'Arsitektur Local LAN & PWA', icon: Server },
+          { id: 'deployment', label: 'Kesiapan Perangkat & Server', icon: Server },
           { id: 'tutorial', label: 'Panduan & Tutorial PWA', icon: BookOpen },
         ].map((tab) => {
           const Icon = tab.icon;
@@ -543,6 +429,7 @@ export const SyncCenterView: React.FC<SyncCenterViewProps> = ({
       {/* ========================================================================= */}
       {activeTab === 'queue' && (
         <div className="space-y-4">
+          <StaffOfflineQueuePanel onShowToast={onShowToast} hideWhenEmpty />
           {/* Action Toolbar */}
           <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-white dark:bg-zinc-900 p-5 rounded-3xl border border-slate-200/90 dark:border-zinc-800 shadow-sm">
             <div>
@@ -553,15 +440,6 @@ export const SyncCenterView: React.FC<SyncCenterViewProps> = ({
             </div>
 
             <div className="flex items-center gap-2.5 flex-wrap self-start lg:self-center">
-              <button
-                id="btn-add-sample-offline"
-                onClick={handleAddSampleOfflineRecord}
-                className="px-3.5 py-2.5 text-xs font-bold text-slate-700 dark:text-zinc-200 bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 dark:hover:bg-zinc-700 rounded-2xl flex items-center gap-1.5 transition cursor-pointer active:scale-95"
-                title="Tambahkan data uji untuk simulasi offline"
-              >
-                <PlusCircle className="w-4 h-4 text-emerald-600" />
-                <span>+ Uji Catatan Offline</span>
-              </button>
 
               {syncedCount > 0 && (
                 <button
@@ -1088,88 +966,14 @@ export const SyncCenterView: React.FC<SyncCenterViewProps> = ({
       {/* TAB 4: BACKUP & PEMULIHAN                                                 */}
       {/* ========================================================================= */}
       {activeTab === 'backup' && (
-        <div className="space-y-6">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-zinc-900 p-6 rounded-3xl border border-slate-200/90 dark:border-zinc-800 shadow-sm">
-            <div>
-              <h3 className="font-black text-slate-900 dark:text-white text-base">Manajemen Backup & Pemulihan Database Lokal</h3>
-              <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
-                Pencadangan data seluruh santri, sesi kehadiran, rekap izin sakit, dan terminal secara mandiri tanpa ketergantungan cloud.
-              </p>
-            </div>
-
-            <div className="flex items-center gap-2.5 flex-wrap">
-              <button
-                id="btn-test-restore-preflight"
-                onClick={handleSimulateRestoreTest}
-                className="px-4 py-2.5 text-xs font-bold text-slate-700 dark:text-zinc-200 bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 dark:hover:bg-zinc-700 rounded-2xl flex items-center gap-1.5 transition cursor-pointer"
-              >
-                <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                <span>Uji Validasi Restore</span>
-              </button>
-
-              <button
-                id="btn-create-backup-now"
-                onClick={handleCreateBackup}
-                className="px-5 py-2.5 text-xs font-black bg-[#1F5C45] hover:bg-[#12372A] text-white rounded-2xl flex items-center gap-2 shadow-xs transition active:scale-95 cursor-pointer min-h-[40px]"
-              >
-                <Download className="w-4 h-4" />
-                <span>Buat Backup Sekarang (.JSON)</span>
-              </button>
-            </div>
+        <div className="space-y-4">
+          <div className="bg-white dark:bg-zinc-900 p-6 rounded-3xl border border-slate-200/90 dark:border-zinc-800 shadow-sm">
+            <h3 className="font-black text-slate-900 dark:text-white text-base">Backup Database Server</h3>
+            <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
+              Backup berisi seluruh data di server. Antrean offline di perangkat ini tidak termasuk — kirim dulu lewat tab Antrean.
+            </p>
           </div>
-
-          {restoreTestResult && (
-            <div className="p-4 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-500/40 rounded-3xl text-xs text-emerald-900 dark:text-emerald-200 flex items-start gap-3">
-              <Info className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
-              <div>
-                <span className="font-bold block">Hasil Simulasi Pre-flight Restore Drill:</span>
-                <span>{restoreTestResult}</span>
-              </div>
-            </div>
-          )}
-
-          {/* Backup History Table */}
-          <div className="bg-white dark:bg-zinc-900 rounded-3xl border border-slate-200/90 dark:border-zinc-800 overflow-hidden shadow-sm">
-            <div className="p-4 bg-slate-50 dark:bg-zinc-950/80 border-b border-slate-200 dark:border-zinc-800 font-black text-xs text-slate-700 dark:text-zinc-300 uppercase tracking-wider">
-              Riwayat Backup Database Lokal
-            </div>
-
-            <table className="w-full text-left text-xs border-collapse">
-              <thead className="bg-slate-50/50 dark:bg-zinc-950/50 text-slate-600 dark:text-zinc-400 font-bold border-b border-slate-200 dark:border-zinc-800 text-[10px] uppercase">
-                <tr>
-                  <th className="py-3.5 px-4">Nama File</th>
-                  <th className="py-3.5 px-4">Waktu Dibuat</th>
-                  <th className="py-3.5 px-4">Ukuran</th>
-                  <th className="py-3.5 px-4">Cakupan Data</th>
-                  <th className="py-3.5 px-4">Checksum SHA256</th>
-                  <th className="py-3.5 px-4 text-center">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-zinc-800/60">
-                {backupHistory.map((b) => (
-                  <tr key={b.id} className="hover:bg-slate-50/80 dark:hover:bg-zinc-800/40 transition">
-                    <td className="py-3.5 px-4 font-mono font-bold text-slate-900 dark:text-zinc-200 flex items-center gap-2">
-                      <FileText className="w-4 h-4 text-emerald-600" />
-                      <span>{b.filename}</span>
-                    </td>
-                    <td className="py-3.5 px-4 text-slate-600 dark:text-zinc-400">
-                      {new Date(b.created_at).toLocaleString('id-ID')}
-                    </td>
-                    <td className="py-3.5 px-4 text-slate-700 dark:text-zinc-300 font-bold">{b.size_formatted}</td>
-                    <td className="py-3.5 px-4 text-slate-600 dark:text-zinc-400">
-                      {b.record_counts.students} Santri &bull; {b.record_counts.sessions} Sesi &bull; {b.record_counts.records} Rekaman
-                    </td>
-                    <td className="py-3.5 px-4 text-slate-400 font-mono text-[10px]">{b.checksum}</td>
-                    <td className="py-3.5 px-4 text-center">
-                      <span className="px-2.5 py-0.5 bg-emerald-50 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 rounded-full font-black text-[10px] border border-emerald-200 dark:border-emerald-500/30">
-                        COMPLETED
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <BackupCenterTab currentUser={currentUser} onShowToast={onShowToast} compact />
         </div>
       )}
 
@@ -1228,60 +1032,15 @@ export const SyncCenterView: React.FC<SyncCenterViewProps> = ({
               </div>
 
               <div className="bg-slate-50 dark:bg-zinc-950 p-4 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-2xs">
-                <span className="text-slate-500 dark:text-zinc-400 block font-bold uppercase text-[10px]">Clock Offset Server</span>
-                <span className="font-black text-emerald-700 dark:text-emerald-400 mt-1.5 block font-mono">
-                  {OfflineStorageService.getClockOffset()} ms (Sinkron)
+                <span className="text-slate-500 dark:text-zinc-400 block font-bold uppercase text-[10px]">Selisih Jam vs Server</span>
+                <span className="font-black text-slate-900 dark:text-white mt-1.5 block font-mono">
+                  {Math.round(OfflineStorageService.getClockOffset() / 1000)} detik
                 </span>
               </div>
             </div>
           </div>
 
-          {/* Local Deployment Architecture Checklist */}
-          <div className="bg-white dark:bg-zinc-900 p-6 rounded-3xl border border-slate-200/90 dark:border-zinc-800 space-y-4 shadow-sm">
-            <h3 className="font-black text-slate-900 dark:text-white text-base">Panduan Standar Deployment Server Lokal Pesantren</h3>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-              <div className="p-4 bg-emerald-50/60 dark:bg-emerald-950/20 rounded-2xl border border-emerald-200/80 dark:border-emerald-500/30 space-y-2">
-                <div className="font-bold text-emerald-950 dark:text-emerald-200 flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-emerald-600" />
-                  1. Local Production Stack (Ubuntu / Debian)
-                </div>
-                <p className="text-emerald-900 dark:text-emerald-300 leading-relaxed">
-                  Web server Nginx + PHP 8.2-FPM + MariaDB 10.11 running as systemd services. Menjamin auto-restart saat power outage dan tidak bergantung pada artisan serve.
-                </p>
-              </div>
-
-              <div className="p-4 bg-emerald-50/60 dark:bg-emerald-950/20 rounded-2xl border border-emerald-200/80 dark:border-emerald-500/30 space-y-2">
-                <div className="font-bold text-emerald-950 dark:text-emerald-200 flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-emerald-600" />
-                  2. Local HTTPS & Domain (https://siuba.local)
-                </div>
-                <p className="text-emerald-900 dark:text-emerald-300 leading-relaxed">
-                  Sertifikat TLS mandiri (Self-signed / mkcert) pada router DNS local. Mengaktifkan izin Camera API untuk PWA QR Scanner dan Service Worker tanpa internet publik.
-                </p>
-              </div>
-
-              <div className="p-4 bg-emerald-50/60 dark:bg-emerald-950/20 rounded-2xl border border-emerald-200/80 dark:border-emerald-500/30 space-y-2">
-                <div className="font-bold text-emerald-950 dark:text-emerald-200 flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-emerald-600" />
-                  3. Static LAN IP Reservation (192.168.1.200)
-                </div>
-                <p className="text-emerald-900 dark:text-emerald-300 leading-relaxed">
-                  IP Server statis di router DHCP. Terminal RFID ESP32 (Sprint 5) dan client PWA tetap dapat menjangkau endpoint API meski router di-reboot.
-                </p>
-              </div>
-
-              <div className="p-4 bg-emerald-50/60 dark:bg-emerald-950/20 rounded-2xl border border-emerald-200/80 dark:border-emerald-500/30 space-y-2">
-                <div className="font-bold text-emerald-950 dark:text-emerald-200 flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-emerald-600" />
-                  4. Automated Linux Cron Scheduler
-                </div>
-                <p className="text-emerald-900 dark:text-emerald-300 leading-relaxed">
-                  Crontab memanggil <code className="bg-emerald-100 dark:bg-emerald-900 px-1 py-0.5 rounded font-mono">* * * * * php artisan schedule:run</code> untuk auto-generation sesi akademik, auto-close shalat, dan daily backup harian pukul 02:00 WIB.
-                </p>
-              </div>
-            </div>
-          </div>
+          <DeviceReadinessPanel />
         </div>
       )}
 
@@ -1485,13 +1244,9 @@ export const SyncCenterView: React.FC<SyncCenterViewProps> = ({
 
                   {/* Step Action & Navigation */}
                   <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
-                    <button
-                      onClick={handleAddSampleOfflineRecord}
-                      className="w-full sm:w-auto px-5 py-2.5 bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold rounded-2xl cursor-pointer active:scale-95 shadow-xs flex items-center justify-center gap-2"
-                    >
-                      <PlusCircle className="w-3.5 h-3.5" />
-                      <span>+ Tambah Simulasi Catatan Offline</span>
-                    </button>
+                    <p className="text-[11px] text-slate-500">
+                      Antrean ini berisi presensi sungguhan dan akan dikirim ke server — tidak ada tombol "data uji" agar tidak tercampur.
+                    </p>
 
                     <div className="flex items-center gap-2 w-full sm:w-auto">
                       <button
@@ -1644,19 +1399,19 @@ export const SyncCenterView: React.FC<SyncCenterViewProps> = ({
                     </p>
                     <ol className="list-decimal list-inside space-y-2 font-medium bg-slate-50 dark:bg-zinc-950/60 p-4 rounded-2xl border border-slate-200/80 dark:border-zinc-800">
                       <li>Masuk ke sub-tab <strong>"Backup & Pemulihan Database"</strong>.</li>
-                      <li>Klik <strong>"Buat Backup Sekarang (.JSON)"</strong> untuk mengunduh snapshot database lengkap dengan kalkulasi SHA-256 Checksum.</li>
-                      <li>Lakukan pengujian rutin menggunakan tombol <strong>"Uji Validasi Restore"</strong> untuk memastikan backup dapat dipulihkan dengan target <strong>RTO &le; 30 menit</strong>.</li>
+                      <li>Klik <strong>"Buat Backup Sekarang"</strong>, lalu unduh berkasnya dan simpan di flashdisk/NAS (di luar komputer server).</li>
+                      <li>Uji rutin dengan tombol <strong>perisai (Uji Pulih)</strong> untuk memastikan backup bisa dipulihkan; pemulihan dilakukan Super Admin di Maintenance Hub.</li>
                     </ol>
                   </div>
 
                   {/* Step Action & Navigation */}
                   <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
                     <button
-                      onClick={handleCreateBackup}
+                      onClick={() => setActiveTab('backup')}
                       className="w-full sm:w-auto px-5 py-2.5 bg-[#1F5C45] hover:bg-[#12372A] text-white text-xs font-bold rounded-2xl cursor-pointer active:scale-95 shadow-xs flex items-center justify-center gap-2"
                     >
                       <Download className="w-3.5 h-3.5" />
-                      <span>Buat Backup Snapshot Sekarang</span>
+                      <span>Buka Tab Backup</span>
                     </button>
 
                     <button

@@ -26,7 +26,10 @@ export const TrainingTrendChart: React.FC<Props> = ({ trends, onSelectDate }) =>
     );
   }
 
-  const maxVal = Math.max(...trends.map((t) => Math.max(t.scheduled, 10)), 10);
+  // Lengkapi titik data dengan nilai turunan (jumlah terjadwal & persentase) untuk grafik.
+  const points = trends.map((t) => ({ ...t, scheduled: t.eligible + t.cancelled, trainer_attended: t.attended, attendance_rate: t.eligible > 0 ? Math.round((t.attended / t.eligible) * 100) : null }));
+
+  const maxVal = Math.max(...points.map((t) => Math.max(t.scheduled, 10)), 10);
   const chartHeight = 160;
 
   return (
@@ -55,7 +58,7 @@ export const TrainingTrendChart: React.FC<Props> = ({ trends, onSelectDate }) =>
     >
       <div className="w-full flex flex-col justify-end space-y-3 pt-2">
         <div className="w-full h-44 flex items-end justify-between gap-2 px-2 border-b border-zinc-100 pb-2">
-          {trends.map((point, idx) => {
+          {points.map((point, idx) => {
             const attendedCount = point.trainer_attended;
             const cancelledCount = point.cancelled;
             const isHovered = hoveredIndex === idx;

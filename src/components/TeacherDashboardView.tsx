@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { todayLocalDate } from '../utils/today';
+import { apiClient } from '../services/apiClient';
 import { 
   AcademicSessionContext, 
   AcademicSubstitution, 
@@ -6,24 +8,18 @@ import {
   AttendanceSession, 
   AttendanceSessionParticipant, 
   LessonPeriod, 
-  Student, 
   Teacher, 
   User 
 } from '../types';
 import { TeacherAuthorizationService } from '../services/teacherAuthorizationService';
 import { AcademicAttendanceService } from '../services/academicAttendanceService';
 import { 
-  AlertCircle, 
   BookOpen, 
-  CheckCircle2, 
-  Clock, 
   Copy, 
-  DoorOpen, 
   Lock, 
   Play, 
   QrCode, 
   Radio, 
-  ShieldAlert, 
   Sparkles, 
   UserCheck, 
   Users 
@@ -74,12 +70,26 @@ export const TeacherDashboardView: React.FC<Props> = ({
   const safeSubstitutions = substitutions || [];
   const safeClassrooms = classrooms || [];
   const safeLessonPeriods = lessonPeriods || [];
+  const [presenceBusyId, setPresenceBusyId] = useState<number | null>(null);
+  const isCancelledSession = (sess: { status?: any }) => String(sess.status) === 'cancelled';
+  // Presensi mengajar guru (tahap 19): guru mencatat kehadirannya sendiri untuk jam pelajaran ini
+  const handleTeacherPresence = async (sessionId: number) => {
+    setPresenceBusyId(sessionId);
+    try {
+      const res: any = await apiClient.post(`/teaching/sessions/${sessionId}/manual`, {});
+      onShowToast(res?.message || 'Kehadiran mengajar tercatat.', 'success');
+    } catch (err: any) {
+      onShowToast(err?.message || 'Gagal mencatat kehadiran mengajar.', 'error');
+    } finally {
+      setPresenceBusyId(null);
+    }
+  };
 
   const [selectedTeacherId, setSelectedTeacherId] = useState<number>(
     safeTeachers.find((t) => t && (t.user_id === currentUser.id || (t.name || '').includes('Hasan')))?.id || safeTeachers[0]?.id || 1
   );
 
-  const [selectedDate, setSelectedDate] = useState<string>('2026-08-24'); // Monday date
+  const [selectedDate, setSelectedDate] = useState<string>(todayLocalDate());
 
   // Filter KBM sessions for this date
   const dateSessions = safeSessions.filter(
@@ -194,7 +204,7 @@ export const TeacherDashboardView: React.FC<Props> = ({
           <div className="w-12 h-12 rounded-full bg-slate-50 border border-slate-200 text-zinc-500 flex items-center justify-center mx-auto">
             <BookOpen className="w-6 h-6" />
           </div>
-          <h3 className="text-base font-bold text-white">Tidak Ada Sesi Mengajar Hari Ini</h3>
+          <h3 className="text-base font-bold text-slate-900">Tidak Ada Sesi Mengajar Hari Ini</h3>
           <p className="text-xs text-slate-500 max-w-md mx-auto">
             Ustadz/Ustadzah tidak memiliki jadwal KBM yang harus diampu pada tanggal ini, atau sesi belum digenerate oleh Administrator.
           </p>
@@ -279,6 +289,16 @@ export const TeacherDashboardView: React.FC<Props> = ({
 
                 {/* Actions Grid */}
                 <div className="pt-2 border-t border-slate-200 grid grid-cols-2 gap-2">
+                  {!isCancelledSession(session) && (
+                    <button
+                      onClick={() => handleTeacherPresence(session.id)}
+                      disabled={presenceBusyId === session.id}
+                      className="col-span-2 py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs rounded-2xl border border-emerald-200 transition-all flex items-center justify-center gap-1.5 cursor-pointer min-h-[36px] disabled:opacity-60"
+                    >
+                      <UserCheck className="w-3.5 h-3.5" />
+                      <span>{presenceBusyId === session.id ? 'Mencatat…' : 'Catat Hadir Mengajar (Saya)'}</span>
+                    </button>
+                  )}
                   {!isOpen && !isClosed && (
                     <button
                       onClick={() => onOpenSession(session.id)}
@@ -293,7 +313,7 @@ export const TeacherDashboardView: React.FC<Props> = ({
                     <>
                       <button
                         onClick={() => onNavigateToManual(session.id)}
-                        className="py-2.5 bg-slate-50 hover:bg-slate-100 text-white font-bold text-xs rounded-2xl border border-slate-200 transition-all flex items-center justify-center gap-1.5 cursor-pointer min-h-[36px]"
+                        className="py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-800 font-bold text-xs rounded-2xl border border-slate-200 transition-all flex items-center justify-center gap-1.5 cursor-pointer min-h-[36px]"
                       >
                         <UserCheck className="w-3.5 h-3.5 text-[#2F7D5A]" />
                         <span>Absen Manual</span>
@@ -301,7 +321,7 @@ export const TeacherDashboardView: React.FC<Props> = ({
 
                       <button
                         onClick={() => onNavigateToQr(session.id)}
-                        className="py-2.5 bg-slate-50 hover:bg-slate-100 text-white font-bold text-xs rounded-2xl border border-slate-200 transition-all flex items-center justify-center gap-1.5 cursor-pointer min-h-[36px]"
+                        className="py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-800 font-bold text-xs rounded-2xl border border-slate-200 transition-all flex items-center justify-center gap-1.5 cursor-pointer min-h-[36px]"
                       >
                         <QrCode className="w-3.5 h-3.5 text-blue-400" />
                         <span>Scan QR</span>
@@ -309,7 +329,7 @@ export const TeacherDashboardView: React.FC<Props> = ({
 
                       <button
                         onClick={() => onNavigateToRfid(session.id)}
-                        className="py-2.5 bg-slate-50 hover:bg-slate-100 text-white font-bold text-xs rounded-2xl border border-slate-200 transition-all flex items-center justify-center gap-1.5 cursor-pointer min-h-[36px]"
+                        className="py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-800 font-bold text-xs rounded-2xl border border-slate-200 transition-all flex items-center justify-center gap-1.5 cursor-pointer min-h-[36px]"
                       >
                         <Radio className="w-3.5 h-3.5 text-amber-400" />
                         <span>Terminal RFID</span>
@@ -317,7 +337,7 @@ export const TeacherDashboardView: React.FC<Props> = ({
 
                       <button
                         onClick={() => handleCopyPrevious(session)}
-                        className="py-2.5 bg-slate-50 hover:bg-slate-100 text-white font-bold text-xs rounded-2xl border border-slate-200 transition-all flex items-center justify-center gap-1.5 cursor-pointer min-h-[36px]"
+                        className="py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-800 font-bold text-xs rounded-2xl border border-slate-200 transition-all flex items-center justify-center gap-1.5 cursor-pointer min-h-[36px]"
                         title="Salin data presensi dari JP sebelumnya jika mata pelajaran sama"
                       >
                         <Copy className="w-3.5 h-3.5 text-purple-400" />

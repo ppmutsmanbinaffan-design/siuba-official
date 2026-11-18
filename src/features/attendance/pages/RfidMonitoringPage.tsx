@@ -3,8 +3,6 @@ import {
   Radio, 
   RefreshCw, 
   Cpu, 
-  MapPin, 
-  Clock, 
   CheckCircle2, 
   AlertTriangle, 
   ShieldAlert, 
@@ -76,7 +74,7 @@ export const RfidMonitoringPage: React.FC<RfidMonitoringPageProps> = ({
             <div className="flex items-center gap-2 mb-2 flex-wrap">
               <span className="bg-white/15 border border-white/20 text-emerald-100 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1 backdrop-blur-xs">
                 <Sparkles className="w-3 h-3 text-[#C9A227]" />
-                SIUBA v1.1.3 PRODUCTION
+                SIUBA
               </span>
               <span className="text-[11px] text-emerald-100 font-bold bg-black/25 px-2.5 py-0.5 rounded-full border border-white/15 backdrop-blur-xs">
                 Hardware Gate & IoT Engine

@@ -1,10 +1,9 @@
 import { 
   Staff, 
   StaffAttendanceRecord, 
-  TeachingContextResolution, 
-  TeachingSession 
-} from '../types';
+  TeachingContextResolution} from '../types';
 import { TeachingSessionService } from './teachingSessionService';
+import { todayLocalDate } from '../utils/today';
 
 export class TeachingAttendanceContextResolver {
   public static readonly DEFAULT_GRACE_PERIOD_MINUTES = 5;
@@ -144,34 +143,4 @@ export class TeachingAttendanceContextResolver {
     };
   }
 
-  /**
-   * Finds the best active/upcoming teaching session for a teacher right now
-   */
-  public static resolveCurrentSessionForTeacher(
-    staffId: number, 
-    dateStr: string = new Date().toISOString().substring(0, 10),
-    timeNowStr: string = new Date().toISOString()
-  ): TeachingSession | undefined {
-    const todaySessions = TeachingSessionService.getTeachingSessions(dateStr, { teacherStaffId: staffId });
-    if (todaySessions.length === 0) return undefined;
-
-    const now = new Date(timeNowStr).getTime();
-
-    // Prefer session currently in progress or starting within next 20 mins
-    const sorted = [...todaySessions].sort((a, b) => {
-      const aStart = new Date(a.scheduled_start_at).getTime();
-      const bStart = new Date(b.scheduled_start_at).getTime();
-      return aStart - bStart;
-    });
-
-    const currentOrNext = sorted.find(s => {
-      if (s.status === 'completed' || s.status === 'cancelled') return false;
-      const startMs = new Date(s.scheduled_start_at).getTime();
-      const endMs = new Date(s.scheduled_end_at).getTime();
-      // Within window: 20 mins before start until end
-      return now >= (startMs - 20 * 60000) && now <= endMs;
-    });
-
-    return currentOrNext || sorted.find(s => s.status !== 'completed' && s.status !== 'cancelled') || sorted[0];
-  }
 }

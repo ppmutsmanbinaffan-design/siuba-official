@@ -16,6 +16,7 @@ class DormitoryRoom extends Model
         'name',
         'capacity',
         'supervisor_id',
+        'code',
         'is_active',
     ];
 

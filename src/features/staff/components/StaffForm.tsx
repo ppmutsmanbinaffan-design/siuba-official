@@ -7,8 +7,6 @@ import { PersonAvatar } from '../../../components/common/PersonAvatar';
 import { 
   User as UserIcon, 
   Briefcase, 
-  Phone, 
-  Mail, 
   Upload, 
   Check, 
   X, 
@@ -16,6 +14,7 @@ import {
   Radio, 
   Clock 
 } from 'lucide-react';
+import { todayLocalDate } from '../../../utils/today';
 
 export interface StaffFormData {
   staff_number: string;
@@ -65,7 +64,7 @@ export const StaffForm: React.FC<StaffFormProps> = ({
     email: initialData?.email || '',
     department: initialData?.department || '',
     position: initialData?.position || '',
-    join_date: initialData?.join_date || new Date().toISOString().substring(0, 10),
+    join_date: initialData?.join_date || todayLocalDate(),
     requires_daily_attendance: initialData?.requires_daily_attendance !== undefined ? initialData.requires_daily_attendance : true,
     is_active: initialData?.is_active !== undefined ? initialData.is_active : true,
     user_id: initialData?.user_id ?? null,

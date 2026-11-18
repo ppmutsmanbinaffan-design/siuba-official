@@ -1,4 +1,5 @@
-import { ExcusalStatus, ExcusalType, StudentExcusal, AttendanceSession } from '../types';
+import { ExcusalType, StudentExcusal, AttendanceSession } from '../types';
+import { todayLocalDate } from '../utils/today';
 
 export class ExcuseService {
   /**
@@ -19,23 +20,11 @@ export class ExcuseService {
     return excuseStart <= sessionEnd && excuseEnd >= sessionStart;
   }
 
-  /**
-   * Find approved active excuse for a student in a session
-   */
-  static findActiveApprovedExcuse(
-    studentId: number,
-    session: AttendanceSession,
-    excusals: StudentExcusal[]
-  ): StudentExcusal | undefined {
-    return excusals.find(
-      (e) => e.student_id === studentId && this.isExcuseActiveForSession(e, session)
-    );
-  }
 
   /**
    * Filter excusals active for today
    */
-  static getTodayExcusals(excusals: StudentExcusal[], dateStr: string = new Date().toISOString().slice(0, 10)): StudentExcusal[] {
+  static getTodayExcusals(excusals: StudentExcusal[], dateStr: string = todayLocalDate()): StudentExcusal[] {
     const targetDayStart = new Date(`${dateStr}T00:00:00`).getTime();
     const targetDayEnd = new Date(`${dateStr}T23:59:59`).getTime();
 
@@ -46,35 +35,5 @@ export class ExcuseService {
     });
   }
 
-  /**
-   * Get semantic label for ExcusalType
-   */
-  static getTypeLabel(type: ExcusalType): string {
-    switch (type) {
-      case 'permission':
-        return 'Izin (Keluarga / Keperluan)';
-      case 'sick':
-        return 'Sakit (UKS / Rawat)';
-      case 'dispensation':
-        return 'Dispensasi (Lomba / Tugas)';
-      default:
-        return type;
-    }
-  }
 
-  /**
-   * Get semantic status label for ExcusalStatus
-   */
-  static getStatusLabel(status: ExcusalStatus): { label: string; bg: string; text: string; border: string } {
-    switch (status) {
-      case 'approved':
-        return { label: 'Disetujui', bg: 'bg-emerald-500/10', text: 'text-emerald-400', border: 'border-emerald-500/30' };
-      case 'pending':
-        return { label: 'Menunggu Persetujuan', bg: 'bg-amber-500/10', text: 'text-amber-400', border: 'border-amber-500/30' };
-      case 'rejected':
-        return { label: 'Ditolak', bg: 'bg-rose-500/10', text: 'text-rose-400', border: 'border-rose-500/30' };
-      case 'cancelled':
-        return { label: 'Dibatalkan', bg: 'bg-zinc-800', text: 'text-zinc-400', border: 'border-zinc-700' };
-    }
-  }
 }

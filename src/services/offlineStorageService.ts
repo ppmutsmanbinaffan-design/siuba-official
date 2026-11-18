@@ -66,26 +66,6 @@ export class OfflineStorageService {
     }
   }
 
-  /**
-   * Save clock offset from server
-   */
-  public static saveClockOffset(serverTimeIso: string): number {
-    const serverMs = new Date(serverTimeIso).getTime();
-    const clientMs = Date.now();
-    const offsetMs = serverMs - clientMs;
-
-    try {
-      localStorage.setItem(STORAGE_KEY_METADATA, JSON.stringify({
-        last_sync: new Date().toISOString(),
-        clock_offset_ms: offsetMs,
-        server_time_reference: serverTimeIso
-      }));
-    } catch (e) {
-      console.warn('Storage error', e);
-    }
-
-    return offsetMs;
-  }
 
   public static getClockOffset(): number {
     try {
@@ -209,25 +189,8 @@ export class OfflineStorageService {
     }
   }
 
-  public static getCachedParticipantsForSession(sessionId: number): CachedParticipant[] {
-    return (this.getAllCachedParticipants() || []).filter(p => p.session_id === sessionId);
-  }
 
-  public static findCachedParticipantByQr(sessionId: number, qrToken: string): CachedParticipant | undefined {
-    const participants = this.getCachedParticipantsForSession(sessionId) || [];
-    const cleanToken = qrToken.trim();
-    return participants.find(p => 
-      p.qr_token === cleanToken || 
-      p.student_number === cleanToken || 
-      cleanToken.includes(p.student_number)
-    );
-  }
 
-  public static findCachedParticipantByRfid(sessionId: number, rfidUid: string): CachedParticipant | undefined {
-    const participants = this.getCachedParticipantsForSession(sessionId) || [];
-    const cleanUid = rfidUid.trim().toUpperCase();
-    return participants.find(p => p.rfid_uid && p.rfid_uid.toUpperCase() === cleanUid);
-  }
 
   /**
    * Pending Attendance Queue Management

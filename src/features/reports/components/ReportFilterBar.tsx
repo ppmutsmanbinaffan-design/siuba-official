@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Filter, Calendar, X, RotateCcw, SlidersHorizontal } from 'lucide-react';
+import { todayLocalDate, shiftLocalDate } from '../../../utils/today';
 import { ActiveFilterChip } from '../types';
 
 interface Props {
@@ -45,15 +46,13 @@ export const ReportFilterBar: React.FC<Props> = ({
 
   const handleDatePreset = (preset: 'today' | '7days' | 'this_month') => {
     if (!onDateChange) return;
-    const now = new Date();
-    const todayStr = now.toISOString().substring(0, 10);
+    // Tanggal lokal WIB (dulu memakai UTC → sebelum pukul 07:00 "Hari ini" menjadi kemarin)
+    const todayStr = todayLocalDate();
 
     if (preset === 'today') {
       onDateChange(todayStr, todayStr);
     } else if (preset === '7days') {
-      const d7 = new Date();
-      d7.setDate(d7.getDate() - 6);
-      onDateChange(d7.toISOString().substring(0, 10), todayStr);
+      onDateChange(shiftLocalDate(-6, todayStr), todayStr);
     } else if (preset === 'this_month') {
       const firstDay = todayStr.substring(0, 7) + '-01';
       onDateChange(firstDay, todayStr);

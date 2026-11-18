@@ -1,7 +1,6 @@
 import React, { useEffect } from 'react';
-import { CheckCircle2, Clock, AlertTriangle, XCircle, UserCheck, ShieldAlert, Sparkles } from 'lucide-react';
+import { CheckCircle2, Clock, AlertTriangle, XCircle, Sparkles } from 'lucide-react';
 import { QrScanHistoryItem } from '../types';
-import { AttendanceStatusBadge } from './AttendanceStatusBadge';
 import { AttendanceMethodBadge } from './AttendanceMethodBadge';
 import { AudioFeedbackService } from '../../../services/audioFeedbackService';
 import { PersonAvatar } from '../../../components/common/PersonAvatar';

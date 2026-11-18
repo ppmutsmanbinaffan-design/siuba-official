@@ -1,8 +1,8 @@
 import React from 'react';
-import { Radio, MapPin, Clock, AlertTriangle, ShieldCheck, Activity, Cpu } from 'lucide-react';
+import { Radio, MapPin, Clock, AlertTriangle, Activity } from 'lucide-react';
 import { AttendanceDevice, AttendanceDeviceLog } from '../types';
 import { DeviceStatusBadge } from './DeviceStatusBadge';
-import { getDeviceStatus, maskRfidUid, formatAttendanceTime } from '../utils/attendanceUtils';
+import { getDeviceStatus, formatAttendanceTime } from '../utils/attendanceUtils';
 
 interface RfidDeviceCardProps {
   device: AttendanceDevice;

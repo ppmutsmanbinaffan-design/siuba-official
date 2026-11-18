@@ -3,28 +3,16 @@ import {
   Radio, 
   Cpu, 
   Terminal, 
-  Play, 
   RotateCcw, 
-  CheckCircle2, 
-  AlertTriangle, 
-  XCircle, 
   Wifi, 
-  ShieldAlert, 
   Clock, 
-  Layers, 
   Sparkles, 
-  User, 
   Check, 
   Zap, 
   Volume2,
   VolumeX,
-  Server,
   Award,
-  Activity,
-  Copy,
-  Check,
-  ShieldCheck
-} from 'lucide-react';
+  Copy} from 'lucide-react';
 import { 
   Activity as ActivityType, 
   AttendanceDevice, 
@@ -39,6 +27,7 @@ import {
 } from '../types';
 import { RfidAttendanceService } from '../services/rfidAttendanceService';
 import { AudioFeedbackService } from '../services/audioFeedbackService';
+import { defaultChimeEnabled } from '../services/attendanceRulesService';
 import { StudentIdentityService } from '../services/studentIdentityService';
 
 interface Props {
@@ -75,7 +64,7 @@ export const RfidSimulatorView: React.FC<Props> = ({
   const rfidDevices = devices.filter((d) => d.device_type === 'rfid_reader');
   const [selectedDeviceId, setSelectedDeviceId] = useState<number>(rfidDevices[0]?.id || 1);
   const [customRfidInput, setCustomRfidInput] = useState<string>('04 A8 7F 12');
-  const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
+  const [soundEnabled, setSoundEnabled] = useState<boolean>(() => defaultChimeEnabled());
   const [deviceMode, setDeviceMode] = useState<'attendance' | 'enrollment'>('attendance');
   const [isCopiedLog, setIsCopiedLog] = useState(false);
 
@@ -124,7 +113,7 @@ export const RfidSimulatorView: React.FC<Props> = ({
     plain_secret_preview: 'sec_live_msj01_dev',
     ip_address: '192.168.1.101'
   };
-  const activeSession = sessions.find((s) => s.id === currentDevice?.current_session_id) || sessions.find((s) => s.status === 'open') || sessions[0];
+  const activeSession = sessions.find((s) => s.id === (currentDevice as any)?.current_session_id) || sessions.find((s) => s.status === 'open') || sessions[0];
 
   const serialBottomRef = useRef<HTMLDivElement>(null);
 
@@ -298,7 +287,7 @@ export const RfidSimulatorView: React.FC<Props> = ({
           <div className="flex items-center gap-2 mb-2 flex-wrap">
             <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-white/15 text-emerald-100 border border-white/20 uppercase tracking-wider flex items-center gap-1 backdrop-blur-xs">
               <Award className="w-3 h-3 text-[#C9A227]" />
-              SIUBA v1.1.3 PRODUCTION
+              SIUBA
             </span>
             <span className="text-[11px] text-emerald-100 font-bold bg-black/25 px-2.5 py-0.5 rounded-full border border-white/15 backdrop-blur-xs flex items-center gap-1">
               <Radio className="w-3.5 h-3.5 text-[#C9A227]" />

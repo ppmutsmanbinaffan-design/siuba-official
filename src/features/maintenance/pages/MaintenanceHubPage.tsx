@@ -5,10 +5,7 @@ import {
   Database, 
   ShieldCheck, 
   FileText, 
-  Sliders, 
-  ShieldAlert,
-  Lock
-} from 'lucide-react';
+  Sliders} from 'lucide-react';
 import { MaintenanceSubTab, MaintenanceSystemConfig, BackupRecord } from '../types';
 import { MaintenanceService } from '../services/maintenanceService';
 import { User } from '../../../types';
@@ -17,7 +14,7 @@ import { BackupCenterTab } from '../components/BackupCenterTab';
 import { SafeResetWizardTab } from '../components/SafeResetWizardTab';
 import { IntegrityCheckTab } from '../components/IntegrityCheckTab';
 import { MaintenanceLogsTab } from '../components/MaintenanceLogsTab';
-import { EnvironmentGuardModal } from '../components/EnvironmentGuardModal';
+import { apiClient } from '../../../services/apiClient';
 
 interface MaintenanceHubPageProps {
   currentUser: User;
@@ -45,25 +42,49 @@ export const MaintenanceHubPage: React.FC<MaintenanceHubPageProps> = ({
   const isSuperAdmin = MaintenanceService.checkPermission(currentUser, 'reset');
 
   useEffect(() => {
-    refreshAll();
-  }, []);
+    void refreshAll();
+  }, [activeTab]); // data status/log selalu terbaru saat pindah tab
 
-  const refreshAll = () => {
-    setConfig(MaintenanceService.getConfig());
-    setBackups(MaintenanceService.getBackups());
-    setLogs(MaintenanceService.getLogs());
+  // Semua data halaman ini dari server (dulu dihitung dari data browser)
+  const [overview, setOverview] = useState<any>(null);
+  const refreshAll = async () => {
+    try {
+      const res: any = await apiClient.get('/maintenance/overview');
+      const o = res?.data;
+      setOverview(o);
+      if (o?.config) {
+        setConfig((prev) => ({ ...prev, app_env: o.config.app_env, allow_database_reset: !!o.config.allow_database_reset, maintenance_mode: !!o.config.maintenance_mode }));
+      }
+    } catch (err: any) {
+      if (onShowToast) onShowToast(err?.message || 'Gagal memuat status sistem dari server.', 'error');
+    }
+    try {
+      const lg: any = await apiClient.get('/maintenance/logs');
+      setLogs(lg?.data || []);
+    } catch {
+      /* log opsional */
+    }
   };
+
+  const fmtBytes = (b?: number | null) => (b == null ? '-' : b > 1048576 ? `${(b / 1048576).toFixed(2)} MB` : `${(b / 1024).toFixed(1)} KB`);
+  const serverSummary = overview
+    ? {
+        totalRecords: Object.values(overview.counts || {}).reduce((a: number, b: any) => a + Number(b || 0), 0) as number,
+        sizeBytes: overview.db_size_bytes || 0,
+        sizeHuman: fmtBytes(overview.db_size_bytes),
+        lastBackup: overview.last_backup
+          ? { id: overview.last_backup.backup_id, size_human: fmtBytes(overview.last_backup.size), created_at: overview.last_backup.created_at }
+          : null,
+        metrics: Object.entries(overview.counts || {}).map(([k, v]) => ({ label: overview.labels?.[k] || k, count: Number(v), domain: 'Server', color: 'emerald' })),
+      }
+    : undefined;
 
   const handleShowToast = (msg: string, type: 'success' | 'error' | 'info' = 'success') => {
     if (onShowToast) onShowToast(msg, type);
   };
 
-  const handleSaveConfig = (partial: Partial<MaintenanceSystemConfig>) => {
-    const updated = MaintenanceService.updateConfig(partial, currentUser);
-    setConfig(updated);
-    refreshAll();
-    handleShowToast('Konfigurasi environment & safety guard berhasil disimpan.', 'success');
-  };
+  const showEnvInfo = () =>
+    handleShowToast('Izin reset diatur di file .env server: SIUBA_ALLOW_DATABASE_RESET=true/false, lalu jalankan php artisan optimize:clear.', 'info');
 
   return (
     <div id="siuba-maintenance-hub" className="space-y-6 pb-12">
@@ -110,7 +131,7 @@ export const MaintenanceHubPage: React.FC<MaintenanceHubPageProps> = ({
       <div className="flex items-center gap-2 p-1.5 bg-slate-100/90 dark:bg-zinc-900/90 rounded-2xl border border-slate-200/80 dark:border-zinc-800 pb-1.5 overflow-x-auto scrollbar-none shadow-2xs">
         {[
           { id: 'status', label: 'Status Sistem', icon: Server },
-          { id: 'backup', label: `Backup Database (${backups.length})`, icon: HardDrive },
+          { id: 'backup', label: 'Backup Database', icon: HardDrive },
           { id: 'reset', label: 'Reset Database', icon: Database, badge: isSuperAdmin ? 'Terproteksi' : 'Kunci' },
           { id: 'integrity', label: 'Pemeriksaan Integritas', icon: ShieldCheck },
           { id: 'logs', label: `Log Maintenance (${logs.length})`, icon: FileText },
@@ -151,7 +172,9 @@ export const MaintenanceHubPage: React.FC<MaintenanceHubPageProps> = ({
           fullDataset={fullDataset}
           config={config}
           onNavigateTab={(t) => setActiveTab(t)}
-          onOpenEnvGuard={() => setIsEnvGuardOpen(true)}
+          onOpenEnvGuard={showEnvInfo}
+          summaryOverride={serverSummary}
+          lastIntegrityOverride={overview?.last_integrity || null}
           onRunQuickIntegrityScan={() => setActiveTab('integrity')}
         />
       )}
@@ -175,7 +198,7 @@ export const MaintenanceHubPage: React.FC<MaintenanceHubPageProps> = ({
           onRefreshData={refreshAll}
           onResetCompleted={(newData) => {
             onResetCompleted(newData);
-            refreshAll();
+            void refreshAll();
           }}
           onShowToast={handleShowToast}
           onNavigateToIntegrity={() => setActiveTab('integrity')}
@@ -185,6 +208,7 @@ export const MaintenanceHubPage: React.FC<MaintenanceHubPageProps> = ({
 
       {activeTab === 'integrity' && (
         <IntegrityCheckTab
+          initialResult={overview?.last_integrity || null}
           currentUser={currentUser}
           fullDataset={fullDataset}
           onShowToast={handleShowToast}
@@ -201,14 +225,6 @@ export const MaintenanceHubPage: React.FC<MaintenanceHubPageProps> = ({
         />
       )}
 
-      {/* Environment Guard Modal */}
-      <EnvironmentGuardModal
-        isOpen={isEnvGuardOpen}
-        onClose={() => setIsEnvGuardOpen(false)}
-        config={config}
-        currentUser={currentUser}
-        onSaveConfig={handleSaveConfig}
-      />
     </div>
   );
 };

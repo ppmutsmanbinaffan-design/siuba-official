@@ -6,29 +6,20 @@ import {
   Check, 
   Plus, 
   Search, 
-  Filter, 
   Edit3, 
   Trash2, 
-  Power, 
   LogIn, 
-  Lock, 
-  Unlock, 
   Settings2, 
   SlidersHorizontal, 
-  CheckSquare, 
-  Square, 
   X, 
   Award, 
-  Layers, 
   ChevronRight, 
   Eye, 
   EyeOff,
   AlertTriangle,
   UserCheck,
-  UserX,
   Sparkles,
   Shield,
-  RefreshCw,
   Copy,
   Shuffle
 } from 'lucide-react';
@@ -423,7 +414,7 @@ export const AccessControlView: React.FC<Props> = ({
   const handleCopyCredentials = (user: User, passToCopy?: string) => {
     const pass = passToCopy || user.password || 'password';
     const assignedRoles = Array.isArray(user.roles) && user.roles.length > 0 ? user.roles.join(', ') : user.role;
-    const text = `*Kredensial Login SIUBA Pesantren*\nNama: ${user.name}\nUsername: ${user.username}\nPassword: ${pass}\nRole: ${assignedRoles}\nLink: http://192.168.1.10:8000`;
+    const text = `*Kredensial Login SIUBA Pesantren*\nNama: ${user.name}\nUsername: ${user.username}\nPassword: ${pass}\nRole: ${assignedRoles}\nLink: ${window.location.origin}`;
     navigator.clipboard.writeText(text);
     setCopiedId(user.id);
     setTimeout(() => setCopiedId(null), 2500);
@@ -576,18 +567,10 @@ export const AccessControlView: React.FC<Props> = ({
     setFormName(user.name);
     setFormUsername(user.username);
     setFormEmail(user.email);
-    setFormPassword(user.password || 'password');
+    setFormPassword(''); // kosong = password tidak diubah (dulu terisi 'password' sehingga ikut ter-reset)
     const userRoles = Array.isArray(user.roles) && user.roles.length > 0 ? user.roles : [user.role || 'guru'];
     setFormRoles(userRoles);
     setFormRole(userRoles[0] || 'guru');
-    setFormIsActive(user.is_active);
-    setShowPasswordInForm(false);
-  };
-    setFormName(user.name);
-    setFormUsername(user.username);
-    setFormEmail(user.email);
-    setFormPassword(user.password || 'password');
-    setFormRole(user.role);
     setFormIsActive(user.is_active);
     setShowPasswordInForm(false);
   };
@@ -766,7 +749,7 @@ export const AccessControlView: React.FC<Props> = ({
           <div className="flex items-center gap-2 mb-2 flex-wrap">
             <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-white/15 text-emerald-100 border border-white/20 uppercase tracking-wider flex items-center gap-1 backdrop-blur-xs">
               <Award className="w-3 h-3 text-[#C9A227]" />
-              SIUBA v1.1.3 PRODUCTION
+              SIUBA
             </span>
             <span className="text-[11px] text-emerald-100 font-bold bg-black/25 px-2.5 py-0.5 rounded-full border border-white/15 backdrop-blur-xs flex items-center gap-1">
               <ShieldCheck className="w-3.5 h-3.5 text-[#C9A227]" />
@@ -1100,22 +1083,11 @@ export const AccessControlView: React.FC<Props> = ({
 
                           <td className="p-4 text-right">
                             <div className="flex items-center justify-end gap-1.5">
-                              {/* Switch / Test Login */}
-                              <button
-                                onClick={() => {
-                                  onSelectUser(user);
-                                  onShowToast(`Beralih ke akun "${user.name}" (@${user.username}).`, 'success');
-                                }}
-                                className={`px-2.5 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1 transition-all cursor-pointer ${
-                                  isCurrent
-                                    ? 'bg-[#1F5C45] text-white shadow-2xs'
-                                    : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-200'
-                                }`}
-                                title="Login & Gunakan Akun Ini"
-                              >
-                                <LogIn className="w-3.5 h-3.5" />
-                                <span className="hidden sm:inline">{isCurrent ? 'Aktif' : 'Login'}</span>
-                              </button>
+                              {isCurrent && (
+                                <span className="px-2.5 py-1.5 rounded-xl font-bold text-xs bg-[#1F5C45] text-white" title="Akun yang sedang Anda pakai">
+                                  Akun Anda
+                                </span>
+                              )}
 
                               {/* Edit Password Button */}
                               <button
@@ -1270,19 +1242,6 @@ export const AccessControlView: React.FC<Props> = ({
                       <span>Kustomisasi Hak Akses</span>
                     </button>
 
-                    {assignedUsers.length > 0 && (
-                      <button
-                        onClick={() => {
-                          const firstUser = assignedUsers[0];
-                          onSelectUser(firstUser);
-                          onShowToast(`Beralih login ke akun role ${role.label} (${firstUser.name}).`, 'success');
-                        }}
-                        className="px-3.5 py-2 bg-[#1F5C45] hover:bg-[#12372A] text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer active:scale-95 flex items-center gap-1.5"
-                      >
-                        <LogIn className="w-3.5 h-3.5" />
-                        <span>Coba Role Ini</span>
-                      </button>
-                    )}
                   </div>
                 </div>
               );
@@ -1714,7 +1673,7 @@ export const AccessControlView: React.FC<Props> = ({
                   <div className="relative">
                     <input
                       type={showPasswordInForm ? 'text' : 'password'}
-                      placeholder="Ubah password..."
+                      placeholder="Kosongkan jika tidak diubah (min. 8 karakter)"
                       value={formPassword}
                       onChange={(e) => setFormPassword(e.target.value)}
                       className="w-full bg-slate-50 text-slate-900 font-mono font-bold pl-3.5 pr-10 py-2.5 rounded-xl border border-slate-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
@@ -1863,7 +1822,7 @@ export const AccessControlView: React.FC<Props> = ({
                   </button>
                 </div>
                 <div className="p-2.5 bg-white rounded-xl border border-slate-200 font-mono text-[11px] text-slate-700 whitespace-pre-wrap leading-relaxed select-all">
-                  {`Nama: ${passwordModalUser.name}\nUsername: ${passwordModalUser.username}\nPassword: ${passwordNewInput || passwordModalUser.password || 'password'}\nRole: ${passwordModalUser.role}\nLink SIUBA: http://192.168.1.10:8000`}
+                  {`Nama: ${passwordModalUser.name}\nUsername: ${passwordModalUser.username}\nPassword: ${passwordNewInput || passwordModalUser.password || 'password'}\nRole: ${passwordModalUser.role}\nLink SIUBA: ${window.location.origin}`}
                 </div>
               </div>
 

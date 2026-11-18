@@ -5,6 +5,7 @@ import {
   AttendanceSummary, 
   StudentExcusal 
 } from '../types';
+import { todayLocalDate } from '../utils/today';
 
 export class AttendanceSummaryService {
   /**
@@ -97,7 +98,7 @@ export class AttendanceSummaryService {
     sessions: AttendanceSession[] = [],
     participants: AttendanceSessionParticipant[] = [],
     records: AttendanceRecord[] = [],
-    dateStr: string = '2026-08-23'
+    dateStr: string = todayLocalDate()
   ) {
     const todaySessions = (sessions || []).filter((s) => s && (s.session_date === dateStr || (s.start_at && s.start_at.startsWith(dateStr))));
     const openSessions = todaySessions.filter((s) => s && s.status === 'open');

@@ -3,7 +3,7 @@ import { Student, UserRole } from '../../../types';
 import { PersonAvatar } from '../../../components/common/PersonAvatar';
 import { StatusBadge } from '../../../components/common/StatusBadge';
 import { ActionMenu, ActionMenuItem } from '../../../components/ui/ActionMenu';
-import { Eye, Edit3, Power, GraduationCap, Home, BookOpen } from 'lucide-react';
+import { Eye, Edit3, Power, Home, BookOpen } from 'lucide-react';
 import { hasPermission } from '../../../components/auth/PermissionGuard';
 import { authService } from '../../../services/authService';
 

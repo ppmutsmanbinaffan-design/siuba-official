@@ -8,10 +8,6 @@ import {
   Radio, 
   FileText, 
   ChevronRight, 
-  Sparkles,
-  Download,
-  Printer,
-  ShieldCheck,
   TrendingUp
 } from 'lucide-react';
 import { User } from '../../../types';

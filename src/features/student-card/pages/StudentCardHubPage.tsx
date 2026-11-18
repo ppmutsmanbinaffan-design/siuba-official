@@ -1,16 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  CreditCard, 
-  Layers, 
   Printer, 
   Sliders, 
   Sparkles, 
   Plus, 
-  Eye, 
-  LayoutTemplate,
-  ChevronRight,
-  ShieldCheck
-} from 'lucide-react';
+  LayoutTemplate} from 'lucide-react';
 import { 
   Student, 
   Classroom, 
@@ -21,7 +15,7 @@ import {
   CardOrientation 
 } from '../../../types';
 import { 
-  StudentCardTemplateService, 
+  StudentCardTemplateService, syncCardTemplatesFromServer,
   DEFAULT_CARD_TEMPLATES, 
   CR80_SPECS 
 } from '../../../services/studentCardTemplateService';
@@ -75,6 +69,11 @@ export const StudentCardHubPage: React.FC<StudentCardHubPageProps> = ({
   // Load Templates from Service
   useEffect(() => {
     loadTemplates();
+    // Desain kartu disimpan di server: ambil versi terbaru lalu tampilkan ulang
+    void syncCardTemplatesFromServer().then((changed) => { if (changed) loadTemplates(); });
+    const onSyncError = (e: Event) => onShowToast?.((e as CustomEvent).detail, 'error');
+    window.addEventListener('siuba:card-templates-sync-error', onSyncError);
+    return () => window.removeEventListener('siuba:card-templates-sync-error', onSyncError);
   }, []);
 
   const loadTemplates = () => {
@@ -277,7 +276,7 @@ export const StudentCardHubPage: React.FC<StudentCardHubPageProps> = ({
             <div className="flex items-center gap-2 mb-2 flex-wrap">
               <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-white/15 text-emerald-100 border border-white/20 uppercase tracking-wider flex items-center gap-1 backdrop-blur-xs">
                 <Sparkles className="w-3 h-3 text-[#C9A227]" />
-                SIUBA v1.1.3 PRODUCTION
+                SIUBA
               </span>
               <span className="text-[11px] text-emerald-100 font-bold bg-black/25 px-2.5 py-0.5 rounded-full border border-white/15 backdrop-blur-xs">
                 Desain & Cetak Kartu Santri

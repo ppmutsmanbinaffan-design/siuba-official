@@ -4,7 +4,6 @@ import { staffApi } from '../api/staffApi';
 import { PersonAvatar } from '../../../components/common/PersonAvatar';
 import { StatusBadge } from '../../../components/common/StatusBadge';
 import { DetailSection, DetailField } from '../../../components/common/DetailField';
-import { PageHeader } from '../../../components/layout/PageHeader';
 import { Button } from '../../../components/ui/Button';
 import { LoadingState } from '../../../components/ui/LoadingState';
 import { 
@@ -13,8 +12,6 @@ import {
   User as UserIcon, 
   Briefcase, 
   Phone, 
-  Calendar, 
-  CreditCard, 
   QrCode, 
   Radio, 
   Clock, 
@@ -219,7 +216,7 @@ export const StaffDetailPage: React.FC<StaffDetailPageProps> = ({
             <DetailField
               label="Jenis Kelamin"
               value={
-                staff.gender === 'male' || staff.gender === 'L'
+                staff.gender === 'male' || (staff.gender as string) === 'L'
                   ? 'Laki-laki (Ikhwan)'
                   : 'Perempuan (Akhwat)'
               }

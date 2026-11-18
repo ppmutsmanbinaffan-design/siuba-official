@@ -20,6 +20,8 @@ class AttendanceDevice extends Model
         'ip_address',
         'last_seen_at',
         'is_active',
+        'mode',
+        'current_session_id',
     ];
 
     protected $casts = [

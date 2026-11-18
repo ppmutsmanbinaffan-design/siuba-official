@@ -1,27 +1,12 @@
 import React, { useState, useMemo } from 'react';
+import { getInstitution } from '../../../services/institutionService';
 import { 
-  Radio, 
-  Search, 
-  Filter, 
-  Download, 
-  Printer, 
   Eye, 
-  CheckCircle2, 
   Clock, 
-  AlertCircle, 
-  XCircle,
-  FileSpreadsheet,
-  ChevronRight,
-  ShieldCheck,
   Cpu,
-  Activity as ActivityIcon,
   Wifi,
   WifiOff,
-  AlertTriangle,
-  Server,
-  Layers,
-  Sparkles
-} from 'lucide-react';
+  AlertTriangle} from 'lucide-react';
 import { 
   User, 
   AttendanceDevice,
@@ -33,6 +18,7 @@ import { ReportPagination } from '../components/ReportPagination';
 import { ReportDetailModal } from '../components/ReportDetailModal';
 import { ReportPrintView } from '../components/ReportPrintView';
 import { ActiveFilterChip, PaginationState } from '../types';
+import { todayLocalDate } from '../../../utils/today';
 
 interface Props {
   currentUser: User;
@@ -63,110 +49,9 @@ export const DeviceReportPage: React.FC<Props> = ({
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
 
-  const allDevices = useMemo(() => {
-    if (devices.length > 0) return devices;
-    return [
-      {
-        id: 1,
-        device_code: 'DEV-RFID-MASJID-01',
-        device_name: 'ESP32 RFID Gerbang Masjid Utama',
-        device_type: 'rfid_fixed' as const,
-        device_mode: 'rfid' as const,
-        location_label: 'Gerbang Masjid Utama',
-        ip_address: '192.168.1.101',
-        status: 'online' as const,
-        is_active: true,
-        last_ping_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
-        firmware_version: 'v2.4.1-rc3',
-      },
-      {
-        id: 2,
-        device_code: 'DEV-QR-KBM-01',
-        device_name: 'Kiosk QR Scanner Gedung Kelas A',
-        device_type: 'qr_kiosk' as const,
-        device_mode: 'qr' as const,
-        location_label: 'Lobi Kelas Abu Bakar',
-        ip_address: '192.168.1.102',
-        status: 'online' as const,
-        is_active: true,
-        last_ping_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
-        firmware_version: 'v1.8.0',
-      },
-      {
-        id: 3,
-        device_code: 'DEV-DUAL-ASRAMA-01',
-        device_name: 'Dual Reader RFID/QR Asrama Umar',
-        device_type: 'dual_kiosk' as const,
-        device_mode: 'dual' as const,
-        location_label: 'Pintu Masuk Asrama Umar',
-        ip_address: '192.168.1.103',
-        status: 'online' as const,
-        is_active: true,
-        last_ping_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
-        firmware_version: 'v3.0.1',
-      },
-      {
-        id: 4,
-        device_code: 'DEV-RFID-KANTIN-01',
-        device_name: 'Tap RFID Kantin & Aula',
-        device_type: 'rfid_fixed' as const,
-        device_mode: 'rfid' as const,
-        location_label: 'Aula Pertemuan',
-        ip_address: '192.168.1.104',
-        status: 'offline' as const,
-        is_active: true,
-        last_ping_at: '2026-08-28 17:30:00',
-        firmware_version: 'v2.1.0',
-      }
-    ];
-  }, [devices]);
-
-  const allLogs = useMemo(() => {
-    if (deviceLogs.length > 0) return deviceLogs;
-    const nowStr = new Date().toISOString().slice(0, 19).replace('T', ' ');
-    return [
-      {
-        id: 1,
-        device_id: 1,
-        event_type: 'TAP_SUCCESS',
-        payload_preview: 'UID: 04:A2:3B:5C:7E (Ahmad Fauzi)',
-        response_code: 200,
-        status: 'SUCCESS',
-        ip_address: '192.168.1.101',
-        created_at: nowStr,
-      },
-      {
-        id: 2,
-        device_id: 2,
-        event_type: 'QR_SCAN_SUCCESS',
-        payload_preview: 'QR: SIUBA-STU-20260192',
-        response_code: 200,
-        status: 'SUCCESS',
-        ip_address: '192.168.1.102',
-        created_at: nowStr,
-      },
-      {
-        id: 3,
-        device_id: 1,
-        event_type: 'DUPLICATE_TAP_BLOCKED',
-        payload_preview: 'UID: 04:A2:3B:5C:7E (Cooldown Active)',
-        response_code: 429,
-        status: 'BLOCKED',
-        ip_address: '192.168.1.101',
-        created_at: nowStr,
-      },
-      {
-        id: 4,
-        device_id: 4,
-        event_type: 'PING_TIMEOUT',
-        payload_preview: 'Heartbeat ping failed after 3 retries',
-        response_code: 504,
-        status: 'ERROR',
-        ip_address: '192.168.1.104',
-        created_at: '2026-08-28 17:30:00',
-      }
-    ];
-  }, [deviceLogs]);
+  // Hanya data perangkat & log asli dari server (sebelumnya diisi contoh fiktif saat kosong).
+  const allDevices = devices;
+  const allLogs = deviceLogs;
 
   const filteredDevices = useMemo(() => {
     return allDevices.filter((d) => {
@@ -186,13 +71,13 @@ export const DeviceReportPage: React.FC<Props> = ({
     return allLogs.filter((log) => {
       const matchSearch = !searchQuery.trim() || 
         log.event_type.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (log.payload_preview && log.payload_preview.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (log.ip_address && log.ip_address.includes(searchQuery));
+        (log.message || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (log.device_code || '').toLowerCase().includes(searchQuery.toLowerCase());
       
       const matchStatus = statusFilter === 'ALL' || log.status === statusFilter;
 
       if (subView === 'anomalies') {
-        return matchSearch && (log.status === 'ERROR' || log.status === 'BLOCKED' || log.event_type.includes('BLOCKED') || log.event_type.includes('TIMEOUT'));
+        return matchSearch && (String(log.status).toUpperCase() === 'ERROR' || ['BLOCKED', 'WARNING'].includes(String(log.status).toUpperCase()) || log.event_type.includes('BLOCKED') || log.event_type.includes('TIMEOUT'));
       }
 
       return matchSearch && matchStatus;
@@ -263,16 +148,16 @@ export const DeviceReportPage: React.FC<Props> = ({
           csvContent += `"${d.id}","${d.device_code}","${d.device_name}","${d.device_type}","${d.device_mode}","${d.location_label || '-'}","${d.ip_address || '-'}","${d.status}","${d.firmware_version || '-'}","${d.last_ping_at || '-'}"\n`;
         });
       } else {
-        csvContent += 'ID,Waktu,Event Type,Payload Preview,Status,Response Code,IP Address\n';
+        csvContent += 'ID,Waktu,Event Type,Pesan,Status,Level,Kode Perangkat\n';
         filteredLogs.forEach((l: any) => {
-          csvContent += `"${l.id}","${l.created_at || '-'}","${l.event_type}","${l.payload_preview || '-'}","${l.status}","${l.response_code || '-'}","${l.ip_address || '-'}"\n`;
+          csvContent += `"${l.id}","${l.created_at || '-'}","${l.event_type}","${l.message || '-'}","${l.status}","${l.level || "-"}","${l.device_code || "-"}"\n`;
         });
       }
 
       const encodedUri = encodeURI(csvContent);
       const link = document.createElement('a');
       link.setAttribute('href', encodedUri);
-      link.setAttribute('download', `SIUBA_Laporan_Perangkat_${subView}_${new Date().toISOString().slice(0, 10)}.csv`);
+      link.setAttribute('download', `SIUBA_Laporan_Perangkat_${subView}_${todayLocalDate()}.csv`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -288,13 +173,12 @@ export const DeviceReportPage: React.FC<Props> = ({
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6" id="device-report-page">
       <ReportHeader
+        categoryName="Infrastruktur & IoT"
         title="Laporan Perangkat & Operasional IoT"
-        subtitle="Monitoring status mesin tap RFID ESP32, Kiosk Scanner QR, log transaksi pemindaian, dan deteksi anomali jaringan."
-        categoryBadge="Infrastruktur & IoT"
-        categoryColor="rose"
-        icon={Radio}
+        description="Status mesin tap RFID dan scanner QR, log pemindaian, serta deteksi anomali."
+        badgeColor="rose"
         onBackToHub={onBackToHub}
-        onExport={() => handleExport('csv')}
+        onExportCsv={() => handleExport('csv')}
         onPrint={() => handleExport('print')}
         isExporting={isExporting}
       />
@@ -375,9 +259,8 @@ export const DeviceReportPage: React.FC<Props> = ({
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         activeChips={activeChips}
-        onClearChip={handleClearFilter}
-        onResetAll={handleResetFilters}
-        totalResults={currentItems.length}
+        onRemoveChip={handleClearFilter}
+        onResetFilters={handleResetFilters}
       >
         <div className="flex flex-wrap items-center gap-3">
           {subView === 'devices' && (
@@ -508,9 +391,9 @@ export const DeviceReportPage: React.FC<Props> = ({
                 <tr>
                   <th className="py-3.5 px-4">Waktu Pemindaian</th>
                   <th className="py-3.5 px-4">Tipe Event</th>
-                  <th className="py-3.5 px-4">Payload Kartu / Token</th>
-                  <th className="py-3.5 px-4">Status & Respon</th>
-                  <th className="py-3.5 px-4">IP Mesin</th>
+                  <th className="py-3.5 px-4">Pesan</th>
+                  <th className="py-3.5 px-4">Status</th>
+                  <th className="py-3.5 px-4">Kode Perangkat</th>
                   <th className="py-3.5 px-4 text-center">Detail</th>
                 </tr>
               </thead>
@@ -531,24 +414,24 @@ export const DeviceReportPage: React.FC<Props> = ({
                         <span className="font-bold text-zinc-900 dark:text-zinc-100">{log.event_type}</span>
                       </td>
                       <td className="py-3 px-4 font-mono text-[11px] text-zinc-700 dark:text-zinc-300">
-                        {log.payload_preview || '-'}
+                        {log.message || '-'}
                       </td>
                       <td className="py-3 px-4">
-                        {log.status === 'SUCCESS' ? (
+                        {String(log.status).toUpperCase() === 'SUCCESS' ? (
                           <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
-                            SUCCESS ({log.response_code || 200})
+                            SUCCESS
                           </span>
-                        ) : log.status === 'BLOCKED' ? (
+                        ) : ['BLOCKED', 'WARNING'].includes(String(log.status).toUpperCase()) ? (
                           <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold">
-                            BLOCKED ({log.response_code || 429})
+                            BLOCKED
                           </span>
                         ) : (
                           <span className="px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 text-[10px] font-bold">
-                            ERROR ({log.response_code || 500})
+                            ERROR
                           </span>
                         )}
                       </td>
-                      <td className="py-3 px-4 font-mono text-[11px] text-zinc-500">{log.ip_address || '-'}</td>
+                      <td className="py-3 px-4 font-mono text-[11px] text-zinc-500">{log.device_code || "-"}</td>
                       <td className="py-3 px-4 text-center">
                         <button
                           onClick={() => setDetailModalData({
@@ -558,10 +441,10 @@ export const DeviceReportPage: React.FC<Props> = ({
                               'ID Log': log.id,
                               'Waktu Event': log.created_at || '-',
                               'Jenis Event': log.event_type,
-                              'Payload / UID': log.payload_preview || '-',
+                              'Payload / UID': log.message || '-',
                               'Status Respon': log.status,
                               'HTTP Code': log.response_code || 200,
-                              'IP Address Perangkat': log.ip_address || '-',
+                              'IP Address Perangkat': log.device_code || "-",
                             }
                           })}
                           className="p-1.5 rounded-lg bg-zinc-100 dark:bg-zinc-800 hover:bg-[#1F5C45] hover:text-white transition-colors cursor-pointer"
@@ -599,33 +482,29 @@ export const DeviceReportPage: React.FC<Props> = ({
         <ReportPrintView
           isOpen={isPrintOpen}
           onClose={() => setIsPrintOpen(false)}
-          reportTitle="Laporan Infrastruktur & Status Perangkat Presensi"
-          subtitle={`Pesantren Utsman Bin Affan • Dicetak pada: ${new Date().toLocaleDateString('id-ID')}`}
-          tableHeaders={
-            subView === 'devices' 
-              ? ['Kode', 'Nama Mesin', 'Tipe', 'Lokasi', 'IP Address', 'Status', 'Last Ping']
-              : ['Waktu', 'Event Type', 'Payload Data', 'Status', 'HTTP Code', 'IP Mesin']
-          }
-          tableRows={
+          title={subView === 'devices' ? 'Laporan Status Perangkat Presensi' : 'Laporan Log Perangkat Presensi'}
+          subtitle={getInstitution().name}
+          periodText={`Dicetak pada ${new Date().toLocaleDateString('id-ID')}`}
+          columns={
             subView === 'devices'
-              ? filteredDevices.map((d) => [
-                  d.device_code,
-                  d.device_name,
-                  d.device_mode.toUpperCase(),
-                  d.location_label || '-',
-                  d.ip_address || '-',
-                  d.status.toUpperCase(),
-                  d.last_ping_at || '-'
-                ])
-              : filteredLogs.map((l: any) => [
-                  l.created_at || '-',
-                  l.event_type,
-                  l.payload_preview || '-',
-                  l.status,
-                  String(l.response_code || '-'),
-                  l.ip_address || '-'
-                ])
+              ? [
+                  { header: 'Kode', accessor: (d: any) => d.device_code },
+                  { header: 'Nama Mesin', accessor: (d: any) => d.device_name },
+                  { header: 'Mode', accessor: (d: any) => String(d.device_mode || d.mode || '-').toUpperCase() },
+                  { header: 'Lokasi', accessor: (d: any) => d.location_label || d.location || '-' },
+                  { header: 'IP Address', accessor: (d: any) => d.ip_address || '-' },
+                  { header: 'Status', accessor: (d: any) => String(d.status || '-').toUpperCase() },
+                  { header: 'Terakhir Terhubung', accessor: (d: any) => d.last_ping_at ? new Date(d.last_ping_at).toLocaleString('id-ID') : '-' },
+                ]
+              : [
+                  { header: 'Waktu', accessor: (l: any) => l.created_at ? new Date(l.created_at).toLocaleString('id-ID') : '-' },
+                  { header: 'Event', accessor: (l: any) => l.event_type },
+                  { header: 'Pesan', accessor: (l: any) => l.message || '-' },
+                  { header: 'Status', accessor: (l: any) => String(l.status || '-').toUpperCase() },
+                  { header: 'Kode Perangkat', accessor: (l: any) => l.device_code || '-' },
+                ]
           }
+          data={subView === 'devices' ? filteredDevices : filteredLogs}
         />
       )}
     </div>

@@ -2,11 +2,9 @@ import React, { useState, useEffect, useMemo } from 'react';
 import QRCode from 'qrcode';
 import { 
   User, 
-  Users, 
   CheckCircle2, 
   Clock, 
   AlertCircle, 
-  Calendar, 
   IdCard, 
   QrCode, 
   Printer, 
@@ -14,24 +12,18 @@ import {
   Sparkles, 
   Home, 
   GraduationCap, 
-  Award, 
   Phone, 
   Mail, 
-  MapPin, 
-  ShieldCheck, 
   Search, 
   Check, 
   X, 
   MoonStar, 
   Layers, 
-  CalendarDays, 
   Briefcase,
-  AlertTriangle,
   FileText
 } from 'lucide-react';
 import { 
   Student, 
-  Staff, 
   Classroom, 
   Dormitory, 
   DormitoryRoom, 
@@ -108,7 +100,7 @@ export const Profile360View: React.FC<Profile360ViewProps> = ({
     const matchedStudent = students.find(
       (s) =>
         s.name.toLowerCase().includes(currentUser.name.toLowerCase()) ||
-        s.nis === currentUser.username
+        s.student_number === currentUser.username
     );
 
     if (matchedStudent) {
@@ -152,7 +144,7 @@ export const Profile360View: React.FC<Profile360ViewProps> = ({
   // Generate QR Code data URL whenever active student or staff changes
   useEffect(() => {
     const token = entityType === 'student' ? activeStudent?.qr_token : activeStaff?.qr_token;
-    const fallback = entityType === 'student' ? `SAN-${activeStudent?.nis}` : `STF-${activeStaff?.staff_number}`;
+    const fallback = entityType === 'student' ? `SAN-${activeStudent?.student_number}` : `STF-${activeStaff?.staff_number}`;
     const code = token || fallback;
 
     if (code) {
@@ -190,10 +182,10 @@ export const Profile360View: React.FC<Profile360ViewProps> = ({
   // Halaqah lookup
   const studentHalaqahInfo = useMemo(() => {
     if (!activeStudent) return null;
-    const member = halaqahMembers.find((hm) => hm.student_id === activeStudent.id && hm.status === 'active');
+    const member = halaqahMembers.find((hm) => hm.student_id === activeStudent.id && hm.is_active !== false && !hm.left_at);
     if (!member) return null;
     const halaqah = halaqahs.find((h) => h.id === member.halaqah_id);
-    const teacher = halaqah ? teachers.find((t) => t.id === halaqah.teacher_id) : null;
+    const teacher = halaqah ? teachers.find((t) => t.id === halaqah.supervisor_id) : null;
     return { member, halaqah, teacher };
   }, [activeStudent, halaqahMembers, halaqahs, teachers]);
 
@@ -208,7 +200,7 @@ export const Profile360View: React.FC<Profile360ViewProps> = ({
     if (!activeStudent) return [];
     return records
       .filter((r) => r.student_id === activeStudent.id)
-      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      .sort((a, b) => new Date(b.check_in_at || b.received_at || 0).getTime() - new Date(a.check_in_at || a.received_at || 0).getTime());
   }, [activeStudent, records]);
 
   // Student Excusals
@@ -216,7 +208,7 @@ export const Profile360View: React.FC<Profile360ViewProps> = ({
     if (!activeStudent) return [];
     return excusals
       .filter((e) => e.student_id === activeStudent.id)
-      .sort((a, b) => new Date(b.created_at || b.start_date).getTime() - new Date(a.created_at || a.start_date).getTime());
+      .sort((a, b) => new Date(b.created_at || b.start_at).getTime() - new Date(a.created_at || a.start_at).getTime());
   }, [activeStudent, excusals]);
 
   // Student Attendance Summary
@@ -227,7 +219,7 @@ export const Profile360View: React.FC<Profile360ViewProps> = ({
     }
     const present = studentRecords.filter((r) => r.status === 'present').length;
     const late = studentRecords.filter((r) => r.status === 'late').length;
-    const excused = studentRecords.filter((r) => r.status === 'excused').length;
+    const excused = studentRecords.filter((r) => r.status === 'permission' || r.status === 'dispensation').length;
     const sick = studentRecords.filter((r) => r.status === 'sick').length;
     const absent = studentRecords.filter((r) => r.status === 'absent').length;
     const rate = Math.round(((present + late) / total) * 100);
@@ -239,7 +231,7 @@ export const Profile360View: React.FC<Profile360ViewProps> = ({
     return students.filter((s) => {
       const matchSearch =
         s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        s.nis.toLowerCase().includes(searchQuery.toLowerCase());
+        s.student_number.toLowerCase().includes(searchQuery.toLowerCase());
       const matchClass =
         filterClassOrDept === 'ALL' || String(s.classroom_id) === filterClassOrDept;
       return matchSearch && matchClass;
@@ -383,7 +375,7 @@ export const Profile360View: React.FC<Profile360ViewProps> = ({
                 ) : (
                   filteredStudents.map((s) => (
                     <option key={s.id} value={s.id}>
-                      {s.name} ({s.nis})
+                      {s.name} ({s.student_number})
                     </option>
                   ))
                 )
@@ -435,7 +427,7 @@ export const Profile360View: React.FC<Profile360ViewProps> = ({
               <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-4 gap-y-1 text-sm text-slate-300">
                 <span>
                   {entityType === 'student'
-                    ? `NIS: ${activeStudent?.nis || '-'}`
+                    ? `NIS: ${activeStudent?.student_number || '-'}`
                     : `NIP: ${activeStaff?.staff_number || '-'}`}
                 </span>
                 <span className="text-slate-500">•</span>
@@ -460,7 +452,7 @@ export const Profile360View: React.FC<Profile360ViewProps> = ({
                   <>
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 text-xs font-medium border border-emerald-500/30">
                       <GraduationCap className="w-3.5 h-3.5" />
-                      Tingkat: {studentClassroom?.level || 'MA/SMA'}
+                      Tingkat: {studentClassroom?.grade_level || '-'}
                     </span>
                     {studentHalaqahInfo?.halaqah && (
                       <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-teal-500/20 text-teal-300 text-xs font-medium border border-teal-500/30">
@@ -751,7 +743,7 @@ export const Profile360View: React.FC<Profile360ViewProps> = ({
                     <span className="font-semibold text-zinc-900">{activeStudent?.name}</span>
 
                     <span className="text-zinc-500">NIS</span>
-                    <span className="font-semibold text-zinc-900">{activeStudent?.nis}</span>
+                    <span className="font-semibold text-zinc-900">{activeStudent?.student_number}</span>
 
                     <span className="text-zinc-500">NISN</span>
                     <span className="font-semibold text-zinc-900">{activeStudent?.nisn || '-'}</span>
@@ -786,12 +778,12 @@ export const Profile360View: React.FC<Profile360ViewProps> = ({
                     <span className="font-semibold text-zinc-900">{studentRoom?.name || '-'}</span>
 
                     <span className="text-zinc-500">Nama Wali / Orang Tua</span>
-                    <span className="font-semibold text-zinc-900">{activeStudent?.parent_name || 'H. Abdullah'}</span>
+                    <span className="font-semibold text-zinc-900">{activeStudent?.guardian_name || '-'}</span>
 
                     <span className="text-zinc-500">Nomor Telepon Wali</span>
                     <span className="font-semibold text-zinc-900 flex items-center gap-1 text-emerald-700">
                       <Phone className="w-3.5 h-3.5" />
-                      {activeStudent?.parent_phone || '0812-9876-5432'}
+                      {activeStudent?.guardian_phone || '-'}
                     </span>
 
                     <span className="text-zinc-500">Alamat Rumah</span>
@@ -920,14 +912,14 @@ export const Profile360View: React.FC<Profile360ViewProps> = ({
                     </thead>
                     <tbody className="divide-y divide-zinc-200">
                       {studentRecords.slice(0, 15).map((rec) => {
-                        const session = sessions.find((s) => s.id === rec.session_id);
+                        const session = sessions.find((s) => s.id === rec.attendance_session_id);
                         return (
                           <tr key={rec.id} className="hover:bg-zinc-50/80 transition-colors">
                             <td className="py-3 px-4 font-mono text-xs text-zinc-700">
-                              {rec.timestamp ? new Date(rec.timestamp).toLocaleString('id-ID') : '-'}
+                              {(rec.check_in_at || rec.received_at) ? new Date((rec.check_in_at || rec.received_at) as string).toLocaleString('id-ID') : '-'}
                             </td>
                             <td className="py-3 px-4 font-medium text-zinc-900">
-                              {session?.name || `Sesi #${rec.session_id}`}
+                              {session?.activity_name || `Sesi #${rec.attendance_session_id}`}
                             </td>
                             <td className="py-3 px-4">
                               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-zinc-100 text-zinc-700">
@@ -946,7 +938,7 @@ export const Profile360View: React.FC<Profile360ViewProps> = ({
                                   Terlambat
                                 </span>
                               )}
-                              {rec.status === 'excused' && (
+                              {(rec.status === 'permission' || rec.status === 'dispensation') && (
                                 <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-blue-100 text-blue-800">
                                   Izin Resmi
                                 </span>
@@ -1006,10 +998,10 @@ export const Profile360View: React.FC<Profile360ViewProps> = ({
                               : 'Pelatih Ekskul'}
                           </td>
                           <td className="py-3 px-4 font-mono text-xs text-zinc-800">
-                            {rec.check_in_time || '-'}
+                            {rec.check_in_at ? new Date(rec.check_in_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-'}
                           </td>
                           <td className="py-3 px-4 font-mono text-xs text-zinc-800">
-                            {rec.check_out_time || '-'}
+                            {rec.check_out_at ? new Date(rec.check_out_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-'}
                           </td>
                           <td className="py-3 px-4">
                             <span
@@ -1077,10 +1069,10 @@ export const Profile360View: React.FC<Profile360ViewProps> = ({
                       {studentExcusals.map((exc) => (
                         <tr key={exc.id} className="hover:bg-zinc-50/80 transition-colors">
                           <td className="py-3 px-4 font-mono text-xs text-zinc-700">
-                            {exc.start_date} s/d {exc.end_date}
+                            {exc.start_at?.slice(0, 10)} s/d {exc.end_at?.slice(0, 10)}
                           </td>
                           <td className="py-3 px-4 font-semibold text-zinc-900 capitalize">
-                            {exc.category}
+                            {exc.type}
                           </td>
                           <td className="py-3 px-4 text-zinc-700 text-xs max-w-xs truncate">
                             {exc.reason}
@@ -1136,10 +1128,10 @@ export const Profile360View: React.FC<Profile360ViewProps> = ({
                       {activeStaff360?.absence_history.map((ab) => (
                         <tr key={ab.id} className="hover:bg-zinc-50/80 transition-colors">
                           <td className="py-3 px-4 font-mono text-xs text-zinc-700">
-                            {ab.start_date} s/d {ab.end_date}
+                            {ab.start_at?.slice(0, 10)} s/d {ab.end_at?.slice(0, 10)}
                           </td>
                           <td className="py-3 px-4 font-semibold text-zinc-900 capitalize">
-                            {ab.request_type}
+                            {ab.type}
                           </td>
                           <td className="py-3 px-4 text-xs text-zinc-700">
                             {ab.reason}
@@ -1224,8 +1216,8 @@ export const Profile360View: React.FC<Profile360ViewProps> = ({
                           className="p-3 bg-white rounded-xl border border-zinc-200/80 flex items-center justify-between text-sm"
                         >
                           <div>
-                            <span className="font-bold text-zinc-900 capitalize">{dr.day_of_week}</span>
-                            <p className="text-xs text-zinc-500 capitalize">{dr.duty_type}</p>
+                            <span className="font-bold text-zinc-900 capitalize">{dr.date ? new Date(dr.date + 'T00:00:00').toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short' }) : '-'}</span>
+                            <p className="text-xs text-zinc-500 capitalize">{dr.activity_name || dr.role}</p>
                           </div>
                           <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
                             Aktif
@@ -1373,7 +1365,7 @@ export const Profile360View: React.FC<Profile360ViewProps> = ({
                     </h4>
                     <p className="text-[11px] font-mono text-amber-300 font-bold">
                       {entityType === 'student'
-                        ? `NIS: ${activeStudent?.nis}`
+                        ? `NIS: ${activeStudent?.student_number}`
                         : `NIP: ${activeStaff?.staff_number || '-'}`}
                     </p>
                     <p className="text-[10px] text-emerald-100">

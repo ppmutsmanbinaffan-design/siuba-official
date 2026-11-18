@@ -128,7 +128,7 @@ class ExtracurricularAndEventTest extends TestCase
             checkInTime: Carbon::now('Asia/Jakarta')
         );
 
-        $this->assertTrue($recResult->success);
+        $this->assertTrue($recResult->success, $recResult->code->value . ': ' . $recResult->message);
         $this->assertEquals(1, AttendanceRecord::where('attendance_session_id', $attendanceSession->id)->count());
     }
 }

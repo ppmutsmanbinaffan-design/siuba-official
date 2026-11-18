@@ -10,6 +10,16 @@ class AdminUserSeeder extends Seeder
 {
     public function run(): void
     {
+        // Akun yang sudah ada TIDAK diubah (password, nama, dan role tetap) — seeder aman dijalankan ulang.
+        $usernames = ['superadmin', 'musyrif.fauzi', 'guru.hasan', 'petugas.masjid', 'pimpinan.pondok', 'kepala.sekolah', 'kepala.asrama', 'pelatih.bambang', 'operator.faisal', 'admin.pondok', 'panitia.psb'];
+        $existing = User::whereIn('username', $usernames)->pluck('username')->all();
+        if (count($existing) === count($usernames)) {
+            User::where('username', 'superadmin')->first()?->assignRole('super-admin');
+            $this->command?->info('Akun bawaan sudah ada; password tidak diubah.');
+
+            return;
+        }
+
         // Password awal TIDAK lagi 'password'.
         // Isi ADMIN_DEFAULT_PASSWORD di .env, atau biarkan kosong agar dibuat acak
         // dan disimpan di storage/app/initial-admin-password.txt (hapus file itu setelah dibaca!).
@@ -25,7 +35,7 @@ class AdminUserSeeder extends Seeder
         $defaultPassword = Hash::make($plainPassword);
 
         // 1. Super Admin Account
-        $superAdmin = User::updateOrCreate(
+        $superAdmin = User::firstOrCreate(
             ['username' => 'superadmin'],
             [
                 'name' => 'Super Admin SIUBA',
@@ -34,10 +44,12 @@ class AdminUserSeeder extends Seeder
                 'is_active' => true,
             ]
         );
-        $superAdmin->syncRoles(['super-admin']);
+        if ($superAdmin->wasRecentlyCreated) {
+            $superAdmin->syncRoles(['super-admin']);
+        }
 
         // 2. Musyrif Account
-        $musyrif = User::updateOrCreate(
+        $musyrif = User::firstOrCreate(
             ['username' => 'musyrif.fauzi'],
             [
                 'name' => 'Ustadz Ahmad Fauzi, S.Pd.I',
@@ -46,10 +58,12 @@ class AdminUserSeeder extends Seeder
                 'is_active' => true,
             ]
         );
-        $musyrif->syncRoles(['musyrif']);
+        if ($musyrif->wasRecentlyCreated) {
+            $musyrif->syncRoles(['musyrif']);
+        }
 
         // 3. Guru / Pengajar Account
-        $guru = User::updateOrCreate(
+        $guru = User::firstOrCreate(
             ['username' => 'guru.hasan'],
             [
                 'name' => 'Ustadz Hasan Basri, M.Pd',
@@ -58,10 +72,12 @@ class AdminUserSeeder extends Seeder
                 'is_active' => true,
             ]
         );
-        $guru->syncRoles(['guru']);
+        if ($guru->wasRecentlyCreated) {
+            $guru->syncRoles(['guru']);
+        }
 
         // 4. Petugas Masjid Account
-        $petugasMasjid = User::updateOrCreate(
+        $petugasMasjid = User::firstOrCreate(
             ['username' => 'petugas.masjid'],
             [
                 'name' => 'Ustadz Ridwan Robbani',
@@ -70,22 +86,26 @@ class AdminUserSeeder extends Seeder
                 'is_active' => true,
             ]
         );
-        $petugasMasjid->syncRoles(['petugas-masjid']);
+        if ($petugasMasjid->wasRecentlyCreated) {
+            $petugasMasjid->syncRoles(['petugas-masjid']);
+        }
 
         // 5. Pimpinan Pesantren Account
-        $pimpinan = User::updateOrCreate(
+        $pimpinan = User::firstOrCreate(
             ['username' => 'pimpinan.pondok'],
             [
-                'name' => 'KH. Abdullah Gymnastiar, Lc.',
+                'name' => 'Pimpinan Pondok (contoh)',
                 'email' => 'pimpinan@utsman.sch.id',
                 'password' => $defaultPassword,
                 'is_active' => true,
             ]
         );
-        $pimpinan->syncRoles(['pimpinan']);
+        if ($pimpinan->wasRecentlyCreated) {
+            $pimpinan->syncRoles(['pimpinan']);
+        }
 
         // 6. Kepala Sekolah Account
-        $kepsek = User::updateOrCreate(
+        $kepsek = User::firstOrCreate(
             ['username' => 'kepala.sekolah'],
             [
                 'name' => 'Drs. H. Mulyadi, M.Pd.I',
@@ -94,10 +114,12 @@ class AdminUserSeeder extends Seeder
                 'is_active' => true,
             ]
         );
-        $kepsek->syncRoles(['kepala-sekolah']);
+        if ($kepsek->wasRecentlyCreated) {
+            $kepsek->syncRoles(['kepala-sekolah']);
+        }
 
         // 7. Kepala Asrama Account
-        $kestren = User::updateOrCreate(
+        $kestren = User::firstOrCreate(
             ['username' => 'kepala.asrama'],
             [
                 'name' => 'Ustadz Syamsuddin, S.Th.I',
@@ -106,10 +128,12 @@ class AdminUserSeeder extends Seeder
                 'is_active' => true,
             ]
         );
-        $kestren->syncRoles(['kepala-asrama']);
+        if ($kestren->wasRecentlyCreated) {
+            $kestren->syncRoles(['kepala-asrama']);
+        }
 
         // 8. Pelatih Account
-        $pelatih = User::updateOrCreate(
+        $pelatih = User::firstOrCreate(
             ['username' => 'pelatih.bambang'],
             [
                 'name' => 'Coach Bambang Pamungkas',
@@ -118,10 +142,12 @@ class AdminUserSeeder extends Seeder
                 'is_active' => true,
             ]
         );
-        $pelatih->syncRoles(['pelatih']);
+        if ($pelatih->wasRecentlyCreated) {
+            $pelatih->syncRoles(['pelatih']);
+        }
 
         // 9. Operator Account
-        $operator = User::updateOrCreate(
+        $operator = User::firstOrCreate(
             ['username' => 'operator.faisal'],
             [
                 'name' => 'Faisal Akbar, S.Kom',
@@ -130,10 +156,12 @@ class AdminUserSeeder extends Seeder
                 'is_active' => true,
             ]
         );
-        $operator->syncRoles(['operator']);
+        if ($operator->wasRecentlyCreated) {
+            $operator->syncRoles(['operator']);
+        }
 
         // 10. Admin Pondok Account
-        $adminPondok = User::updateOrCreate(
+        $adminPondok = User::firstOrCreate(
             ['username' => 'admin.pondok'],
             [
                 'name' => 'Ustadz Zulkifli, S.Sos',
@@ -142,10 +170,12 @@ class AdminUserSeeder extends Seeder
                 'is_active' => true,
             ]
         );
-        $adminPondok->syncRoles(['admin']);
+        if ($adminPondok->wasRecentlyCreated) {
+            $adminPondok->syncRoles(['admin']);
+        }
 
         // 11. Panitia PSB (Penerimaan Santri Baru) Account
-        $panitiaPsb = User::updateOrCreate(
+        $panitiaPsb = User::firstOrCreate(
             ['username' => 'panitia.psb'],
             [
                 'name' => 'Ustadz Hendra Irawan, S.Pd (Panitia PSB)',
@@ -154,6 +184,8 @@ class AdminUserSeeder extends Seeder
                 'is_active' => true,
             ]
         );
-        $panitiaPsb->syncRoles(['panitia-psb']);
+        if ($panitiaPsb->wasRecentlyCreated) {
+            $panitiaPsb->syncRoles(['panitia-psb']);
+        }
     }
 }

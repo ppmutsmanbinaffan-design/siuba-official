@@ -1,14 +1,3 @@
-import { 
-  User, 
-  Student, 
-  Staff, 
-  AttendanceSession, 
-  TeachingSession, 
-  TrainingSession,
-  AttendanceRecord,
-  StaffAttendanceRecord
-} from '../../types';
-import { MetricSummary } from '../../services/attendanceMetricService';
 import { StaffIntegratedDashboardData } from '../../types';
 
 export interface DashboardTopSummary {

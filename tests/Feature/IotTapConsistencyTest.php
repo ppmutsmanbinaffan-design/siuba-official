@@ -40,6 +40,9 @@ class IotTapConsistencyTest extends TestCase
             'services.nexabsen.auto_daily_session' => true,
         ]);
 
+        // Uji konsistensi aturan absensi → debounce tap dimatikan (diuji terpisah di AttendanceRulesTest)
+        \App\Models\AppSetting::put('attendance', array_merge(\App\Models\AppSetting::get('attendance'), ['rfid_debounce_seconds' => 0]));
+
         // Jam tetap: hari ini pukul 07:00
         $this->travelTo(Carbon::today()->setTime(7, 0));
 

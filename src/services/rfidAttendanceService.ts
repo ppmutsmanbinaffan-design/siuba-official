@@ -2,7 +2,6 @@ import {
   Activity, 
   AttendanceDevice, 
   AttendanceDeviceLog, 
-  AttendanceDeviceSession, 
   AttendanceRecord, 
   AttendanceSession, 
   AttendanceSessionParticipant, 
@@ -34,12 +33,10 @@ export class RfidAttendanceService {
    * Format: sec_live_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
    */
   static generateDeviceSecret(): string {
-    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
-    let rand = '';
-    for (let i = 0; i < 32; i++) {
-      rand += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return `sec_live_${rand}`;
+    // Token alat dipakai sungguhan oleh server (X-DEVICE-TOKEN): gunakan generator acak kriptografis
+    const bytes = new Uint8Array(24);
+    crypto.getRandomValues(bytes);
+    return `sec_live_${Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('')}`;
   }
 
   /**
@@ -541,108 +538,7 @@ export class RfidAttendanceService {
     };
   }
 
-  /**
-   * Device Heartbeat Handler
-   */
-  static processHeartbeat(params: {
-    deviceCode: string;
-    deviceSecret?: string;
-    authHeader?: string;
-    firmwareVersion?: string;
-    ipAddress?: string;
-    devices: AttendanceDevice[];
-  }): { 
-    success: boolean; 
-    server_time: string; 
-    code?: string; 
-    message?: string; 
-    device?: AttendanceDevice;
-    updatedDevice?: AttendanceDevice;
-    deviceLog?: AttendanceDeviceLog;
-  } {
-    const { deviceCode, deviceSecret, authHeader, firmwareVersion, ipAddress, devices } = params;
-    const serverTime = new Date().toISOString().slice(0, 19).replace('T', ' ');
 
-    const auth = this.authenticateDevice({ deviceCode, deviceSecret, authHeader, devices });
-    if (!auth.success || !auth.device) {
-      return {
-        success: false,
-        server_time: serverTime,
-        code: auth.code || 'UNAUTHORIZED',
-        message: auth.message || 'Heartbeat authentication failed.',
-      };
-    }
-
-    const device = auth.device;
-    const updatedDevice: AttendanceDevice = {
-      ...device,
-      last_seen_at: serverTime,
-      firmware_version: firmwareVersion || device.firmware_version || '1.0.0',
-      ip_address: ipAddress || device.ip_address,
-      updated_at: serverTime,
-    };
-
-    return {
-      success: true,
-      server_time: serverTime,
-      code: 'SUCCESS',
-      message: 'Heartbeat acknowledged.',
-      device,
-      updatedDevice,
-    };
-  }
-
-  /**
-   * Rotate Device Secret
-   */
-  static rotateDeviceSecret(params: {
-    deviceId: number;
-    devices: AttendanceDevice[];
-    operator: User;
-  }): { 
-    success: boolean; 
-    updatedDevice: AttendanceDevice; 
-    newPlainSecret: string; 
-    deviceLog: AttendanceDeviceLog;
-  } {
-    const { deviceId, devices, operator } = params;
-    const device = devices.find((d) => d.id === deviceId);
-    if (!device) {
-      throw new Error(`Device ID ${deviceId} not found.`);
-    }
-
-    const newSecret = this.generateDeviceSecret();
-    const newHash = this.hashSecret(newSecret);
-    const now = new Date().toISOString().slice(0, 19).replace('T', ' ');
-
-    const updatedDevice: AttendanceDevice = {
-      ...device,
-      api_token_hash: newHash,
-      plain_secret_preview: newSecret,
-      updated_at: now,
-    };
-
-    const deviceLog: AttendanceDeviceLog = {
-      id: Date.now(),
-      attendance_device_id: device.id,
-      device_code: device.device_code,
-      event_type: 'SECRET_ROTATED',
-      level: 'warning',
-      message: `Kredensial / Secret Key perangkat berhasil di-regenerasi oleh ${operator.name}. Token lama langsung invalid.`,
-      metadata: {
-        operator_id: operator.id,
-        operator_name: operator.name,
-      },
-      created_at: now,
-    };
-
-    return {
-      success: true,
-      updatedDevice,
-      newPlainSecret: newSecret,
-      deviceLog,
-    };
-  }
 
   /**
    * Check Device Online status based on last_seen_at (Online if seen within threshold, e.g. 2 minutes)

@@ -1,0 +1,69 @@
+{
+  "student_numbers": [
+    "UBA260001",
+    "UBA260002",
+    "UBA260003",
+    "UBA260004",
+    "UBA260005",
+    "UBA260006",
+    "UBA260007",
+    "UBA260008",
+    "UBA260009",
+    "UBA260010",
+    "UBA260011",
+    "UBA260012",
+    "UBA260013",
+    "UBA260014",
+    "UBA260015",
+    "UBA260099"
+  ],
+  "session_codes": [
+    "ATT-20260823-SUBUH-001",
+    "ATT-20260823-FIQIH-001",
+    "ATT-20260822-DZUHUR-001"
+  ],
+  "classroom_names": [
+    "VII A",
+    "VII B",
+    "VIII A",
+    "VIII B",
+    "IX A",
+    "IX B"
+  ],
+  "room_names": [
+    "Kamar Abu Bakar 01",
+    "Kamar Umar Bin Khattab 02",
+    "Kamar Utsman Bin Affan 03",
+    "Kamar Khadijah 01",
+    "Kamar Aisyah 02"
+  ],
+  "dormitory_names": [
+    "Asrama Putra Al-Fatih",
+    "Asrama Putri Aisyah"
+  ],
+  "activity_codes": [
+    "PRAYER-SUBUH",
+    "PRAYER-DZUHUR",
+    "PRAYER-ASHAR",
+    "PRAYER-MAGHRIB",
+    "PRAYER-ISYA",
+    "FIQIH-VII-A",
+    "TAHFIDZ-PAGI",
+    "TAHFIDZ-MALAM",
+    "APEL-ASRAMA-PUTRA",
+    "PIKET-A01",
+    "MAKAN-PAGI",
+    "BELAJAR-MALAM",
+    "MUHADHARAH-KAMIS"
+  ],
+  "staff_numbers": [
+    "STF260001",
+    "STF260002",
+    "STF260003",
+    "STF260004",
+    "STF260005",
+    "STF260006",
+    "STF260007",
+    "STF260008"
+  ]
+}

@@ -1,18 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { apiClient } from '../../../services/apiClient';
 import { 
   ShieldCheck, 
-  AlertTriangle, 
   CheckCircle2, 
   RefreshCw, 
   Search, 
-  Filter, 
-  Wrench, 
-  XCircle, 
-  Info,
-  Clock,
-  Layers,
-  Database
-} from 'lucide-react';
+  Wrench} from 'lucide-react';
 import { IntegrityAuditResult, IntegrityIssueItem, IntegritySeverityLevel } from '../types';
 import { MaintenanceService } from '../services/maintenanceService';
 import { User } from '../../../types';
@@ -22,29 +15,37 @@ interface IntegrityCheckTabProps {
   fullDataset: Record<string, any>;
   onShowToast: (msg: string, type: 'success' | 'error' | 'info') => void;
   onUpdateDataset?: (newDataset: Record<string, any>) => void;
+  /** Hasil pemeriksaan terakhir dari server */
+  initialResult?: IntegrityAuditResult | null;
 }
 
 export const IntegrityCheckTab: React.FC<IntegrityCheckTabProps> = ({
   currentUser,
   fullDataset,
   onShowToast,
-  onUpdateDataset
+  onUpdateDataset,
+  initialResult
 }) => {
   const [isRunning, setIsRunning] = useState<boolean>(false);
-  const [auditResult, setAuditResult] = useState<IntegrityAuditResult | null>(() => 
-    MaintenanceService.getLastIntegrityResult() || MaintenanceService.runIntegrityAudit(fullDataset)
-  );
+  const [auditResult, setAuditResult] = useState<IntegrityAuditResult | null>(initialResult || null);
+  useEffect(() => {
+    if (initialResult && !auditResult) setAuditResult(initialResult);
+  }, [initialResult]);
   const [selectedSeverity, setSelectedSeverity] = useState<'all' | IntegritySeverityLevel>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
-  const handleRunAudit = () => {
+  // Pemeriksaan dijalankan di server terhadap database sebenarnya
+  const handleRunAudit = async () => {
     setIsRunning(true);
-    setTimeout(() => {
-      const res = MaintenanceService.runIntegrityAudit(fullDataset);
-      setAuditResult(res);
+    try {
+      const res: any = await apiClient.post('/maintenance/integrity');
+      setAuditResult(res.data);
+      onShowToast(`Pemeriksaan integritas selesai. Skor kesehatan: ${res.data.health_score_percent}%`, 'success');
+    } catch (err: any) {
+      onShowToast(err?.message || 'Pemeriksaan integritas gagal.', 'error');
+    } finally {
       setIsRunning(false);
-      onShowToast(`Audit Integritas Selesai. Skor Kesehatan: ${res.health_score_percent}%`, 'success');
-    }, 600);
+    }
   };
 
   const handleRepairIssue = (issue: IntegrityIssueItem) => {

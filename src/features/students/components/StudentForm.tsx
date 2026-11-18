@@ -7,12 +7,9 @@ import { PersonAvatar } from '../../../components/common/PersonAvatar';
 import { 
   User, 
   BookOpen, 
-  Home, 
   Phone, 
-  Camera, 
   Upload, 
   Check, 
-  AlertCircle, 
   X,
   Sparkles
 } from 'lucide-react';

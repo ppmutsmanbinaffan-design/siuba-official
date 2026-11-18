@@ -1,7 +1,6 @@
 import React from 'react';
-import { Clock, Users, ArrowRight, QrCode, ClipboardCheck, Activity, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Clock, ArrowRight, QrCode, ClipboardCheck, CheckCircle2 } from 'lucide-react';
 import { OpenSessionMonitoringData } from '../types';
-import { AttendanceMethodBadge } from './AttendanceMethodBadge';
 import { formatAttendanceTime } from '../utils/attendanceUtils';
 
 interface OpenSessionMonitoringCardProps {

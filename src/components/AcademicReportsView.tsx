@@ -1,4 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { apiClient, isOfflineError } from '../services/apiClient';
+import { todayLocalDate } from '../utils/today';
 import { 
   AcademicSessionContext, 
   AttendanceRecord, 
@@ -11,21 +13,10 @@ import {
 import { AcademicAttendanceService } from '../services/academicAttendanceService';
 import { 
   Award,
-  BarChart3, 
-  BookOpen, 
-  Calendar,
-  CheckCircle2, 
-  Clock,
   Download, 
-  FileSpreadsheet, 
   Filter, 
-  Grid, 
-  Layers, 
   Printer, 
   Search, 
-  Users,
-  AlertTriangle,
-  HelpCircle,
   TrendingUp,
   UserCheck,
   UserX,
@@ -56,12 +47,44 @@ export const AcademicReportsView: React.FC<Props> = ({
 }) => {
   const safeClassrooms = classrooms || [];
   const safeStudents = students || [];
-  const safeSessions = sessions || [];
-  const safeRecords = records || [];
   const safeLessonPeriods = lessonPeriods || [];
 
-  const [selectedDate, setSelectedDate] = useState<string>('2026-08-24');
+  const [selectedDate, setSelectedDate] = useState<string>(todayLocalDate());
   const [selectedClassroom, setSelectedClassroom] = useState<number>(safeClassrooms[0]?.id || 1);
+
+  // Kelas dimuat belakangan: pilih kelas pertama bila pilihan saat ini tidak ada
+  useEffect(() => {
+    if (safeClassrooms.length && !safeClassrooms.some((c) => c.id === selectedClassroom)) {
+      setSelectedClassroom(safeClassrooms[0].id);
+    }
+  }, [safeClassrooms, selectedClassroom]);
+
+  // Data tanggal terpilih diambil dari server (aplikasi hanya memuat 14 hari terakhir)
+  const [dayData, setDayData] = useState<{ date: string; sessions: AttendanceSession[]; records: AttendanceRecord[] } | null>(null);
+  const [dayLoading, setDayLoading] = useState(false);
+  const [dayError, setDayError] = useState<string | null>(null);
+  useEffect(() => {
+    if (!selectedDate) return;
+    let cancelled = false;
+    setDayLoading(true);
+    (async () => {
+      try {
+        const res: any = await apiClient.get('/attendance/snapshot', { from: selectedDate, to: selectedDate });
+        if (cancelled) return;
+        setDayData({ date: selectedDate, sessions: res?.data?.sessions || [], records: res?.data?.records || [] });
+        setDayError(null);
+      } catch (err: any) {
+        if (cancelled) return;
+        setDayData(null);
+        setDayError(isOfflineError(err) ? 'Server tidak terjangkau: memakai data yang sudah dimuat (14 hari terakhir).' : err?.message || 'Gagal memuat data KBM.');
+      } finally {
+        if (!cancelled) setDayLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [selectedDate]);
+  const safeSessions = dayData?.date === selectedDate ? dayData.sessions : sessions || [];
+  const safeRecords = dayData?.date === selectedDate ? dayData.records : records || [];
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'perfect' | 'excused' | 'absent'>('all');
 
@@ -186,13 +209,18 @@ export const AcademicReportsView: React.FC<Props> = ({
 
   return (
     <div id="academic-reports-container" className="space-y-6 pb-12">
+      {(dayLoading || dayError) && (
+        <div className={`mb-3 p-2.5 rounded-xl text-xs font-semibold border ${dayError ? 'bg-amber-50 border-amber-200 text-amber-900' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
+          {dayError || 'Memuat data KBM tanggal ini dari server…'}
+        </div>
+      )}
       {/* Top SIUBA Emerald Header Banner */}
       <div className="bg-gradient-to-br from-[#1F5C45] via-[#1A503C] to-[#12382A] text-white p-6 sm:p-7 rounded-3xl border border-[#164735] shadow-md flex flex-col lg:flex-row lg:items-center justify-between gap-4 relative overflow-hidden print:hidden">
         <div className="relative z-10">
           <div className="flex items-center gap-2 mb-2 flex-wrap">
             <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-white/15 text-emerald-100 border border-white/20 uppercase tracking-wider flex items-center gap-1 backdrop-blur-xs">
               <Award className="w-3 h-3 text-[#C9A227]" />
-              SIUBA v1.1.3 PRODUCTION
+              SIUBA
             </span>
             <span className="text-[11px] text-emerald-100 font-bold bg-black/25 px-2.5 py-0.5 rounded-full border border-white/15 backdrop-blur-xs">
               Laporan & Matriks Kehadiran KBM

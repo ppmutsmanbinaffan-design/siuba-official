@@ -3,15 +3,9 @@ import {
   Database, 
   HardDrive, 
   ShieldCheck, 
-  ShieldAlert, 
-  Cpu, 
   Activity, 
-  Users, 
   FileText, 
-  CheckCircle2, 
   AlertTriangle, 
-  Clock, 
-  Layers,
   ArrowRight,
   RefreshCw,
   Sliders,
@@ -30,6 +24,9 @@ interface SystemStatusTabProps {
   onNavigateTab: (tab: MaintenanceSubTab) => void;
   onOpenEnvGuard: () => void;
   onRunQuickIntegrityScan: () => void;
+  /** Ringkasan & hasil integritas dari server (bila tersedia menggantikan perhitungan data browser) */
+  summaryOverride?: any;
+  lastIntegrityOverride?: any;
 }
 
 export const SystemStatusTab: React.FC<SystemStatusTabProps> = ({
@@ -38,12 +35,14 @@ export const SystemStatusTab: React.FC<SystemStatusTabProps> = ({
   config,
   onNavigateTab,
   onOpenEnvGuard,
-  onRunQuickIntegrityScan
+  onRunQuickIntegrityScan,
+  summaryOverride,
+  lastIntegrityOverride
 }) => {
-  const summary = MaintenanceService.getDatabaseSummary(fullDataset);
+  const summary = summaryOverride || MaintenanceService.getDatabaseSummary(fullDataset);
   const isSuperAdmin = MaintenanceService.checkPermission(currentUser, 'reset');
   const isProd = config.app_env === 'production';
-  const lastIntegrity = MaintenanceService.getLastIntegrityResult();
+  const lastIntegrity = lastIntegrityOverride !== undefined ? lastIntegrityOverride : MaintenanceService.getLastIntegrityResult();
 
   return (
     <div id="maintenance-system-status-tab" className="space-y-6">

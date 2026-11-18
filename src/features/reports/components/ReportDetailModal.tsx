@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Calendar, Clock, User, CheckCircle2, AlertCircle, MapPin, Radio, ShieldCheck } from 'lucide-react';
+import { X, ShieldCheck } from 'lucide-react';
 
 interface Props {
   isOpen: boolean;

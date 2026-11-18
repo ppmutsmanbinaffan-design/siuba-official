@@ -25,11 +25,21 @@ class Student extends Model
         'qr_token',
         'rfid_uid',
         'is_active',
+        'nickname',
+        'birth_place',
+        'birth_date',
+        'entry_year',
+        'guardian_name',
+        'guardian_phone',
+        'address',
+        'status',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
         'generation_year' => 'integer',
+        'entry_year' => 'integer',
+        'birth_date' => 'date',
     ];
 
     protected static function booted(): void

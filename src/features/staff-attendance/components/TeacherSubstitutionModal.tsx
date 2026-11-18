@@ -3,8 +3,7 @@ import { TeachingSession, Staff, User } from '../../../types';
 import { ResponsiveModal } from '../../../components/ui/ResponsiveModal';
 import { Button } from '../../../components/ui/Button';
 import { Select } from '../../../components/ui/Select';
-import { Input } from '../../../components/ui/Input';
-import { Users, AlertCircle, BookOpen, ArrowRight } from 'lucide-react';
+import { AlertCircle, ArrowRight } from 'lucide-react';
 import { StaffAttendanceApi } from '../api/staffAttendanceApi';
 
 interface TeacherSubstitutionModalProps {
@@ -85,11 +84,11 @@ export const TeacherSubstitutionModal: React.FC<TeacherSubstitutionModalProps> =
       onClose={onClose}
       title="Penugasan Resmi Guru Pengganti"
       description="Delegasikan sesi jam pelajaran ke guru pengganti resmi."
-      size="md"
+      maxWidth="md"
     >
       <form onSubmit={handleSubmit} className="space-y-4 pt-2">
         {errorMessage && (
-          <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2">
+          <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-700 text-xs flex items-center gap-2">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{errorMessage}</span>
           </div>
@@ -97,7 +96,7 @@ export const TeacherSubstitutionModal: React.FC<TeacherSubstitutionModalProps> =
 
         {/* Teaching Session Selector */}
         <div>
-          <label className="text-xs font-bold text-zinc-300 block mb-1.5">Pilih Sesi Jadwal KBM</label>
+          <label className="text-xs font-bold text-slate-700 block mb-1.5">Pilih Sesi Jadwal KBM</label>
           <Select
             value={selectedSessionId}
             onChange={(e) => {
@@ -118,13 +117,13 @@ export const TeacherSubstitutionModal: React.FC<TeacherSubstitutionModalProps> =
 
         {/* Selected Session Info */}
         {selectedSession && (
-          <div className="p-3 rounded-xl bg-zinc-950 border border-zinc-800 text-xs space-y-1.5">
-            <div className="flex items-center justify-between text-zinc-300">
-              <span className="text-zinc-500">Guru Asli / Utama:</span>
-              <span className="font-bold text-zinc-200">{selectedSession.teacher_name}</span>
+          <div className="p-3 rounded-xl bg-white border border-slate-200 text-xs space-y-1.5">
+            <div className="flex items-center justify-between text-slate-700">
+              <span className="text-slate-500">Guru Asli / Utama:</span>
+              <span className="font-bold text-slate-800">{selectedSession.teacher_name}</span>
             </div>
-            <div className="flex items-center justify-between text-zinc-400">
-              <span className="text-zinc-500">Mata Pelajaran & Kelas:</span>
+            <div className="flex items-center justify-between text-slate-600">
+              <span className="text-slate-500">Mata Pelajaran & Kelas:</span>
               <span>
                 {selectedSession.subject_name} — {selectedSession.classroom_name}
               </span>
@@ -134,7 +133,7 @@ export const TeacherSubstitutionModal: React.FC<TeacherSubstitutionModalProps> =
 
         {/* Substitute Teacher Selector */}
         <div>
-          <label className="text-xs font-bold text-cyan-400 block mb-1.5">Pilih Guru Pengganti</label>
+          <label className="text-xs font-bold text-cyan-700 block mb-1.5">Pilih Guru Pengganti</label>
           <Select
             value={substituteTeacherId}
             onChange={(e) => {
@@ -157,18 +156,18 @@ export const TeacherSubstitutionModal: React.FC<TeacherSubstitutionModalProps> =
 
         {/* Reason */}
         <div>
-          <label className="text-xs font-bold text-zinc-300 block mb-1.5">Alasan Delegasi / Penggantian</label>
+          <label className="text-xs font-bold text-slate-700 block mb-1.5">Alasan Delegasi / Penggantian</label>
           <textarea
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             rows={3}
             required
             placeholder="Contoh: Guru utama sedang dinas luar kurikulum di LPMP"
-            className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-900/90 border border-zinc-800 text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+            className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-200 text-xs text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
           />
         </div>
 
-        <div className="flex items-center justify-end gap-2 pt-3 border-t border-zinc-800">
+        <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-200">
           <Button type="button" variant="secondary" onClick={onClose} disabled={isSubmitting}>
             Batal
           </Button>
