@@ -159,7 +159,7 @@ class AbsensindoDeviceApiController extends Controller
             return [null, $this->error('Unauthorized', 401, ['reason' => 'invalid_token'])];
         }
         if (!$device->is_active) {
-            return [null, $this->error('Unauthorized', 401, ['reason' => 'device_inactive'])];
+            return [null, $this->error('Device sedang nonaktif.', 403, ['reason' => 'device_inactive'])];
         }
 
         return [$device, null];
@@ -197,7 +197,7 @@ class AbsensindoDeviceApiController extends Controller
     private function heartbeat(AttendanceDevice $device): JsonResponse
     {
         return $this->success('Device online', [
-            'reason' => 'heartbeat_received',
+            'reason' => 'ok',   // sesuai dokumentasi API Absensindo
             'server_time' => now()->format('Y-m-d H:i:s'),
             'sync_interval' => 60,
         ]);
@@ -222,15 +222,14 @@ class AbsensindoDeviceApiController extends Controller
         $status = $res->getStatusCode();
         $code = (string) ($r['code'] ?? '');
         $name = $r['data']['name'] ?? null;
-        $time = $scanned->format('Y-m-d H:i:s');
 
         $base = [
             'uid' => $r['data']['uid'] ?? $uid,
             'student_nisn' => $r['student']['student_number'] ?? $r['staff']['staff_number'] ?? null,
-            'student_name' => $name,
+            'student_name' => $name !== null ? mb_substr((string) $name, 0, 20) : null,   // LCD: maks. 20 karakter
             'student_class' => $r['student']['classroom'] ?? (isset($r['staff']) ? 'SDM' : null),
             'server_time' => now()->format('Y-m-d H:i:s'),
-            'time' => $time,
+            'time' => $scanned->format('H:i'),   // teks tampilan LCD (HH:MM)
         ];
         $detail = (string) ($r['detail'] ?? $r['message'] ?? '');
 
@@ -244,7 +243,7 @@ class AbsensindoDeviceApiController extends Controller
             return $this->error('UID tidak valid.', 422, ['reason' => 'invalid_card_code']);
         }
         if (in_array($code, ['DEVICE_NOT_ACTIVE', 'DEVICE_DISABLED'], true)) {
-            return $this->error('Unauthorized', 401, ['reason' => 'device_inactive']);
+            return $this->error('Device sedang nonaktif.', 403, ['reason' => 'device_inactive']);
         }
 
         $late = ($r['status'] ?? null) === 'late' || str_contains((string) ($r['message'] ?? ''), 'TELAT');

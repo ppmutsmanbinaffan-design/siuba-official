@@ -1297,5 +1297,9 @@ Pemasangan:
 3. Mesin mengaktifkan diri; Device Management menampilkan SN, MAC, versi firmware.
    Ganti unit / MAC MISMATCH / TOKEN INVALID → **Reset Pasangan Mesin**, lalu restart mesin.
 
+Disesuaikan dengan dokumentasi resmi absensindo.id/api-docs: jalur `/api/device/activate|cek|attendance|heartbeat`,
+`time` berformat HH:MM, `student_name` maks. 20 karakter, heartbeat `reason: ok`, mesin nonaktif → 403 `device_inactive`.
+Bila token tidak dikenal (`invalid_token`), mesin menghapus tokennya dan aktivasi ulang sendiri.
+
 Catatan: dokumen pabrik meminta HTTPS. Bila mesin menolak `http://`, gunakan HTTPS LAN (pasang-https-lan.bat,
 `https://IP-SERVER:8443`).

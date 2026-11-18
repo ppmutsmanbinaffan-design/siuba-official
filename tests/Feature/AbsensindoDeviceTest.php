@@ -63,11 +63,11 @@ class AbsensindoDeviceTest extends TestCase
             ->assertOk()->assertJsonPath('data.reason', 'device_verified')->assertJsonPath('data.status', 'active');
         $this->assertSame('1.5.5', AttendanceDevice::first()->firmware_version);
         $this->postJson('/api/device/heartbeat', ['uptime' => 120], $h)->assertOk()
-            ->assertJsonPath('data.server_time', '2026-11-16 09:00:00')->assertJsonPath('data.sync_interval', 60);
+            ->assertJsonPath('data.reason', 'ok')->assertJsonPath('data.server_time', '2026-11-16 09:00:00');
         $this->postJson('/api/device/heartbeat', ['uptime' => 1], ['Authorization' => 'Bearer salah'])->assertStatus(401)->assertJsonPath('data.reason', 'invalid_token');
 
         AttendanceDevice::first()->update(['is_active' => false]);
-        $this->postJson('/api/device/heartbeat', ['uptime' => 1], $h)->assertStatus(401)->assertJsonPath('data.reason', 'device_inactive');
+        $this->postJson('/api/device/heartbeat', ['uptime' => 1], $h)->assertStatus(403)->assertJsonPath('data.reason', 'device_inactive');
     }
 
     public function test_attendance_staff_offline_time_unknown_card_and_duplicate(): void
@@ -79,7 +79,7 @@ class AbsensindoDeviceTest extends TestCase
         // tap dari antrean offline mesin (jam lokal WIB)
         $this->postJson('/api/device/attendance', ['uid' => 'a1b2c3d4', 'scanned_at' => '2026-11-16 07:05:00'], $h)
             ->assertOk()->assertJsonPath('success', true)->assertJsonPath('data.reason', 'checkin_on_time')
-            ->assertJsonPath('data.type', 'datang')->assertJsonPath('data.student_name', 'Asep Tia');
+            ->assertJsonPath('data.type', 'datang')->assertJsonPath('data.student_name', 'Asep Tia')->assertJsonPath('data.time', '07:05');
         $this->assertSame('07:05', StaffAttendanceRecord::where('staff_profile_id', $staff->id)->firstOrFail()->check_in_at->format('H:i'));
 
         $this->postJson('/api/device/attendance', ['uid' => 'A1B2C3D4', 'scanned_at' => '2026-11-16 07:06:00'], $h)
