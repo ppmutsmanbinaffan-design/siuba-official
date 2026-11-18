@@ -1229,3 +1229,16 @@ Akun contoh memakai password awal yang sama. Bila tidak dipakai, nonaktifkan ata
 - akun contoh yang **pernah dipakai** hanya **dinonaktifkan** dan sesi loginnya dicabut, agar riwayat data utuh;
 - akun yang namanya sudah Anda ubah, atau yang sudah nonaktif, tidak disentuh. Aman diulang.
 - Hasilnya tercatat di Log Audit (`users.example_accounts_cleaned`). Uji tanpa mengubah: `--dry-run`.
+
+---
+
+# Update 35 — Sesi presensi dibuat otomatis
+
+Sebelumnya sesi presensi rutin (shalat, asrama, dll.) dan sesi KBM **hanya** terbentuk bila seseorang menekan
+tombol Generate Sesi setiap hari; penjadwal hanya membuat sesi latihan ekskul.
+- Perintah baru `php artisan attendance:generate-sessions --days=N` membuat sesi rutin & KBM dari jadwal.
+  Aman diulang (sesi yang sudah ada dilewati); KBM dilewati pada hari libur kalender akademik dan bila belum ada
+  tahun ajaran aktif.
+- Penjadwal menjalankannya **tiap jam** (menit ke-3) untuk hari ini & besok, sehingga tetap jalan walau komputer
+  server baru dinyalakan siang hari. `jalankan-siuba.bat` juga menjalankannya sekali saat start.
+- Penjadwal hanya berjalan bila `pasang-penjadwal-windows.bat` sudah dipasang (sekali, Run as administrator).

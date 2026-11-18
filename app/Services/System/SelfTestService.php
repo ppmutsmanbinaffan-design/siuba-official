@@ -164,7 +164,7 @@ class SelfTestService
             $recent = AttendanceSession::where('session_date', '>=', today()->subDays(7))->count();
             $add($g, 'sessions', 'Sesi presensi 7 hari terakhir', $recent > 0 ? 'pass' : 'warn',
                 $recent ? "{$recent} sesi dalam 7 hari terakhir." : 'Belum ada sesi presensi dalam 7 hari terakhir.',
-                $recent ? null : 'Pastikan jadwal rutin aktif dan penjadwal berjalan.');
+                $recent ? null : 'Isi Jadwal Rutin / Jadwal Pelajaran, lalu pastikan penjadwal terpasang (pasang-penjadwal-windows.bat) — sesi dibuat otomatis tiap jam.');
             $stale = AttendanceSession::where('status', 'open')->whereNotNull('end_at')->where('end_at', '<', now()->subHours(6))->count();
             $add($g, 'stale_sessions', 'Sesi lupa ditutup', $stale ? 'warn' : 'pass',
                 $stale ? "{$stale} sesi masih dibuka lebih dari 6 jam setelah selesai." : 'Tidak ada sesi yang lupa ditutup.',

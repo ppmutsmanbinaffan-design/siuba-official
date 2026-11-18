@@ -47,6 +47,8 @@ if errorlevel 1 (
 "%PHP%" artisan system:backup --notes="Backup otomatis saat aplikasi dinyalakan" --if-older-than=20
 :: Akun contoh bawaan versi lama: hapus yang tidak terpakai, nonaktifkan yang pernah dipakai (sesudah backup)
 "%PHP%" artisan siuba:hapus-akun-contoh
+:: Sesi presensi hari ini & besok dari jadwal (aman diulang)
+"%PHP%" artisan attendance:generate-sessions --days=2
 
 :: Ingatkan bila penjadwal otomatis (auto-close sesi, backup harian) belum dipasang
 schtasks /Query /TN "SIUBA Penjadwal" >nul 2>&1
