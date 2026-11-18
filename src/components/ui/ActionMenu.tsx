@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { MoreVertical } from 'lucide-react';
 
 export interface ActionMenuItem {
@@ -26,18 +27,44 @@ export const ActionMenu: React.FC<ActionMenuProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const dropRef = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState<{ top: number; left: number; up: boolean } | null>(null);
+
+  // Menu digambar di document.body (portal) dengan posisi tetap, agar tidak terpotong oleh tabel/kartu
+  // yang memakai overflow-hidden (dulu menu tidak terlihat bila tabel hanya berisi 1-2 baris).
+  const place = () => {
+    const btn = menuRef.current?.getBoundingClientRect();
+    if (!btn) return;
+    const width = 192; // w-48
+    const height = dropRef.current?.offsetHeight || items.length * 40 + 12;
+    const up = btn.bottom + 8 + height > window.innerHeight && btn.top - 8 - height > 0;
+    let left = align === 'right' ? btn.right - width : btn.left;
+    left = Math.max(8, Math.min(left, window.innerWidth - width - 8));
+    setPos({ top: up ? btn.top - 8 - height : btn.bottom + 8, left, up });
+  };
+
+  useLayoutEffect(() => {
+    if (isOpen) place();
+  }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
+    if (!isOpen) return;
     const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
+      const t = event.target as Node;
+      if (menuRef.current?.contains(t) || dropRef.current?.contains(t)) return;
+      setIsOpen(false);
     };
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
+    const close = () => setIsOpen(false);
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setIsOpen(false); };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', onKey);
+    window.addEventListener('resize', close);
+    window.addEventListener('scroll', close, true);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', onKey);
+      window.removeEventListener('resize', close);
+      window.removeEventListener('scroll', close, true);
     };
   }, [isOpen]);
 
@@ -54,11 +81,12 @@ export const ActionMenu: React.FC<ActionMenuProps> = ({
         {triggerLabel && <span className="text-xs font-semibold ml-1.5">{triggerLabel}</span>}
       </button>
 
-      {isOpen && (
+      {isOpen && createPortal(
         <div
-          className={`absolute ${
-            align === 'right' ? 'right-0' : 'left-0'
-          } mt-2 w-48 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-lg z-40 py-1.5 focus:outline-none animate-in fade-in zoom-in-95 duration-100`}
+          ref={dropRef}
+          role="menu"
+          style={{ position: 'fixed', top: pos?.top ?? -9999, left: pos?.left ?? -9999 }}
+          className={`w-48 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-lg z-[60] py-1.5 focus:outline-none animate-in fade-in zoom-in-95 duration-100`}
         >
           {items.map((item, idx) => (
             <button
@@ -78,7 +106,8 @@ export const ActionMenu: React.FC<ActionMenuProps> = ({
               <span>{item.label}</span>
             </button>
           ))}
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );
