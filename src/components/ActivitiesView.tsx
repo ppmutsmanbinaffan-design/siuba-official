@@ -45,6 +45,7 @@ interface ActivitiesViewProps {
   extracurriculars?: Extracurricular[];
   extracurricularMembers?: ExtracurricularMember[];
   studentGroups?: StudentGroup[];
+  halaqahs?: { id: number; name: string; is_active?: boolean }[];
   studentGroupMembers?: StudentGroupMember[];
   activityParticipants?: ActivityParticipant[];
   onToggleMethod: (activityId: number, method: 'manual' | 'qr' | 'rfid') => void;
@@ -65,6 +66,7 @@ export const ActivitiesView: React.FC<ActivitiesViewProps> = ({
   extracurriculars = [],
   extracurricularMembers = [],
   studentGroups = [],
+  halaqahs = [],
   studentGroupMembers = [],
   activityParticipants = [],
   onToggleMethod,
@@ -110,6 +112,7 @@ export const ActivitiesView: React.FC<ActivitiesViewProps> = ({
     dormitory_room_id: number | null;
     extracurricular_id: number | null;
     student_group_id: number | null;
+    halaqah_id: number | null;
     attendance_enabled: boolean;
     allow_manual: boolean;
     allow_qr: boolean;
@@ -132,6 +135,7 @@ export const ActivitiesView: React.FC<ActivitiesViewProps> = ({
     dormitory_room_id: safeDormitoryRooms[0]?.id || null,
     extracurricular_id: safeExtracurriculars[0]?.id || null,
     student_group_id: safeStudentGroups[0]?.id || null,
+    halaqah_id: halaqahs[0]?.id || null,
     attendance_enabled: true,
     allow_manual: true,
     allow_qr: true,
@@ -183,6 +187,7 @@ export const ActivitiesView: React.FC<ActivitiesViewProps> = ({
       dormitory_room_id: safeDormitoryRooms[0]?.id || null,
       extracurricular_id: safeExtracurriculars[0]?.id || null,
       student_group_id: safeStudentGroups[0]?.id || null,
+    halaqah_id: halaqahs[0]?.id || null,
       attendance_enabled: true,
       allow_manual: true,
       allow_qr: true,
@@ -211,6 +216,7 @@ export const ActivitiesView: React.FC<ActivitiesViewProps> = ({
       dormitory_room_id: act.dormitory_room_id || safeDormitoryRooms[0]?.id || null,
       extracurricular_id: act.extracurricular_id || safeExtracurriculars[0]?.id || null,
       student_group_id: act.student_group_id || safeStudentGroups[0]?.id || null,
+      halaqah_id: act.halaqah_id || halaqahs[0]?.id || null,
       attendance_enabled: act.attendance_enabled,
       allow_manual: act.allow_manual,
       allow_qr: act.allow_qr,
@@ -244,6 +250,7 @@ export const ActivitiesView: React.FC<ActivitiesViewProps> = ({
       dormitory_room_id: formData.participant_type === 'room' ? Number(formData.dormitory_room_id) : null,
       extracurricular_id: formData.participant_type === 'extracurricular' ? Number(formData.extracurricular_id) : null,
       student_group_id: formData.participant_type === 'custom_group' ? Number(formData.student_group_id) : null,
+      halaqah_id: formData.participant_type === 'halaqah' ? Number(formData.halaqah_id) : null,
       attendance_enabled: formData.attendance_enabled,
       allow_manual: formData.allow_manual,
       allow_qr: formData.allow_qr,
@@ -299,6 +306,12 @@ export const ActivitiesView: React.FC<ActivitiesViewProps> = ({
         const g = studentGroups.find((grp) => grp.id === act.student_group_id);
         return `Grup: ${g?.name || act.student_group_id}`;
       }
+      case 'halaqah': {
+        const h = halaqahs.find((x) => x.id === act.halaqah_id);
+        return `Halaqah: ${h?.name || act.halaqah_id}`;
+      }
+      case 'duty_roster':
+        return 'Petugas Piket (menu Duty Roster)';
       case 'individual':
         return 'Penugasan Perorangan';
       default:
@@ -431,6 +444,8 @@ export const ActivitiesView: React.FC<ActivitiesViewProps> = ({
               <option value="room">Per Kamar Asrama</option>
               <option value="extracurricular">Ekstrakurikuler</option>
               <option value="custom_group">Kelompok Khusus</option>
+              <option value="halaqah">Halaqah</option>
+              <option value="duty_roster">Petugas Piket</option>
             </select>
           </div>
         </div>
@@ -880,6 +895,8 @@ export const ActivitiesView: React.FC<ActivitiesViewProps> = ({
                       <option value="room">Berdasarkan Kamar Asrama</option>
                       <option value="extracurricular">Anggota Ekstrakurikuler</option>
                       <option value="custom_group">Anggota Kelompok Khusus</option>
+                      <option value="halaqah">Anggota Halaqah</option>
+                      <option value="duty_roster">Petugas Piket (diatur di menu Duty Roster)</option>
                     </select>
                   </div>
 
@@ -964,6 +981,31 @@ export const ActivitiesView: React.FC<ActivitiesViewProps> = ({
                         ))}
                       </select>
                     </div>
+                  )}
+
+                  {formData.participant_type === 'halaqah' && (
+                    <div>
+                      <label className="block font-bold text-slate-700 mb-1">Pilih Halaqah</label>
+                      {halaqahs.length === 0 ? (
+                        <p className="text-amber-700 text-xs font-semibold">Belum ada halaqah. Buat dulu di menu Halaqah Tahfidz &amp; Quran.</p>
+                      ) : (
+                        <select
+                          value={formData.halaqah_id || ''}
+                          onChange={(e) => setFormData({ ...formData, halaqah_id: Number(e.target.value) })}
+                          className="w-full p-2.5 bg-white border border-slate-200 text-slate-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 font-bold"
+                        >
+                          {halaqahs.map((h) => (
+                            <option key={h.id} value={h.id}>{h.name}</option>
+                          ))}
+                        </select>
+                      )}
+                    </div>
+                  )}
+
+                  {formData.participant_type === 'duty_roster' && (
+                    <p className="text-xs text-slate-600 bg-slate-50 border border-slate-200 rounded-xl p-2.5">
+                      Peserta tiap tanggal diambil dari santri yang dijadwalkan untuk kegiatan ini di menu <b>Duty Roster &amp; Piket Asrama</b>.
+                    </p>
                   )}
 
                   {formData.participant_type === 'custom_group' && (

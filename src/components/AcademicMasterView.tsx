@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { todayLocalDate } from '../utils/today';
 import { AcademicPeriodTab } from '../features/academic/AcademicPeriodTab';
+import { StaffTeachersWithoutAccount } from '../features/academic/StaffTeachersWithoutAccount';
 import { 
   AcademicCalendarEvent, 
   AcademicYear, 
@@ -47,6 +48,7 @@ interface Props {
   onAddCalendarEvent: (event: AcademicCalendarEvent) => void;
   onDeleteCalendarEvent?: (id: number) => void;
   onAcademicPeriodsChanged?: (years: AcademicYear[], semesters: Semester[]) => void;
+  onTeachersChanged?: () => void;
   onShowToast: (msg: string, type: 'success' | 'error' | 'info') => void;
 }
 
@@ -70,6 +72,7 @@ export const AcademicMasterView: React.FC<Props> = ({
   onAddCalendarEvent,
   onDeleteCalendarEvent,
   onAcademicPeriodsChanged,
+  onTeachersChanged,
   onShowToast,
 }) => {
   const safeSubjects = subjects || [];
@@ -528,6 +531,7 @@ export const AcademicMasterView: React.FC<Props> = ({
       {/* ========================================================================= */}
       {activeTab === 'teachers' && (
         <div className="space-y-4">
+          <StaffTeachersWithoutAccount knownTeacherCount={safeTeachers.length} onChanged={onTeachersChanged} onShowToast={onShowToast} />
           <div className="bg-white rounded-3xl border border-slate-200 p-4 shadow-sm flex flex-col md:flex-row items-center justify-between gap-3">
             <div className="relative w-full md:w-80">
               <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5 pointer-events-none" />

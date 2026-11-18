@@ -13,6 +13,12 @@ import {
 } from 'lucide-react';
 import { todayLocalDate } from '../utils/today';
 
+const PARTICIPANT_LABEL: Record<string, string> = {
+  all_students: 'Semua Santri', classroom: 'Per Kelas', dormitory: 'Per Asrama', room: 'Per Kamar',
+  extracurricular: 'Anggota Ekskul', custom_group: 'Kelompok Khusus', halaqah: 'Anggota Halaqah',
+  duty_roster: 'Petugas Piket', individual: 'Perorangan',
+};
+
 interface RoutineScheduleManagerViewProps {
   activities?: Activity[];
   routineSchedules?: RoutineSchedule[];
@@ -86,7 +92,7 @@ export const RoutineScheduleManagerView: React.FC<RoutineScheduleManagerViewProp
       end_time: endTime,
       auto_generate_session: true,
       location: act.location,
-      participant_type: act.participant_type,
+      // peserta mengikuti Master Kegiatan (jenis + target), jangan disalin tanpa targetnya
       is_active: true,
     };
 
@@ -205,7 +211,7 @@ export const RoutineScheduleManagerView: React.FC<RoutineScheduleManagerViewProp
                     <td className="p-3 font-mono font-bold text-slate-800">{sch.start_time} - {sch.present_until}</td>
                     <td className="p-3 font-mono text-amber-800">{sch.late_until}</td>
                     <td className="p-3 font-mono text-slate-500">{sch.end_time}</td>
-                    <td className="p-3 capitalize text-slate-600">{sch.participant_type || 'all'}</td>
+                    <td className="p-3 text-slate-600">{PARTICIPANT_LABEL[(sch.participant_target_id ? sch.participant_type : safeActivities.find((a) => a.id === sch.activity_id)?.participant_type) || 'all_students'] || 'Semua Santri'}</td>
                     <td className="p-3 text-center">
                       <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
                         Aktif

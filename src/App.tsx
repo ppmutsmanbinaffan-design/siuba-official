@@ -1717,6 +1717,7 @@ export function App() {
               extracurricularMembers={extracurricularMembers}
               studentGroups={studentGroups}
               studentGroupMembers={studentGroupMembers}
+              halaqahs={halaqahs}
               activityParticipants={activityParticipants}
               onToggleMethod={handleToggleActivityMethod}
               onAddActivity={handleAddActivity}
@@ -2133,6 +2134,7 @@ export function App() {
               academicYears={academicYears}
               semesters={semesters}
               onAcademicPeriodsChanged={(y, sm) => { setAcademicYears(y); setSemesters(sm); }}
+              onTeachersChanged={() => void refreshServerData(true)}
               subjects={subjects}
               teachers={teachers}
               teachingAssignments={teachingAssignments}

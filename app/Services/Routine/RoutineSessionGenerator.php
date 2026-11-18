@@ -101,8 +101,17 @@ class RoutineSessionGenerator
                 // Snapshot dynamic participants
                 $day = Carbon::parse($dateStr, 'Asia/Jakarta');
                 $gender = ['male' => 'L', 'female' => 'P'][$schedule->participant_gender ?? ''] ?? null;
-                $resolved = $schedule->participant_type && ($schedule->participant_type !== 'all_students' || $gender)
-                    ? $this->participantResolver->resolveTarget($activity, $schedule->participant_type, $schedule->participant_target_id, $gender, $day)
+                // Jadwal hanya memakai target sendiri bila targetnya lengkap; bila jenis peserta disalin tanpa
+                // target (mis. "per kelas" tanpa kelas), pakai peserta dari Master Kegiatan agar tidak jadi
+                // semua santri / kosong.
+                $type = $schedule->participant_type;
+                $hasOwnTarget = $type && (
+                    ($type === 'all_students' && $gender)
+                    || $type === 'duty_roster'
+                    || ($type !== 'all_students' && $schedule->participant_target_id)
+                );
+                $resolved = $hasOwnTarget
+                    ? $this->participantResolver->resolveTarget($activity, $type, $schedule->participant_target_id, $gender, $day)
                     : $this->participantResolver->resolve($activity, $day);
                 foreach ($resolved as $item) {
                     AttendanceSessionParticipant::create([
