@@ -1333,3 +1333,22 @@ Perubahan:
   sesi DRAF dari Jadwal Rutin yang jam mulainya tiba (`php artisan attendance:auto-open`). Sesi KBM/event tidak disentuh.
   Penutupan otomatis tetap lewat Auto-Close.
 - `jalankan-siuba.bat` juga menjalankan auto-open sekali saat start.
+
+---
+
+# Update 41 — Audit keterhubungan antar-menu
+
+Semua 45 menu dibuka otomatis (tanpa galat halaman / API). Tiga sambungan yang putus diperbaiki:
+
+1. **Jadwal Rutin → peserta sesi.** Jadwal dari menu Jadwal Rutin menyalin *jenis* peserta kegiatan (mis. "per kelas")
+   tanpa *targetnya*, sehingga sesi berisi **semua santri** (kelas/asrama/kamar) atau **kosong** (ekskul/halaqah/kelompok).
+   Pembuat sesi sekarang memakai peserta dari Master Kegiatan bila jadwal tidak punya target sendiri; Jadwal Rutin tidak lagi
+   menyalin jenis peserta, dan kolom Peserta menampilkan label yang benar. Berlaku untuk sesi yang dibuat setelah pembaruan.
+2. **Halaqah & Duty Roster → Master Kegiatan.** Mesin peserta sudah mendukung anggota Halaqah dan petugas Piket, tetapi formulir
+   Master Kegiatan tidak punya pilihannya. Ditambahkan "Anggota Halaqah" (pilih halaqah) dan "Petugas Piket".
+3. **Master SDM → Guru KBM.** Guru KBM = SDM yang punya akun login; SDM berjenis Guru tanpa akun tidak muncul di Master Akademik
+   dan tidak bisa diberi jadwal mengajar. Tab Guru kini menampilkan daftarnya dengan tombol **Buatkan akun guru** (username =
+   nomor SDM, password awal tampil sekali).
+
+Catatan: jadwal latihan ekskul di Presensi Pelatih hanya untuk kehadiran **pelatih**; kehadiran **santri** ekskul tetap lewat
+kegiatan (peserta "Anggota Ekskul") + jadwalnya.
