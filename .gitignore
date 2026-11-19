@@ -46,3 +46,7 @@ Thumbs.db
 /storage/app/backups/
 /storage/app/https/
 /storage/app/*.sql
+
+# Paket kirim ke hosting/GitHub (berisi password & data santri)
+kirim-hosting/
+kirim-github/

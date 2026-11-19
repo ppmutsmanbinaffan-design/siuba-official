@@ -1366,3 +1366,39 @@ kegiatan (peserta "Anggota Ekskul") + jadwalnya.
 - Diuji di Apache 2.4 + PHP 8.3 untuk kedua cara (Document Root = `public/` dan aplikasi utuh di `public_html`): login, token
   Bearer, mesin RFID lewat HTTP, redirect HTTPS dengan query, dan file rahasia (`.env`, `.git`, `vendor`, log) tidak terbaca.
 - Di komputer pesantren (`jalankan-siuba.bat`) file ini tidak dipakai.
+
+---
+
+# Update 43 — Persiapan pindah ke Hostinger
+
+- `siapkan-hosting.bat` (→ `scripts/hosting/siapkan-hosting.ps1`): menanyakan domain + database hPanel, lalu membuat di
+  `kirim-hosting\`: `.env` produksi (dari `.env` komputer ini; APP_KEY & NEXABSEN_GLOBAL_KEY tetap sama, APP_DEBUG=false,
+  DB_HOST=localhost, cookie aman) dan `siuba-database.sql` (mysqldump XAMPP, kolasi MariaDB baru diganti `utf8mb4_unicode_ci`).
+- `kirim-hosting\siuba-hosting.zip`: kode aplikasi siap unggah (vendor tanpa paket pengembangan, tanpa tes/sumber React/skrip
+  Windows, storage kosong). Diekstrak langsung ke `public_html`; `.htaccess` folder utama mengalihkan ke `public/`.
+- `TRUSTED_PROXIES` (opsional, `.env`): isi `*` bila situs memakai CDN/proxy agar IP pengguna (pembatas login) & HTTPS benar.
+- `kirim-hosting/` dan `kirim-github/` masuk `.gitignore` (berisi password & data santri).
+- Diuji: ZIP diekstrak ke public_html tiruan (Apache + MariaDB, DB_HOST=localhost, password dengan karakter khusus), impor SQL,
+  login + token, mesin Nexabsen lewat HTTP, `schedule:run` dengan path absolut seperti Cron Job hPanel.
+
+---
+
+# Update 44 — Strip "Pilar Pendidikan" lebih menarik + ikon bisa diganti dari CMS
+
+- Halaman depan: tiap pilar kini kartu dengan ikon dalam lencana hijau, nama pilar utuh (tidak terpotong lagi, mis.
+  "Berkarakter"), dan keterangan singkat opsional; efek naik saat disorot; 1 kolom di HP kecil, 2 di HP lebar, 4 di layar besar.
+- CMS (Teks Utama Hero → 4 Strip Pilar): tombol **Ganti ikon** membuka 46 ikon pilihan (masjid, Al-Qur'an, ilmu, adab, bahasa,
+  sains, olahraga, dll.) atau ketik nama ikon apa pun dari Material Symbols (gaya Rounded; font lokal sudah lengkap).
+  Kolom baru **Keterangan singkat** (maks. 60 huruf). Nilai ikon divalidasi `[a-z0-9_]`, teks di-escape saat ditampilkan.
+- CSS halaman statis dibangun ulang (`npm run build:static-pages`).
+
+---
+
+# Update 45 — Fasilitas Pesantren bisa ditambah, dihapus, dan diurutkan
+
+- CMS → 05. Fasilitas Pesantren: tombol **Tambah Fasilitas** (maks. 12), **Hapus** per kartu (klik dua kali: "Yakin hapus?",
+  minimal 1 tersisa), dan panah **atas/bawah** untuk mengubah urutan. Isian yang sedang diketik tidak hilang saat menambah/
+  menghapus/memindah. Nomor badge "01. …" ikut diperbarui otomatis. Jumlah sarana di judul & menu samping mengikuti.
+  Kartu yang judul dan fotonya kosong tidak ikut disimpan.
+- Halaman depan: kartu fasilitas mengikuti jumlah dari CMS, badge "N Sarana Terpadu" ikut berubah; teks di-escape dan URL foto
+  hanya http(s)/path lokal/data:image; foto dimuat lazy.
