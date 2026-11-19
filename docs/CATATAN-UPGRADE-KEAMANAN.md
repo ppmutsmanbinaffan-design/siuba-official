@@ -1380,3 +1380,14 @@ kegiatan (peserta "Anggota Ekskul") + jadwalnya.
 - `kirim-hosting/` dan `kirim-github/` masuk `.gitignore` (berisi password & data santri).
 - Diuji: ZIP diekstrak ke public_html tiruan (Apache + MariaDB, DB_HOST=localhost, password dengan karakter khusus), impor SQL,
   login + token, mesin Nexabsen lewat HTTP, `schedule:run` dengan path absolut seperti Cron Job hPanel.
+
+---
+
+# Update 44 — Strip "Pilar Pendidikan" lebih menarik + ikon bisa diganti dari CMS
+
+- Halaman depan: tiap pilar kini kartu dengan ikon dalam lencana hijau, nama pilar utuh (tidak terpotong lagi, mis.
+  "Berkarakter"), dan keterangan singkat opsional; efek naik saat disorot; 1 kolom di HP kecil, 2 di HP lebar, 4 di layar besar.
+- CMS (Teks Utama Hero → 4 Strip Pilar): tombol **Ganti ikon** membuka 46 ikon pilihan (masjid, Al-Qur'an, ilmu, adab, bahasa,
+  sains, olahraga, dll.) atau ketik nama ikon apa pun dari Material Symbols (gaya Rounded; font lokal sudah lengkap).
+  Kolom baru **Keterangan singkat** (maks. 60 huruf). Nilai ikon divalidasi `[a-z0-9_]`, teks di-escape saat ditampilkan.
+- CSS halaman statis dibangun ulang (`npm run build:static-pages`).

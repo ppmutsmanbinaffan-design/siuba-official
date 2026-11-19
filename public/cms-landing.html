@@ -1108,24 +1108,73 @@
       }).join('');
     }
 
-    // 2. Render 4 Pillars Strip Editor
+    // 2. Render 4 Pillars Strip Editor (ikon bisa dipilih, label + keterangan singkat)
+    var PILLAR_ICONS = 'menu_book auto_stories local_library history_edu mosque star_half volunteer_activism favorite self_improvement spa psychology neurology lightbulb emoji_objects school workspace_premium military_tech trophy verified shield translate language record_voice_over forum groups diversity_3 handshake family_restroom memory computer science biotech calculate rocket_launch eco park sports_soccer fitness_center palette brush music_note public flag balance gavel diamond'.split(' ');
+    function escAttr(v) { return String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;'); }
     function renderPillarsEditor(pillars) {
       currentPillars = (Array.isArray(pillars) && pillars.length > 0) ? pillars : [
-        { icon: 'menu_book', label: 'Tahfidzul Qur’an' },
-        { icon: 'translate', label: 'Dwi Bahasa Aktif' },
-        { icon: 'psychology', label: 'Adab & Kepemimpinan' },
-        { icon: 'memory', label: 'Sains & Teknologi IT' }
+        { icon: 'menu_book', label: 'Tahfidzul Qur’an', desc: 'Hafalan mutqin bersanad' },
+        { icon: 'translate', label: 'Dwi Bahasa Aktif', desc: 'Arab & Inggris sehari-hari' },
+        { icon: 'psychology', label: 'Adab & Kepemimpinan', desc: 'Akhlak mulia, siap memimpin' },
+        { icon: 'memory', label: 'Sains & Teknologi IT', desc: 'Cakap ilmu & teknologi' }
       ];
+      while (currentPillars.length < 4) currentPillars.push({ icon: 'star', label: '', desc: '' });
       var el = document.getElementById('cms-pillars-editor');
       if (!el) return;
-      el.innerHTML = currentPillars.map(function (item, idx) {
-        return '<div class="p-3 rounded-2xl bg-zinc-50 border border-zinc-200/80 space-y-2">' +
-          '<span class="text-[10px] font-extrabold uppercase text-forest-700 block">PILAR 0' + (idx + 1) + '</span>' +
-          '<input id="pillar-icon-' + idx + '" type="hidden" value="' + (item.icon || 'star') + '" />' +
-          '<input id="pillar-label-' + idx + '" type="text" value="' + (item.label || '').replace(/"/g, '&quot;') + '" class="w-full px-3 py-1.5 rounded-xl border border-zinc-300 bg-white font-bold" />' +
+      el.innerHTML = currentPillars.slice(0, 4).map(function (item, idx) {
+        var icon = /^[a-z0-9_]+$/.test(item.icon || '') ? item.icon : 'star';
+        return '<div class="p-3 rounded-2xl bg-zinc-50 border border-zinc-200/80 space-y-2" data-pillar="' + idx + '">' +
+          '<div class="flex items-center justify-between gap-2">' +
+            '<span class="text-[10px] font-extrabold uppercase text-forest-700">PILAR 0' + (idx + 1) + '</span>' +
+            '<button type="button" data-icon-toggle="' + idx + '" class="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-white border border-zinc-300 hover:border-forest-800 font-bold text-[11px] text-forest-900">' +
+              '<span class="material-symbols-rounded text-[14px]">swap_horiz</span>Ganti ikon</button>' +
+          '</div>' +
+          '<div class="flex items-center gap-2.5">' +
+            '<span class="grid place-items-center w-11 h-11 shrink-0 rounded-xl bg-gradient-to-br from-forest-700 to-forest-950 text-white shadow-sm">' +
+              '<span id="pillar-icon-preview-' + idx + '" class="material-symbols-rounded text-[23px]">' + icon + '</span></span>' +
+            '<input id="pillar-label-' + idx + '" type="text" maxlength="40" placeholder="Nama pilar" value="' + escAttr(item.label) + '" class="w-full min-w-0 px-3 py-1.5 rounded-xl border border-zinc-300 bg-white font-bold" />' +
+          '</div>' +
+          '<input id="pillar-desc-' + idx + '" type="text" maxlength="60" placeholder="Keterangan singkat (boleh kosong)" value="' + escAttr(item.desc) + '" class="w-full px-3 py-1.5 rounded-xl border border-zinc-300 bg-white" />' +
+          '<input id="pillar-icon-' + idx + '" type="hidden" value="' + icon + '" />' +
+          '<div id="pillar-icon-panel-' + idx + '" class="hidden space-y-2 pt-1">' +
+            '<div class="grid grid-cols-6 gap-1">' + PILLAR_ICONS.map(function (ic) {
+              return '<button type="button" title="' + ic + '" data-pick-icon="' + ic + '" data-idx="' + idx + '" class="grid place-items-center h-8 rounded-lg border ' + (ic === icon ? 'border-forest-800 bg-emerald-50' : 'border-transparent hover:bg-white hover:border-zinc-300') + ' text-forest-800">' +
+                '<span class="material-symbols-rounded text-[19px] pointer-events-none">' + ic + '</span></button>';
+            }).join('') + '</div>' +
+            '<input type="text" data-icon-custom="' + idx + '" placeholder="atau ketik nama ikon, mis. mosque" class="w-full px-3 py-1.5 rounded-xl border border-zinc-300 bg-white font-mono text-[11px]" />' +
+            '<p class="text-[10px] text-zinc-500">Semua nama ikon: fonts.google.com/icons (gaya Rounded).</p>' +
+          '</div>' +
         '</div>';
       }).join('');
     }
+    function setPillarIcon(idx, ic) {
+      if (!/^[a-z0-9_]+$/.test(ic || '')) return;
+      var h = document.getElementById('pillar-icon-' + idx);
+      var pv = document.getElementById('pillar-icon-preview-' + idx);
+      if (h) h.value = ic;
+      if (pv) pv.textContent = ic;
+      var panel = document.getElementById('pillar-icon-panel-' + idx);
+      if (panel) panel.querySelectorAll('[data-pick-icon]').forEach(function (b) {
+        var on = b.getAttribute('data-pick-icon') === ic;
+        b.classList.toggle('border-forest-800', on); b.classList.toggle('bg-emerald-50', on); b.classList.toggle('border-transparent', !on);
+      });
+    }
+    document.addEventListener('click', function (e) {
+      var t = e.target.closest && e.target.closest('[data-icon-toggle],[data-pick-icon]');
+      if (!t) return;
+      if (t.hasAttribute('data-icon-toggle')) {
+        var panel = document.getElementById('pillar-icon-panel-' + t.getAttribute('data-icon-toggle'));
+        if (panel) panel.classList.toggle('hidden');
+      } else {
+        setPillarIcon(t.getAttribute('data-idx'), t.getAttribute('data-pick-icon'));
+      }
+    });
+    document.addEventListener('input', function (e) {
+      var idx = e.target && e.target.getAttribute && e.target.getAttribute('data-icon-custom');
+      if (idx === null || idx === undefined) return;
+      var v = e.target.value.trim().toLowerCase().replace(/[\s-]+/g, '_');
+      if (v) setPillarIcon(idx, v);
+    });
 
     // 3. Render 4 Advantages Editor
     function renderAdvantagesEditor(advantages) {
@@ -1717,10 +1766,11 @@
             card_caption: getVal('slide-caption-' + idx)
           };
         }),
-        pillars: currentPillars.map(function (_, idx) {
+        pillars: currentPillars.slice(0, 4).map(function (_, idx) {
           return {
             icon: getVal('pillar-icon-' + idx),
-            label: getVal('pillar-label-' + idx)
+            label: getVal('pillar-label-' + idx),
+            desc: getVal('pillar-desc-' + idx)
           };
         }),
         advantages: currentAdvantages.map(function (_, idx) {
