@@ -1183,7 +1183,7 @@
         <p id="cms-facilities-desc" class="text-xs text-zinc-600 leading-relaxed max-w-2xl">
           Lingkungan belajar dan mukim yang representatif, bersih, aman, serta dilengkapi integrasi reader kartu pintar RFID SIUBA di setiap titik kegiatan.
         </p>
-        <span class="bg-white border border-emerald-900/15 text-forest-900 text-[11px] font-extrabold px-3 py-1.5 rounded-full shrink-0 w-fit">
+        <span id="cms-facilities-count" class="bg-white border border-emerald-900/15 text-forest-900 text-[11px] font-extrabold px-3 py-1.5 rounded-full shrink-0 w-fit">
           6 Sarana Terpadu
         </span>
       </div>
@@ -2359,20 +2359,24 @@
         setTxt('cms-facilities-desc', p.facilities_desc);
         if (Array.isArray(p.facilities) && p.facilities.length > 0) {
           var facGrid = document.getElementById('cms-facilities-grid');
+          var facEsc = function (v) { var d = document.createElement('div'); d.textContent = v == null ? '' : String(v); return d.innerHTML.replace(/"/g, '&quot;'); };
           if (facGrid) {
             facGrid.innerHTML = p.facilities.map(function (item) {
+              var img = String(item.image || '');
+              var safeImg = /^(https?:\/\/|\/|data:image\/)/i.test(img) ? facEsc(img) : '';
               return '<div class="bg-white rounded-3xl border border-zinc-200/80 overflow-hidden shadow-xs group">' +
-                '<div class="relative h-44 overflow-hidden">' +
-                  '<img src="' + (item.image || '') + '" alt="' + (item.title || '') + '" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" />' +
-                  '<span class="absolute top-3 left-3 bg-limeaccent-400 text-forest-950 text-[11px] font-extrabold px-3 py-1 rounded-full">' + (item.badge || '') + '</span>' +
+                '<div class="relative h-44 overflow-hidden bg-zinc-100">' +
+                  (safeImg ? '<img src="' + safeImg + '" alt="' + facEsc(item.title) + '" loading="lazy" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" />' : '') +
+                  (item.badge ? '<span class="absolute top-3 left-3 bg-limeaccent-400 text-forest-950 text-[11px] font-extrabold px-3 py-1 rounded-full">' + facEsc(item.badge) + '</span>' : '') +
                 '</div>' +
                 '<div class="p-5 space-y-1.5">' +
-                  '<h4 class="font-extrabold text-base text-forest-950">' + (item.title || '') + '</h4>' +
-                  '<p class="text-xs text-zinc-600 leading-relaxed">' + (item.desc || '') + '</p>' +
+                  '<h4 class="font-extrabold text-base text-forest-950">' + facEsc(item.title) + '</h4>' +
+                  '<p class="text-xs text-zinc-600 leading-relaxed">' + facEsc(item.desc) + '</p>' +
                 '</div>' +
               '</div>';
             }).join('');
           }
+          setTxt('cms-facilities-count', p.facilities.length + ' Sarana Terpadu');
         }
 
         // Galeri & Video Profil
